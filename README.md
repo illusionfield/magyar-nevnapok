@@ -7,10 +7,11 @@ Forrásoldalak:
 - `http://corpus.nytud.hu/utonevportal/html/nem_n%C5%91i.html`
 - `http://corpus.nytud.hu/utonevportal/html/nem_f%C3%A9rfi.html`
 
-## Két lépésből áll
+## Három részből áll
 
 1. scraper: HTML → JSON
-2. generátor: JSON → ICS
+2. legacy primer registry: régi ICS → JSON jegyzék
+3. generátor: JSON → ICS
 
 ## Mit csinál?
 
@@ -75,6 +76,52 @@ Látható böngészővel:
   npm run scrape -- --headful
 ```
 
+## Legacy primer registry és diff-riport
+
+A régi, tisztított `.local/nevnapok_tisztitott_regi_nevkeszlet.ics` fájl helyi, nem követett bemenet marad. Ebből külön, már követett primer-jegyzék építhető:
+
+```bash
+  npm run build-primary-registry
+```
+
+Alapértelmezett kimenet:
+
+```text
+  data/legacy-primary-registry.json
+```
+
+Ez a jegyzék napokra bontva eltárolja:
+
+- `month`
+- `day`
+- `monthDay`
+- `names`
+- `preferredNames` — legfeljebb 2 név, a legacy sorrend szerint
+- `sourceFile`
+
+A scraper ezt a követett JSON-fájlt használja a `primaryLegacy` jelölésekhez. A `.local/...ics` fájlt nem kell és nem is érdemes verziókezelésbe venni.
+
+A legacy primer egyezőség külön riportáló teszttel ellenőrizhető:
+
+```bash
+  npm run test:primary-registry
+```
+
+Ez összeveti:
+
+- a `data/legacy-primary-registry.json` napjait,
+- az aktuális `output/nevnapok.json` napi névhalmazát,
+- az abból képzett `primaryLegacy` jelöléseket,
+- és a számított, ranking alapú `primaryRanked` jelöléseket is.
+
+A teszt diff-riportot ír ide:
+
+```text
+  output/primary-registry-diff.json
+```
+
+A riportoló teszt parse- vagy szerkezeti hibánál hibával áll le, tartalmi eltérésnél viszont csak összesíti az egyezőségi arányt és a különbségeket. A konzolra a legnagyobb primereltérésű napok rövid top-listáját is kiírja.
+
 ## Hivatalos névjegyzék-ellenőrző teszt
 
 Van beépített összehasonlító teszt a HUN-REN hivatalos utónévlistáihoz:
@@ -135,13 +182,35 @@ Részlet egy rekordból:
       "month": 1,
       "day": 1,
       "monthDay": "01-01",
-      "primary": true
+      "primary": true,
+      "primaryLegacy": true,
+      "primaryRanked": false,
+      "legacyOrder": 1,
+      "ranking": {
+        "dayOrder": 3,
+        "overallRank": 2,
+        "newbornRank": 2,
+        "overallWeight": 11,
+        "newbornWeight": 12,
+        "score": 23
+      }
     },
     {
       "month": 5,
       "day": 14,
       "monthDay": "05-14",
-      "primary": false
+      "primary": false,
+      "primaryLegacy": false,
+      "primaryRanked": true,
+      "legacyOrder": null,
+      "ranking": {
+        "dayOrder": 1,
+        "overallRank": 2,
+        "newbornRank": 2,
+        "overallWeight": 7,
+        "newbornWeight": 7,
+        "score": 14
+      }
     }
   ],
   "nicknames": ["Ábelka", "Ábi", "Abi", "Ábika"],
@@ -213,12 +282,24 @@ Részlet egy rekordból:
 
 ### `days` mező
 
-A `days` most nem sima `MM-DD` stringlista, hanem objektumlista:
+A `days` nem sima `MM-DD` stringlista, hanem objektumlista. Napokra bontva külön megmarad:
 
 - `month`
 - `day`
 - `monthDay`
-- `primary`
+- `primary` — effektív elsődleges névnap
+- `primaryLegacy` — a legacy primerjegyzék alapján elsődleges
+- `primaryRanked` — napi ranking alapján elsődleges
+- `legacyOrder` — a legacy preferált sorrend helye, ha van
+- `ranking`
+  - `dayOrder`
+  - `overallRank`
+  - `newbornRank`
+  - `overallWeight`
+  - `newbornWeight`
+  - `score`
+
+A `primary` szabálya: ha az adott napra van legacy találat, akkor a `primaryLegacy` érvényesül, egyébként a `primaryRanked`.
 
 A `monthDay` pluszban maradt benne, mert szűréshez és kulcsképzéshez praktikus, miközben a numerikus `month` / `day` mezők is megvannak.
 
@@ -351,6 +432,56 @@ Külön esemény minden névhez:
   npm run ics -- --mode separate
 ```
 
+Csak az elsődleges névnapok, naponként együtt:
+
+```bash
+  npm run ics -- --mode primary-together
+```
+
+Csak az elsődleges névnapok, naponként együtt, a maradék nevekkel a leírásban:
+
+```bash
+  npm run ics -- --mode primary-together-with-rest
+```
+
+Csak az elsődleges névnapok, névenként külön:
+
+```bash
+  npm run ics -- --mode primary-separate
+```
+
+Az elsődleges nevek külön, a maradék ugyanarra a napra csoportosítva:
+
+```bash
+  npm run ics -- --mode primary-separate-with-rest
+```
+
+#### 1/a. Melyik primerforrást vegye figyelembe
+
+Alapértelmezett, legacy-first viselkedés:
+
+```bash
+  npm run ics -- --primary-source default
+```
+
+Csak a legacy primerjegyzéket használja:
+
+```bash
+  npm run ics -- --primary-source legacy
+```
+
+Csak a napi rankinget használja:
+
+```bash
+  npm run ics -- --primary-source ranked
+```
+
+A legacy és a ranking unióját használja, legfeljebb 2 névvel:
+
+```bash
+  npm run ics -- --primary-source either
+```
+
 #### 2. Legyen-e leírás, és mennyire legyen részletes
 
 Leírás nélkül:
@@ -396,6 +527,41 @@ Alapértelmezés:
 - `--description-format text`
 
 Az ICS-be írt szabad szövegek magyarul kerülnek be, beleértve a leírás mezőcímeit és a naptárleírást is.
+
+A `--description detailed --description-format text` kimenet plain textre optimalizált, keskeny nézetben is olvasható blokkos formát kap. Például:
+
+```text
+  Az év napja
+  • 59. nap.
+  • Szökőévben: 60. nap.
+
+  ----[ Dénes (férfi) ]----
+  További napjai
+  • ápr. 6. • okt. 9.
+  • nov. 17. • dec. 2.
+  • dec. 26. • dec. 30.
+
+  Eredete
+  • A görög Dionüszosz névből származik
+
+  Jelentése
+  • Dionüszosznak ajánlott
+
+  Becézései
+  • Déneske • Dinci • Dini
+  • Dinike
+
+  Rokon nevek
+  • Denisz • Denissza • Dienes
+  • Gyenes
+
+  Gyakoriság
+  • Az újszülötteknél hasonlóan gyakori.
+  • Össznépesség: közepesen gyakori.
+  • Újszülöttek: közepesen gyakori.
+```
+
+Grouped módban a névblokkok között egy üres sor marad, hogy a leírás vizuálisan ne folyjon össze.
 
 #### 3. Leírásban szerepeljen-e, hogy ugyanaz a név még mely napokon van
 
@@ -463,6 +629,21 @@ A leírásban:
   npm run ics -- --ordinal-day description
 ```
 
+`--description detailed` mellett ez a leírás elején külön blokkot ad:
+
+```text
+  Az év napja
+  • 1. nap.
+```
+
+Szökőéves eltérésnél:
+
+```text
+  Az év napja
+  • 59. nap.
+  • Szökőévben: 60. nap.
+```
+
 ## Gyakoribb példák
 
 Naponta egy esemény, tömör HTML leírással:
@@ -490,14 +671,21 @@ Naponta egy esemény, szökőéves eltolással 2050-ig, az év sorszámával a c
 Teljes build:
 
 ```bash
+npm run build-primary-registry
 npm run scrape -- --output output/nevnapok.json
 
 npm run ics -- \
   --input output/nevnapok.json --output output/nevnapok.ics \
-  --leap-mode hungarian-until-2050 --from-year 2025 --until-year 2050 \
-  --description detailed --description-format text --include-other-days --ordinal-day description
+  --mode primary-separate-with-rest --primary-source default \
+  --leap-mode hungarian-until-2050 --from-year 2025 --until-year 2040 \
+  --description detailed --description-format text --ordinal-day description --include-other-days
 ```
 
 ## Megjegyzés a fájlméretről
 
-A `--mode separate` és a `--leap-mode hungarian-until-2050` együtt nagyon nagy ICS-fájlt eredményezhet, mert minden név minden évre külön esemény lesz.
+A jelenlegi szökőéves mód nem évenként duplikálja az eseményeket, hanem `RRULE` + `EXDATE` + `RDATE` kombinációval dolgozik.
+
+Ez azt jelenti, hogy:
+
+- `--mode together` esetén továbbra is csak napi eseményszám keletkezik,
+- `--mode separate` esetén a fájl még mindig jelentősen nagyobb lehet, de már nem azért, mert minden év külön eseményt kap.

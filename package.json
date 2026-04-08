@@ -7,9 +7,11 @@
   "scripts": {
     "start": "node index.js",
     "scrape": "node index.js",
+    "build-primary-registry": "node build-primary-registry.js",
     "ics": "node generate-ics.js",
     "edges": "node generate-formalized-edges.js",
-    "test": "node test/compare-official-name-lists.js"
+    "test": "node test/compare-official-name-lists.js",
+    "test:primary-registry": "node test/compare-primary-registry.js"
   },
   "author": "illusionfield <illusionfield@gmail.com>",
   "license": "MIT License",

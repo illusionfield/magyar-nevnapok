@@ -1,12 +1,18 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import puppeteer from "puppeteer";
+import {
+  buildPrimaryRegistryLookup,
+  loadPrimaryRegistry,
+  normalizeNameForMatch,
+} from "./lib/primary-registry.js";
 
 const FEMALE_INDEX_URL = "http://corpus.nytud.hu/utonevportal/html/nem_n%C5%91i.html";
 const MALE_INDEX_URL = "http://corpus.nytud.hu/utonevportal/html/nem_f%C3%A9rfi.html";
 const DEFAULT_OUTPUT_PATH = path.join(process.cwd(), "output", "nevnapok.json");
 const DEFAULT_CONCURRENCY = 8;
 const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_PRIMARY_REGISTRY = path.join(process.cwd(), "data", "legacy-primary-registry.json");
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 const FREQUENCY_SCALE = [
   { labelHu: "néhány előfordulás", rank: 1, tag: "1-few" },
@@ -24,12 +30,18 @@ const FREQUENCY_SCALE_MAP = new Map(
 
 const args = parseArgs(process.argv.slice(2));
 const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_OUTPUT_PATH);
+const primaryRegistryPath = path.resolve(
+  process.cwd(),
+  args.primaryRegistry ?? DEFAULT_PRIMARY_REGISTRY
+);
 const concurrency = args.concurrency ?? DEFAULT_CONCURRENCY;
 const limit = args.limit ?? null;
 
 async function main() {
   console.log("Starting scrape from gender index pages.");
 
+  const primaryRegistry = await loadPrimaryRegistryOrThrow(primaryRegistryPath);
+  const primaryRegistryLookup = buildPrimaryRegistryLookup(primaryRegistry.payload.days);
   const browser = await puppeteer.launch({
     headless: args.headful ? false : true,
   });
@@ -51,11 +63,13 @@ async function main() {
       `Discovered ${sortedDiscoveredNames.length} names, scraping ${selectedNames.length} detail page(s) with concurrency ${concurrency}.`
     );
 
-    const names = await scrapeNames(browser, selectedNames, concurrency);
+    const scrapedNames = await scrapeNames(browser, selectedNames, concurrency);
+    const names = applyPrimaryAssignments(scrapedNames, primaryRegistryLookup);
     const namedayAssignmentCount = names.reduce((sum, entry) => sum + entry.days.length, 0);
+    const primaryAssignmentStats = collectPrimaryAssignmentStats(names);
 
     const payload = {
-      version: 4,
+      version: 5,
       generatedAt: new Date().toISOString(),
       source: {
         provider: "HUN-REN Nyelvtudományi Kutatóközpont Utónévportál",
@@ -63,12 +77,19 @@ async function main() {
           female: FEMALE_INDEX_URL,
           male: MALE_INDEX_URL,
         },
+        primaryRegistry: {
+          path: path.relative(process.cwd(), primaryRegistry.path),
+          sourceFile: primaryRegistry.payload.sourceFile ?? null,
+          generatedAt: primaryRegistry.payload.generatedAt ?? null,
+          version: primaryRegistry.payload.version ?? null,
+        },
       },
       stats: {
         nameCount: names.length,
         femaleCount: names.filter((entry) => entry.gender === "female").length,
         maleCount: names.filter((entry) => entry.gender === "male").length,
         namedayAssignmentCount,
+        ...primaryAssignmentStats,
       },
       names,
     };
@@ -346,11 +367,7 @@ function normalizeNamedays(values) {
   for (const value of values) {
     const parsed = parseMonthDayValue(value);
 
-    if (!parsed) {
-      continue;
-    }
-
-    if (seen.has(parsed.monthDay)) {
+    if (!parsed || seen.has(parsed.monthDay)) {
       continue;
     }
 
@@ -358,12 +375,232 @@ function normalizeNamedays(values) {
       month: parsed.month,
       day: parsed.day,
       monthDay: parsed.monthDay,
-      primary: normalized.length === 0,
     });
     seen.add(parsed.monthDay);
   }
 
   return normalized;
+}
+
+async function loadPrimaryRegistryOrThrow(filePath) {
+  try {
+    return await loadPrimaryRegistry(filePath);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      throw new Error(
+        `Primary registry not found at ${filePath}. Run: npm run build-primary-registry`
+      );
+    }
+
+    throw error;
+  }
+}
+
+function applyPrimaryAssignments(names, primaryRegistryLookup) {
+  const decoratedNames = names.map((entry) => ({
+    ...entry,
+    days: Array.isArray(entry.days) ? entry.days.map((day) => ({ ...day })) : [],
+  }));
+  const dayBuckets = buildDayBuckets(decoratedNames);
+
+  for (const [monthDay, bucket] of dayBuckets.entries()) {
+    const legacyEntry = primaryRegistryLookup.get(monthDay) ?? null;
+    const rankingData = buildDayRankingData(bucket, legacyEntry);
+    const hasLegacyMatch = bucket.some((entry) => rankingData.legacyOrderByKey.has(entry.key));
+
+    for (const bucketEntry of bucket) {
+      const ranking = rankingData.byKey.get(bucketEntry.key);
+      const legacyOrder = rankingData.legacyOrderByKey.get(bucketEntry.key) ?? null;
+      const primaryLegacy = Number.isInteger(legacyOrder);
+      const primaryRanked = rankingData.primaryRankedKeys.has(bucketEntry.key);
+
+      bucketEntry.nameEntry.days[bucketEntry.dayIndex] = {
+        ...bucketEntry.nameEntry.days[bucketEntry.dayIndex],
+        primary: hasLegacyMatch ? primaryLegacy : primaryRanked,
+        primaryLegacy,
+        primaryRanked,
+        legacyOrder,
+        ranking,
+      };
+    }
+  }
+
+  return decoratedNames;
+}
+
+function buildDayBuckets(names) {
+  const buckets = new Map();
+
+  for (const nameEntry of names) {
+    const overallRank = getFrequencyRank(nameEntry.frequency?.overall);
+    const newbornRank = getFrequencyRank(nameEntry.frequency?.newborns);
+
+    for (const [dayIndex, dayEntry] of nameEntry.days.entries()) {
+      const bucket = buckets.get(dayEntry.monthDay) ?? [];
+      bucket.push({
+        key: `${nameEntry.name}|${dayEntry.monthDay}`,
+        matchName: normalizeNameForMatch(nameEntry.name),
+        nameEntry,
+        dayIndex,
+        overallRank,
+        newbornRank,
+      });
+      buckets.set(dayEntry.monthDay, bucket);
+    }
+  }
+
+  return buckets;
+}
+
+function buildDayRankingData(dayEntries, legacyEntry) {
+  const byKey = new Map();
+  const legacyOrderByKey = new Map();
+  const overallSorted = [...dayEntries].sort(compareByOverallRanking);
+  const newbornSorted = [...dayEntries].sort(compareByNewbornRanking);
+  const combinedSorted = [...dayEntries].sort(compareByCombinedRanking);
+  const total = dayEntries.length;
+
+  for (const [index, entry] of overallSorted.entries()) {
+    const current = byKey.get(entry.key) ?? {
+      dayOrder: null,
+      overallRank: entry.overallRank,
+      newbornRank: entry.newbornRank,
+      overallWeight: 0,
+      newbornWeight: 0,
+      score: 0,
+    };
+
+    current.overallWeight = total - index;
+    current.overallRank = entry.overallRank;
+    current.newbornRank = entry.newbornRank;
+    byKey.set(entry.key, current);
+  }
+
+  for (const [index, entry] of newbornSorted.entries()) {
+    const current = byKey.get(entry.key) ?? {
+      dayOrder: null,
+      overallRank: entry.overallRank,
+      newbornRank: entry.newbornRank,
+      overallWeight: 0,
+      newbornWeight: 0,
+      score: 0,
+    };
+
+    current.newbornWeight = total - index;
+    current.overallRank = entry.overallRank;
+    current.newbornRank = entry.newbornRank;
+    byKey.set(entry.key, current);
+  }
+
+  for (const [index, entry] of combinedSorted.entries()) {
+    const current = byKey.get(entry.key) ?? {
+      dayOrder: null,
+      overallRank: entry.overallRank,
+      newbornRank: entry.newbornRank,
+      overallWeight: 0,
+      newbornWeight: 0,
+      score: 0,
+    };
+
+    current.dayOrder = index + 1;
+    current.score = current.overallWeight + current.newbornWeight;
+    byKey.set(entry.key, current);
+  }
+
+  if (legacyEntry?.preferredNameOrder instanceof Map) {
+    for (const entry of dayEntries) {
+      const legacyOrder = legacyEntry.preferredNameOrder.get(entry.matchName);
+
+      if (Number.isInteger(legacyOrder)) {
+        legacyOrderByKey.set(entry.key, legacyOrder);
+      }
+    }
+  }
+
+  const rankedPrimaryCount = legacyEntry?.preferredNames?.length >= 2 ? 2 : 1;
+  const primaryRankedKeys = new Set(
+    combinedSorted.slice(0, Math.min(rankedPrimaryCount, combinedSorted.length)).map((entry) => entry.key)
+  );
+
+  return {
+    byKey,
+    legacyOrderByKey,
+    primaryRankedKeys,
+  };
+}
+
+function collectPrimaryAssignmentStats(names) {
+  const stats = {
+    primaryAssignmentCount: 0,
+    primaryLegacyAssignmentCount: 0,
+    primaryRankedAssignmentCount: 0,
+    primaryDayCount: 0,
+    primaryLegacyDayCount: 0,
+    primaryRankedDayCount: 0,
+  };
+  const primaryDays = new Set();
+  const legacyDays = new Set();
+  const rankedDays = new Set();
+
+  for (const nameEntry of names) {
+    for (const dayEntry of nameEntry.days) {
+      if (dayEntry.primary) {
+        stats.primaryAssignmentCount += 1;
+        primaryDays.add(dayEntry.monthDay);
+      }
+
+      if (dayEntry.primaryLegacy) {
+        stats.primaryLegacyAssignmentCount += 1;
+        legacyDays.add(dayEntry.monthDay);
+      }
+
+      if (dayEntry.primaryRanked) {
+        stats.primaryRankedAssignmentCount += 1;
+        rankedDays.add(dayEntry.monthDay);
+      }
+    }
+  }
+
+  stats.primaryDayCount = primaryDays.size;
+  stats.primaryLegacyDayCount = legacyDays.size;
+  stats.primaryRankedDayCount = rankedDays.size;
+
+  return stats;
+}
+
+function compareByCombinedRanking(left, right) {
+  return (
+    compareRankDesc(left.overallRank, right.overallRank) ||
+    compareRankDesc(left.newbornRank, right.newbornRank) ||
+    collator.compare(left.nameEntry.name, right.nameEntry.name)
+  );
+}
+
+function compareByOverallRanking(left, right) {
+  return (
+    compareRankDesc(left.overallRank, right.overallRank) ||
+    compareRankDesc(left.newbornRank, right.newbornRank) ||
+    collator.compare(left.nameEntry.name, right.nameEntry.name)
+  );
+}
+
+function compareByNewbornRanking(left, right) {
+  return (
+    compareRankDesc(left.newbornRank, right.newbornRank) ||
+    compareRankDesc(left.overallRank, right.overallRank) ||
+    collator.compare(left.nameEntry.name, right.nameEntry.name)
+  );
+}
+
+function compareRankDesc(left, right) {
+  const leftValue = Number.isInteger(left) ? left : Number.NEGATIVE_INFINITY;
+  const rightValue = Number.isInteger(right) ? right : Number.NEGATIVE_INFINITY;
+
+  return rightValue - leftValue;
+}
+
+function getFrequencyRank(entry) {
+  return Number.isInteger(entry?.rank) ? entry.rank : null;
 }
 
 function uniqueNames(values) {
@@ -1074,6 +1311,17 @@ function parseArgs(argv) {
 
     if (arg.startsWith("--output=")) {
       options.output = arg.slice("--output=".length);
+      continue;
+    }
+
+    if (arg === "--primary-registry" && argv[index + 1]) {
+      options.primaryRegistry = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--primary-registry=")) {
+      options.primaryRegistry = arg.slice("--primary-registry=".length);
       continue;
     }
 

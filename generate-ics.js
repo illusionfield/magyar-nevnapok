@@ -6,7 +6,7 @@ const DEFAULT_INPUT_PATH = path.join(process.cwd(), "output", "nevnapok.json");
 const DEFAULT_OUTPUT_PATH = path.join(process.cwd(), "output", "nevnapok.ics");
 const DEFAULT_CALENDAR_NAME = "Névnapok";
 const CURRENT_YEAR = new Date().getFullYear();
-const PLAIN_DETAIL_LABEL_WIDTH = 19;
+const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 
 const args = parseArgs(process.argv.slice(2));
 const options = normalizeOptions(args);
@@ -22,17 +22,23 @@ async function main() {
     : buildDaysFromNames(payload.names);
   const sourceNameMap = buildNameMapFromSourceDays(sourceDays);
 
-  const events =
+  const eventBuildResult =
     options.leapMode === "hungarian-until-2050"
       ? buildLeapAwareRecurringEvents(sourceDays, sourceNameMap, options)
       : buildRecurringEvents(sourceDays, sourceNameMap, options);
-
+  const events = eventBuildResult.events;
   const calendarText = serializeCalendar(events, payload, options);
 
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(outputPath, calendarText, "utf8");
 
   console.log(`Saved ${events.length} event(s) to ${outputPath}`);
+
+  if (eventBuildResult.skippedEmptyPrimaryDays > 0) {
+    console.log(
+      `Skipped ${eventBuildResult.skippedEmptyPrimaryDays} day(s) because the selected primary source did not produce any primary names.`
+    );
+  }
 }
 
 function normalizeSourceDays(days) {
@@ -80,6 +86,16 @@ function buildDaysFromNames(names) {
         relatedNames: Array.isArray(nameEntry.relatedNames) ? nameEntry.relatedNames : [],
         frequency: nameEntry.frequency ?? null,
         meta: nameEntry.meta ?? null,
+        dayMeta: {
+          month: dayEntry.month,
+          day: dayEntry.day,
+          monthDay: dayEntry.monthDay,
+          primary: dayEntry.primary === true,
+          primaryLegacy: dayEntry.primaryLegacy === true,
+          primaryRanked: dayEntry.primaryRanked === true,
+          legacyOrder: Number.isInteger(dayEntry.legacyOrder) ? dayEntry.legacyOrder : null,
+          ranking: normalizeRanking(dayEntry.ranking),
+        },
       });
 
       dayMap.set(dayEntry.monthDay, bucket);
@@ -89,7 +105,7 @@ function buildDaysFromNames(names) {
   return Array.from(dayMap.values())
     .map((day) => ({
       ...day,
-      names: day.names.sort((left, right) => left.name.localeCompare(right.name, "hu")),
+      names: day.names.sort((left, right) => collator.compare(left.name, right.name)),
     }))
     .sort((left, right) => left.monthDay.localeCompare(right.monthDay));
 }
@@ -114,6 +130,7 @@ function buildNameMapFromSourceDays(sourceDays) {
 
 function buildExplicitEvents(sourceDays, sourceNameMap, options) {
   const events = [];
+  let skippedEmptyPrimaryDays = 0;
 
   for (let year = options.fromYear; year <= options.untilYear; year += 1) {
     const actualDays = sourceDays
@@ -135,41 +152,29 @@ function buildExplicitEvents(sourceDays, sourceNameMap, options) {
     const yearNameMap = buildYearNameMap(actualDays);
 
     for (const actualDay of actualDays) {
-      if (options.mode === "together") {
-        events.push(
-          buildGroupedEvent({
-            sourceDay: actualDay.sourceDay,
-            actualDate: actualDay.actualDate,
-            sourceNameMap,
-            actualNameMap: yearNameMap,
-            options,
-            year,
-          })
-        );
-        continue;
-      }
+      const dayResult = buildEventsForContext({
+        sourceDay: actualDay.sourceDay,
+        actualDate: actualDay.actualDate,
+        sourceNameMap,
+        actualNameMap: yearNameMap,
+        options,
+        year,
+      });
 
-      for (const nameEntry of actualDay.sourceDay.names) {
-        events.push(
-          buildSingleNameEvent({
-            nameEntry,
-            sourceDay: actualDay.sourceDay,
-            actualDate: actualDay.actualDate,
-            sourceNameMap,
-            actualNameMap: yearNameMap,
-            options,
-            year,
-          })
-        );
-      }
+      events.push(...dayResult.events);
+      skippedEmptyPrimaryDays += dayResult.skippedEmptyPrimaryDays;
     }
   }
 
-  return events;
+  return {
+    events,
+    skippedEmptyPrimaryDays,
+  };
 }
 
 function buildLeapAwareRecurringEvents(sourceDays, sourceNameMap, options) {
   const events = [];
+  let skippedEmptyPrimaryDays = 0;
 
   for (const sourceDay of sourceDays) {
     const actualDate = {
@@ -183,45 +188,34 @@ function buildLeapAwareRecurringEvents(sourceDays, sourceNameMap, options) {
     };
 
     const recurrence = buildLeapAwareRecurrence(sourceDay, options);
+    const dayResult = buildEventsForContext({
+      sourceDay,
+      actualDate,
+      sourceNameMap,
+      actualNameMap: sourceNameMap,
+      options,
+      year: null,
+    });
 
-    if (options.mode === "together") {
-      const event = buildGroupedEvent({
-        sourceDay,
-        actualDate,
-        sourceNameMap,
-        actualNameMap: sourceNameMap,
-        options,
-        year: null,
-      });
-      event.rrule = recurrence.rrule;
-      event.rdates = recurrence.rdates;
-      event.exdates = recurrence.exdates;
-      events.push(event);
-      continue;
-    }
-
-    for (const nameEntry of sourceDay.names) {
-      const event = buildSingleNameEvent({
-        nameEntry,
-        sourceDay,
-        actualDate,
-        sourceNameMap,
-        actualNameMap: sourceNameMap,
-        options,
-        year: null,
-      });
+    for (const event of dayResult.events) {
       event.rrule = recurrence.rrule;
       event.rdates = recurrence.rdates;
       event.exdates = recurrence.exdates;
       events.push(event);
     }
+
+    skippedEmptyPrimaryDays += dayResult.skippedEmptyPrimaryDays;
   }
 
-  return events;
+  return {
+    events,
+    skippedEmptyPrimaryDays,
+  };
 }
 
 function buildRecurringEvents(sourceDays, sourceNameMap, options) {
   const events = [];
+  let skippedEmptyPrimaryDays = 0;
 
   for (const sourceDay of sourceDays) {
     const actualDate = {
@@ -233,36 +227,237 @@ function buildRecurringEvents(sourceDays, sourceNameMap, options) {
       shifted: false,
     };
 
-    if (options.mode === "together") {
-      events.push(
-        buildGroupedEvent({
-          sourceDay,
-          actualDate,
-          sourceNameMap,
-          actualNameMap: sourceNameMap,
-          options,
-          year: null,
-        })
-      );
-      continue;
+    const dayResult = buildEventsForContext({
+      sourceDay,
+      actualDate,
+      sourceNameMap,
+      actualNameMap: sourceNameMap,
+      options,
+      year: null,
+    });
+
+    events.push(...dayResult.events);
+    skippedEmptyPrimaryDays += dayResult.skippedEmptyPrimaryDays;
+  }
+
+  return {
+    events,
+    skippedEmptyPrimaryDays,
+  };
+}
+
+function buildEventsForContext(context) {
+  const { sourceDay, actualDate, sourceNameMap, actualNameMap, options, year } = context;
+  const modeBehavior = getModeBehavior(options.mode);
+
+  if (!modeBehavior.isPrimaryMode) {
+    if (modeBehavior.grouped) {
+      return {
+        events: [
+          buildGroupedEvent({
+            sourceDay,
+            actualDate,
+            sourceNameMap,
+            actualNameMap,
+            options,
+            year,
+            eventNames: sourceDay.names,
+            restNames: [],
+          }),
+        ],
+        skippedEmptyPrimaryDays: 0,
+      };
     }
 
-    for (const nameEntry of sourceDay.names) {
-      events.push(
+    return {
+      events: sourceDay.names.map((nameEntry) =>
         buildSingleNameEvent({
           nameEntry,
           sourceDay,
           actualDate,
           sourceNameMap,
-          actualNameMap: sourceNameMap,
+          actualNameMap,
           options,
-          year: null,
+          year,
         })
-      );
+      ),
+      skippedEmptyPrimaryDays: 0,
+    };
+  }
+
+  const selection = splitPrimaryNames(sourceDay.names, options.primarySource);
+
+  if (selection.primaryNames.length === 0) {
+    return {
+      events: [],
+      skippedEmptyPrimaryDays: 1,
+    };
+  }
+
+  if (modeBehavior.grouped) {
+    return {
+      events: [
+        buildGroupedEvent({
+          sourceDay,
+          actualDate,
+          sourceNameMap,
+          actualNameMap,
+          options,
+          year,
+          eventNames: selection.primaryNames,
+          restNames: modeBehavior.withRestDescription ? selection.restNames : [],
+        }),
+      ],
+      skippedEmptyPrimaryDays: 0,
+    };
+  }
+
+  const events = selection.primaryNames.map((nameEntry) =>
+    buildSingleNameEvent({
+      nameEntry,
+      sourceDay,
+      actualDate,
+      sourceNameMap,
+      actualNameMap,
+      options,
+      year,
+    })
+  );
+
+  if (modeBehavior.withRemainderGrouped && selection.restNames.length > 0) {
+    events.push(
+      buildGroupedEvent({
+        sourceDay,
+        actualDate,
+        sourceNameMap,
+        actualNameMap,
+        options,
+        year,
+        eventNames: selection.restNames,
+        restNames: [],
+      })
+    );
+  }
+
+  return {
+    events,
+    skippedEmptyPrimaryDays: 0,
+  };
+}
+
+function getModeBehavior(mode) {
+  const behaviors = {
+    together: {
+      grouped: true,
+      isPrimaryMode: false,
+      withRestDescription: false,
+      withRemainderGrouped: false,
+    },
+    separate: {
+      grouped: false,
+      isPrimaryMode: false,
+      withRestDescription: false,
+      withRemainderGrouped: false,
+    },
+    "primary-together": {
+      grouped: true,
+      isPrimaryMode: true,
+      withRestDescription: false,
+      withRemainderGrouped: false,
+    },
+    "primary-together-with-rest": {
+      grouped: true,
+      isPrimaryMode: true,
+      withRestDescription: true,
+      withRemainderGrouped: false,
+    },
+    "primary-separate": {
+      grouped: false,
+      isPrimaryMode: true,
+      withRestDescription: false,
+      withRemainderGrouped: false,
+    },
+    "primary-separate-with-rest": {
+      grouped: false,
+      isPrimaryMode: true,
+      withRestDescription: false,
+      withRemainderGrouped: true,
+    },
+  };
+
+  return behaviors[mode] ?? behaviors.together;
+}
+
+function splitPrimaryNames(nameEntries, primarySource) {
+  const legacyNames = nameEntries
+    .filter((entry) => entry.dayMeta?.primaryLegacy)
+    .sort(compareByLegacyPrimaryOrder);
+  const rankedNames = nameEntries
+    .filter((entry) => entry.dayMeta?.primaryRanked)
+    .sort(compareByRankedPrimaryOrder);
+
+  let primaryNames = [];
+
+  if (primarySource === "legacy") {
+    primaryNames = legacyNames;
+  } else if (primarySource === "ranked") {
+    primaryNames = rankedNames;
+  } else if (primarySource === "either") {
+    primaryNames = mergePrimarySelections(legacyNames, rankedNames, 2);
+  } else {
+    primaryNames = legacyNames.length > 0 ? legacyNames : rankedNames;
+  }
+
+  const selected = new Set(primaryNames);
+
+  return {
+    primaryNames,
+    restNames: nameEntries.filter((entry) => !selected.has(entry)),
+  };
+}
+
+function mergePrimarySelections(primaryLegacy, primaryRanked, limit) {
+  const merged = [];
+  const seen = new Set();
+
+  for (const entry of [...primaryLegacy, ...primaryRanked]) {
+    const key = entry.name;
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    merged.push(entry);
+
+    if (merged.length >= limit) {
+      break;
     }
   }
 
-  return events;
+  return merged;
+}
+
+function compareByLegacyPrimaryOrder(left, right) {
+  const leftOrder = Number.isInteger(left.dayMeta?.legacyOrder)
+    ? left.dayMeta.legacyOrder
+    : Number.MAX_SAFE_INTEGER;
+  const rightOrder = Number.isInteger(right.dayMeta?.legacyOrder)
+    ? right.dayMeta.legacyOrder
+    : Number.MAX_SAFE_INTEGER;
+
+  return leftOrder - rightOrder || compareByRankedPrimaryOrder(left, right);
+}
+
+function compareByRankedPrimaryOrder(left, right) {
+  const leftOrder = Number.isInteger(left.dayMeta?.ranking?.dayOrder)
+    ? left.dayMeta.ranking.dayOrder
+    : Number.MAX_SAFE_INTEGER;
+  const rightOrder = Number.isInteger(right.dayMeta?.ranking?.dayOrder)
+    ? right.dayMeta.ranking.dayOrder
+    : Number.MAX_SAFE_INTEGER;
+
+  return leftOrder - rightOrder || collator.compare(left.name, right.name);
 }
 
 function buildYearNameMap(actualDays) {
@@ -345,20 +540,25 @@ function buildLeapAwareRecurrence(sourceDay, options) {
 
 function buildGroupedEvent(context) {
   const { sourceDay, actualDate, options, year } = context;
-  const summaryBase = sourceDay.names.map((entry) => entry.name).join(", ");
+  const eventNames = Array.isArray(context.eventNames) ? context.eventNames : sourceDay.names;
+  const summaryBase = eventNames.map((entry) => entry.name).join(", ");
   const ordinalText =
     options.ordinalDay === "summary" ? buildOrdinalTextForEvent(actualDate, year) : null;
 
   return {
     uid: buildUid({
       type: "grouped",
-      key: `${sourceDay.monthDay}|${year ?? "rrule"}|${actualDate.monthDay}`,
+      key: `${sourceDay.monthDay}|${year ?? "rrule"}|${actualDate.monthDay}|${summaryBase}`,
     }),
     summary: ordinalText ? `${summaryBase} (${ordinalText})` : summaryBase,
     startDate: formatDateValue(actualDate.year, actualDate.month, actualDate.day),
     endDate: formatDateValueFromDate(addDays(actualDate.year, actualDate.month, actualDate.day, 1)),
     rrule: year == null ? buildYearlyRRule(sourceDay.month, sourceDay.day, options) : null,
-    description: buildGroupedDescription(context),
+    description: buildGroupedDescription({
+      ...context,
+      eventNames,
+      restNames: Array.isArray(context.restNames) ? context.restNames : [],
+    }),
   };
 }
 
@@ -381,14 +581,24 @@ function buildSingleNameEvent(context) {
 }
 
 function buildGroupedDescription(context) {
-  const { sourceDay, actualDate, sourceNameMap, actualNameMap, options, year } = context;
+  const {
+    actualDate,
+    sourceNameMap,
+    actualNameMap,
+    options,
+    year,
+    eventNames = [],
+    restNames = [],
+  } = context;
+  const displayYear = resolveDescriptionYear(options, year);
   const needsMetadata = options.descriptionMode !== "none";
   const needsOtherDays = options.includeOtherDays;
   const needsOrdinal = options.ordinalDay === "description";
   const needsShiftNote = actualDate.shifted && options.descriptionMode !== "none";
   const wantsHtml = options.descriptionFormat === "html" || options.descriptionFormat === "full";
+  const needsRestSection = restNames.length > 0;
 
-  if (!needsMetadata && !needsOtherDays && !needsOrdinal && !needsShiftNote) {
+  if (!needsMetadata && !needsOtherDays && !needsOrdinal && !needsShiftNote && !needsRestSection) {
     return null;
   }
 
@@ -397,7 +607,11 @@ function buildGroupedDescription(context) {
 
   if (needsMetadata || needsOtherDays) {
     if (options.descriptionMode === "detailed") {
-      const header = buildDetailedDateHeader(actualDate, year, needsOrdinal || year != null);
+      const header = buildDetailedDateHeader(
+        actualDate,
+        displayYear,
+        needsOrdinal || displayYear != null
+      );
 
       if (header) {
         plainLines.push(header);
@@ -405,12 +619,25 @@ function buildGroupedDescription(context) {
         if (htmlParts) {
           htmlParts.push(`<p><strong>${escapeHtml(header)}</strong></p><hr>`);
         }
-      } else if (needsShiftNote) {
-        const shiftOverview = buildLeapShiftOverview(actualDate, year);
-        if (shiftOverview) {
-          plainLines.push(shiftOverview);
+      } else {
+        if (needsShiftNote) {
+          const shiftOverview = buildLeapShiftOverview(actualDate, displayYear);
+          if (shiftOverview) {
+            plainLines.push(shiftOverview);
+            if (htmlParts) {
+              htmlParts.push(`<p><strong>${escapeHtml(shiftOverview)}</strong></p>`);
+            }
+          }
+        }
+
+        if (needsOrdinal) {
+          appendPlainDetailSection(
+            plainLines,
+            "Az év napja",
+            buildOrdinalDescriptionLines(actualDate, displayYear)
+          );
           if (htmlParts) {
-            htmlParts.push(`<p><strong>${escapeHtml(shiftOverview)}</strong></p>`);
+            htmlParts.push(buildOrdinalDescriptionHtml(actualDate, displayYear));
           }
         }
       }
@@ -419,7 +646,7 @@ function buildGroupedDescription(context) {
         htmlParts.push("<ul>");
       }
 
-      for (const nameEntry of sourceDay.names) {
+      for (const nameEntry of eventNames) {
         const otherDays = buildOtherDaysList(
           actualNameMap.get(nameEntry.name) ?? sourceNameMap.get(nameEntry.name) ?? [],
           actualDate.monthDay
@@ -427,7 +654,7 @@ function buildGroupedDescription(context) {
         const decoratedNameEntry = decorateNameEntryForDescription(nameEntry, actualDate, year);
 
         plainLines.push(...buildDetailedPlainLines(decoratedNameEntry, otherDays, 0));
-        if (nameEntry !== sourceDay.names[sourceDay.names.length - 1]) {
+        if (nameEntry !== eventNames[eventNames.length - 1]) {
           plainLines.push("");
         }
         if (htmlParts) {
@@ -462,7 +689,7 @@ function buildGroupedDescription(context) {
         htmlParts.push("<p><strong>Névnapok:</strong></p><ul>");
       }
 
-      for (const nameEntry of sourceDay.names) {
+      for (const nameEntry of eventNames) {
         const otherDays = buildOtherDaysList(
           actualNameMap.get(nameEntry.name) ?? sourceNameMap.get(nameEntry.name) ?? [],
           actualDate.monthDay
@@ -479,6 +706,38 @@ function buildGroupedDescription(context) {
         htmlParts.push("</ul>");
       }
     }
+  } else {
+    if (needsShiftNote) {
+      const shiftOverview = buildLeapShiftOverview(actualDate, displayYear);
+      if (shiftOverview) {
+        plainLines.push(shiftOverview);
+        if (htmlParts) {
+          htmlParts.push(`<p><strong>${escapeHtml(shiftOverview)}</strong></p>`);
+        }
+      }
+    }
+
+    if (needsOrdinal) {
+      appendPlainDetailSection(
+        plainLines,
+        "Az év napja",
+        buildOrdinalDescriptionLines(actualDate, displayYear)
+      );
+      if (htmlParts) {
+        htmlParts.push(buildOrdinalDescriptionHtml(actualDate, displayYear));
+      }
+    }
+  }
+
+  if (needsRestSection) {
+    appendRestNamesSectionPlain(plainLines, restNames);
+    if (htmlParts) {
+      htmlParts.push(buildRestNamesSectionHtml(restNames));
+    }
+  }
+
+  while (plainLines[plainLines.length - 1] === "") {
+    plainLines.pop();
   }
 
   return {
@@ -489,6 +748,7 @@ function buildGroupedDescription(context) {
 
 function buildSingleNameDescription(context) {
   const { nameEntry, actualDate, sourceNameMap, actualNameMap, options, year } = context;
+  const displayYear = resolveDescriptionYear(options, year);
   const needsMetadata = options.descriptionMode !== "none";
   const needsOtherDays = options.includeOtherDays;
   const needsOrdinal = options.ordinalDay === "description";
@@ -509,7 +769,11 @@ function buildSingleNameDescription(context) {
 
   if (needsMetadata || needsOtherDays) {
     if (options.descriptionMode === "detailed") {
-      const header = buildDetailedDateHeader(actualDate, year, needsOrdinal || year != null);
+      const header = buildDetailedDateHeader(
+        actualDate,
+        displayYear,
+        needsOrdinal || displayYear != null
+      );
 
       if (header) {
         plainLines.push(header);
@@ -517,12 +781,25 @@ function buildSingleNameDescription(context) {
         if (htmlParts) {
           htmlParts.push(`<p><strong>${escapeHtml(header)}</strong></p><hr>`);
         }
-      } else if (needsShiftNote) {
-        const shiftOverview = buildLeapShiftOverview(actualDate, year);
-        if (shiftOverview) {
-          plainLines.push(shiftOverview);
+      } else {
+        if (needsShiftNote) {
+          const shiftOverview = buildLeapShiftOverview(actualDate, displayYear);
+          if (shiftOverview) {
+            plainLines.push(shiftOverview);
+            if (htmlParts) {
+              htmlParts.push(`<p><strong>${escapeHtml(shiftOverview)}</strong></p>`);
+            }
+          }
+        }
+
+        if (needsOrdinal) {
+          appendPlainDetailSection(
+            plainLines,
+            "Az év napja",
+            buildOrdinalDescriptionLines(actualDate, displayYear)
+          );
           if (htmlParts) {
-            htmlParts.push(`<p><strong>${escapeHtml(shiftOverview)}</strong></p>`);
+            htmlParts.push(buildOrdinalDescriptionHtml(actualDate, displayYear));
           }
         }
       }
@@ -556,6 +833,31 @@ function buildSingleNameDescription(context) {
         htmlParts.push(`<p>${buildCompactHtmlLine(nameEntry, otherDays)}</p>`);
       }
     }
+  } else {
+    if (needsShiftNote) {
+      const shiftOverview = buildLeapShiftOverview(actualDate, displayYear);
+      if (shiftOverview) {
+        plainLines.push(shiftOverview);
+        if (htmlParts) {
+          htmlParts.push(`<p><strong>${escapeHtml(shiftOverview)}</strong></p>`);
+        }
+      }
+    }
+
+    if (needsOrdinal) {
+      appendPlainDetailSection(
+        plainLines,
+        "Az év napja",
+        buildOrdinalDescriptionLines(actualDate, displayYear)
+      );
+      if (htmlParts) {
+        htmlParts.push(buildOrdinalDescriptionHtml(actualDate, displayYear));
+      }
+    }
+  }
+
+  while (plainLines[plainLines.length - 1] === "") {
+    plainLines.pop();
   }
 
   return {
@@ -630,58 +932,43 @@ function buildCompactHtmlLine(nameEntry, otherDays) {
 }
 
 function buildDetailedPlainLines(nameEntry, otherDays, indentLevel) {
-  const indent = "  ".repeat(indentLevel);
-  const lines = [`${indent}${buildDetailedNameTitle(nameEntry)}`];
+  const lines = [buildDetailedNameBanner(nameEntry)];
 
   const leapShiftText = buildLeapShiftLine(nameEntry);
   if (leapShiftText) {
-    lines.push(...buildPlainDetailFieldLines(indent, "Szökőévben", leapShiftText));
+    appendPlainDetailSection(lines, "Szökőévben", [leapShiftText]);
   }
 
   const otherDayLines = formatOtherDaysHuLines(otherDays);
   if (otherDayLines.length > 0) {
-    lines.push(
-      ...buildPlainDetailFieldLines(
-        indent,
-        "További napjai",
-        otherDayLines[0],
-        otherDayLines.slice(1)
-      )
-    );
+    appendPlainDetailSection(lines, "További napjai", otherDayLines);
   }
 
   if (nameEntry.origin) {
-    lines.push(...buildPlainDetailFieldLines(indent, "Eredete", nameEntry.origin));
+    appendPlainDetailSection(lines, "Eredete", [normalizeInlineDisplayText(nameEntry.origin)]);
   }
 
   if (nameEntry.meaning) {
-    lines.push(...buildPlainDetailFieldLines(indent, "Jelentése", nameEntry.meaning));
+    appendPlainDetailSection(lines, "Jelentése", [normalizeInlineDisplayText(nameEntry.meaning)]);
   }
 
   const nicknameLines = buildNicknamesLines(nameEntry);
   if (nicknameLines.length > 0) {
-    lines.push(
-      ...buildPlainDetailFieldLines(indent, "Becézései", nicknameLines[0], nicknameLines.slice(1))
-    );
+    appendPlainDetailSection(lines, "Becézései", nicknameLines);
   }
 
   const relatedNameLines = buildRelatedNamesLines(nameEntry);
   if (relatedNameLines.length > 0) {
-    lines.push(
-      ...buildPlainDetailFieldLines(
-        indent,
-        "Rokon nevek",
-        relatedNameLines[0],
-        relatedNameLines.slice(1)
-      )
-    );
+    appendPlainDetailSection(lines, "Rokon nevek", relatedNameLines);
   }
 
   const frequencyLines = buildDetailedFrequencyLines(nameEntry);
   if (frequencyLines.length > 0) {
-    lines.push(
-      ...buildPlainDetailFieldLines(indent, "Gyakoriság", frequencyLines[0], frequencyLines.slice(1))
-    );
+    appendPlainDetailSection(lines, "Gyakoriság", frequencyLines);
+  }
+
+  while (lines[lines.length - 1] === "") {
+    lines.pop();
   }
 
   return lines;
@@ -727,7 +1014,7 @@ function buildDetailedHtmlItem(nameEntry, otherDays) {
     items.push(`<li><strong>Gyakoriság:</strong> ${frequencyHtml}</li>`);
   }
 
-  return `<li><strong>${escapeHtml(buildDetailedNameTitle(nameEntry).slice(2))}</strong>${items.length > 0 ? `<ul>${items.join("")}</ul>` : ""}</li>`;
+  return `<li><strong>${escapeHtml(buildDetailedNameTitle(nameEntry))}</strong>${items.length > 0 ? `<ul>${items.join("")}</ul>` : ""}</li>`;
 }
 
 function buildFrequencyText(frequency) {
@@ -819,6 +1106,10 @@ function parseNamedayValue(value) {
       day,
       monthDay: `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
       primary: false,
+      primaryLegacy: false,
+      primaryRanked: false,
+      legacyOrder: null,
+      ranking: null,
     };
   }
 
@@ -844,6 +1135,36 @@ function parseNamedayValue(value) {
     day,
     monthDay,
     primary: value.primary === true,
+    primaryLegacy: value.primaryLegacy === true,
+    primaryRanked: value.primaryRanked === true,
+    legacyOrder: Number.isInteger(value.legacyOrder) ? value.legacyOrder : null,
+    ranking: normalizeRanking(value.ranking),
+  };
+}
+
+function normalizeRanking(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const dayOrder = Number.isInteger(value.dayOrder) ? value.dayOrder : null;
+  const overallRank = Number.isInteger(value.overallRank) ? value.overallRank : null;
+  const newbornRank = Number.isInteger(value.newbornRank) ? value.newbornRank : null;
+  const overallWeight = Number.isInteger(value.overallWeight) ? value.overallWeight : 0;
+  const newbornWeight = Number.isInteger(value.newbornWeight) ? value.newbornWeight : 0;
+  const score = Number.isInteger(value.score) ? value.score : overallWeight + newbornWeight;
+
+  if (dayOrder == null && overallRank == null && newbornRank == null && score === 0) {
+    return null;
+  }
+
+  return {
+    dayOrder,
+    overallRank,
+    newbornRank,
+    overallWeight,
+    newbornWeight,
+    score,
   };
 }
 
@@ -858,7 +1179,7 @@ function formatOtherDaysHu(monthDays) {
 
 function formatOtherDaysHuLines(monthDays) {
   const formatted = monthDays.map(formatMonthDayHuFromMonthDay).filter(Boolean);
-  return wrapDisplayValues(formatted);
+  return wrapDisplayValues(formatted, 22);
 }
 
 function decorateNameEntryForDescription(nameEntry, actualDate, year) {
@@ -905,16 +1226,57 @@ function buildLeapShiftData(actualDate, year) {
   };
 }
 
+function resolveDescriptionYear(options, year) {
+  if (year != null) {
+    return year;
+  }
+
+  if (options?.fromYear === options?.untilYear) {
+    return options.fromYear;
+  }
+
+  return null;
+}
+
+function resolveOrdinalDate(actualDate, year) {
+  if (year == null) {
+    return {
+      month: actualDate.month,
+      day: actualDate.day,
+    };
+  }
+
+  if (actualDate?.shifted) {
+    return {
+      month: actualDate.month,
+      day: actualDate.day,
+    };
+  }
+
+  if (isLeapYear(year) && actualDate?.leapRule) {
+    return {
+      month: actualDate.leapRule.shiftedMonth,
+      day: actualDate.leapRule.shiftedDay,
+    };
+  }
+
+  return {
+    month: actualDate.month,
+    day: actualDate.day,
+  };
+}
+
 function buildDetailedDateHeader(actualDate, year, enabled) {
   if (!enabled || year == null) {
     return null;
   }
 
-  const week = getIsoWeek(year, actualDate.month, actualDate.day);
-  const dayOfYear = getDayOfYear(year, actualDate.month, actualDate.day);
-  const leapLabel = shouldShowLeapYearBadge(actualDate, year) ? " (szökőév)" : "";
+  const ordinalDate = resolveOrdinalDate(actualDate, year);
+  const week = getIsoWeek(year, ordinalDate.month, ordinalDate.day);
+  const dayOfYear = getDayOfYear(year, ordinalDate.month, ordinalDate.day);
+  const leapLabel = shouldShowLeapYearBadge({ ...actualDate, ...ordinalDate }, year) ? " (szökőév)" : "";
 
-  return `${year}. év, ${week}. hét — az év ${dayOfYear}. napja${leapLabel}.`;
+  return `${year}. év ${week}. hete és ${dayOfYear}. napja${leapLabel}.`;
 }
 
 function buildLeapShiftOverview(actualDate, year) {
@@ -933,8 +1295,11 @@ function shouldShowLeapYearBadge(actualDate, year) {
 
 function buildDetailedNameTitle(nameEntry) {
   const gender = prettifyGender(nameEntry.gender?.label);
-  const genderLabel = gender ? `${gender} név` : null;
-  return genderLabel ? `- ${nameEntry.name} (${genderLabel})` : `- ${nameEntry.name}`;
+  return gender ? `${nameEntry.name} (${gender})` : nameEntry.name;
+}
+
+function buildDetailedNameBanner(nameEntry) {
+  return `----[ ${buildDetailedNameTitle(nameEntry)} ]----`;
 }
 
 function buildLeapShiftLine(nameEntry) {
@@ -979,7 +1344,7 @@ function buildNicknamesText(nameEntry) {
 }
 
 function buildNicknamesLines(nameEntry) {
-  return wrapDisplayValues(sanitizeDisplayValues(nameEntry?.nicknames));
+  return wrapDisplayValues(sanitizeDisplayValues(nameEntry?.nicknames), 28);
 }
 
 function buildRelatedNamesText(nameEntry) {
@@ -988,24 +1353,31 @@ function buildRelatedNamesText(nameEntry) {
 }
 
 function buildRelatedNamesLines(nameEntry) {
-  return wrapDisplayValues(sanitizeDisplayValues(nameEntry?.relatedNames));
+  return wrapDisplayValues(sanitizeDisplayValues(nameEntry?.relatedNames), 28);
 }
 
 function buildDetailedFrequencyLines(nameEntry) {
-  const frequencyText = buildFrequencyText(nameEntry.frequency);
+  const overall = frequencyLabelHu(nameEntry.frequency?.overall);
+  const newborns = frequencyLabelHu(nameEntry.frequency?.newborns);
+  const metaLabel = polishFrequencyMetaLabel(nameEntry.meta?.frequency?.labelHu);
 
-  if (!frequencyText) {
+  if (!overall && !newborns && !metaLabel) {
     return [];
   }
 
-  const metaLabel = nameEntry.meta?.frequency?.labelHu;
   const lines = [];
 
   if (metaLabel) {
-    lines.push(ensureTrailingSentence(capitalizeSentence(polishFrequencyMetaLabel(metaLabel))));
+    lines.push(ensureTrailingSentence(capitalizeSentence(metaLabel)));
   }
 
-  lines.push(ensureTrailingSentence(capitalizeSentence(frequencyText)));
+  if (overall) {
+    lines.push(`Össznépesség: ${ensureTrailingSentence(describeFrequencyValue(overall))}`);
+  }
+
+  if (newborns) {
+    lines.push(`Újszülöttek: ${ensureTrailingSentence(describeFrequencyValue(newborns))}`);
+  }
 
   return lines;
 }
@@ -1017,29 +1389,69 @@ function buildDetailedFrequencyHtml(nameEntry) {
     return null;
   }
 
-  if (lines.length === 1) {
-    return escapeHtml(lines[0]);
-  }
-
-  return `${escapeHtml(lines[0])}<br>${escapeHtml(lines[1])}`;
+  return lines.map((line) => escapeHtml(line)).join("<br>");
 }
 
-function buildPlainDetailFieldLines(indent, label, value, extraLines = []) {
-  const cleanValue = normalizeInlineDisplayText(value);
+function appendPlainDetailSection(lines, label, values) {
+  const cleanValues = values.map(normalizeInlineDisplayText).filter(Boolean);
 
-  if (!cleanValue) {
-    return [];
+  if (cleanValues.length === 0) {
+    return;
   }
 
-  const baseLabel = `${label.padEnd(PLAIN_DETAIL_LABEL_WIDTH)} : `;
-  const continuationPrefix = `${indent}  ${" ".repeat(PLAIN_DETAIL_LABEL_WIDTH)}   `;
-  const lines = [`${indent}  ${baseLabel}${cleanValue}`];
+  lines.push(label);
 
-  for (const extraLine of extraLines.map(normalizeInlineDisplayText).filter(Boolean)) {
-    lines.push(`${continuationPrefix}${extraLine}`);
+  for (const value of cleanValues) {
+    lines.push(`• ${value}`);
   }
 
-  return lines;
+  lines.push("");
+}
+
+function appendRestNamesSectionPlain(lines, restNames) {
+  const wrappedNames = wrapDisplayValues(
+    restNames.map((entry) => entry.name).filter(Boolean),
+    22
+  );
+
+  if (wrappedNames.length === 0) {
+    return;
+  }
+
+  if (lines.length > 0 && lines[lines.length - 1] !== "") {
+    lines.push("");
+  }
+
+  lines.push("A nap további névnapjai");
+
+  for (const row of wrappedNames) {
+    lines.push(`• ${row}`);
+  }
+
+  lines.push("");
+}
+
+function buildRestNamesSectionHtml(restNames) {
+  const values = sanitizeDisplayValues(restNames.map((entry) => entry.name));
+
+  if (values.length === 0) {
+    return "";
+  }
+
+  const items = values.map((value) => `<li>${escapeHtml(value)}</li>`).join("");
+  return `<p><strong>A nap további névnapjai</strong></p><ul>${items}</ul>`;
+}
+
+function describeFrequencyValue(label) {
+  if (label === "néhány előfordulás") {
+    return "csak néhány előfordulás ismert";
+  }
+
+  if (label === "első tízben") {
+    return "az első tízben van";
+  }
+
+  return label;
 }
 
 function normalizeInlineDisplayText(value) {
@@ -1086,7 +1498,6 @@ function wrapDisplayValues(values, maxLength = 44) {
 
   const rows = [];
   let current = "";
-  let isContinuationRow = false;
 
   for (const value of values) {
     const cleanValue = normalizeInlineDisplayText(value);
@@ -1095,13 +1506,11 @@ function wrapDisplayValues(values, maxLength = 44) {
       continue;
     }
 
-    const rowStart = isContinuationRow ? "• " : "";
-    const next = current ? `${current} • ${cleanValue}` : `${rowStart}${cleanValue}`;
+    const next = current ? `${current} • ${cleanValue}` : cleanValue;
 
     if (current && next.length > maxLength) {
       rows.push(current);
-      current = `• ${cleanValue}`;
-      isContinuationRow = true;
+      current = cleanValue;
       continue;
     }
 
@@ -1151,13 +1560,43 @@ function polishFrequencyMetaLabel(value) {
   return `az újszülötteknél ${modifier}${adjective}`.trim();
 }
 
-function buildOrdinalTextForEvent(actualDate, year) {
+function buildOrdinalDescriptionLines(actualDate, year) {
   if (year != null) {
-    return `${getDayOfYear(year, actualDate.month, actualDate.day)}. nap`;
+    const ordinalDate = resolveOrdinalDate(actualDate, year);
+    const week = getIsoWeek(year, ordinalDate.month, ordinalDate.day);
+    const dayOfYear = getDayOfYear(year, ordinalDate.month, ordinalDate.day);
+    const leapLabel = shouldShowLeapYearBadge({ ...actualDate, ...ordinalDate }, year) ? " (szökőév)" : "";
+    return [`${year}. év ${week}. hete és ${dayOfYear}. napja${leapLabel}.`];
   }
 
   const regular = getDayOfYear(2025, actualDate.month, actualDate.day);
-  const leap = getDayOfYear(2024, actualDate.month, actualDate.day);
+  const leapMonth = actualDate.leapRule?.shiftedMonth ?? actualDate.month;
+  const leapDay = actualDate.leapRule?.shiftedDay ?? actualDate.day;
+  const leap = getDayOfYear(2024, leapMonth, leapDay);
+
+  if (regular === leap) {
+    return [`${regular}. nap.`];
+  }
+
+  return [`${regular}. nap.`, `Szökőévben: ${leap}. nap.`];
+}
+
+function buildOrdinalDescriptionHtml(actualDate, year) {
+  const lines = buildOrdinalDescriptionLines(actualDate, year);
+  const items = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+  return `<p><strong>Az év napja</strong></p><ul>${items}</ul>`;
+}
+
+function buildOrdinalTextForEvent(actualDate, year) {
+  if (year != null) {
+    const ordinalDate = resolveOrdinalDate(actualDate, year);
+    return `${getDayOfYear(year, ordinalDate.month, ordinalDate.day)}. nap`;
+  }
+
+  const regular = getDayOfYear(2025, actualDate.month, actualDate.day);
+  const leapMonth = actualDate.leapRule?.shiftedMonth ?? actualDate.month;
+  const leapDay = actualDate.leapRule?.shiftedDay ?? actualDate.day;
+  const leap = getDayOfYear(2024, leapMonth, leapDay);
 
   if (regular === leap) {
     return `${regular}. nap`;
@@ -1282,10 +1721,16 @@ function serializeCalendar(events, payload, options) {
 
 function buildCalendarDescription(payload, options, eventCount) {
   const parts = [];
+  const modeBehavior = getModeBehavior(options.mode);
 
   parts.push(`Forrás: ${payload?.source?.provider ?? "nevnapok.json"}`);
   parts.push(`Események: ${eventCount}`);
-  parts.push(`Csoportosítás: ${options.mode === "together" ? "naponként együtt" : "névenként külön"}`);
+  parts.push(`Csoportosítás: ${modeLabelHu(options.mode)}`);
+
+  if (modeBehavior.isPrimaryMode) {
+    parts.push(`Elsődleges forrás: ${primarySourceLabelHu(options.primarySource)}`);
+  }
+
   parts.push(`Leírás: ${descriptionModeLabelHu(options.descriptionMode)}`);
   parts.push(`Leírás formátuma: ${descriptionFormatLabelHu(options.descriptionFormat)}`);
   parts.push(`További névnapok: ${options.includeOtherDays ? "bekapcsolva" : "kikapcsolva"}`);
@@ -1305,6 +1750,7 @@ function normalizeOptions(options) {
     input: options.input ?? DEFAULT_INPUT_PATH,
     output: options.output ?? DEFAULT_OUTPUT_PATH,
     mode: options.mode ?? "together",
+    primarySource: options.primarySource ?? "default",
     descriptionMode: options.descriptionMode ?? "none",
     descriptionFormat: options.descriptionFormat ?? "text",
     includeOtherDays: options.includeOtherDays ?? false,
@@ -1317,14 +1763,28 @@ function normalizeOptions(options) {
     rruleUntil: null,
   };
 
-  const validModes = new Set(["together", "separate"]);
+  const validModes = new Set([
+    "together",
+    "separate",
+    "primary-together",
+    "primary-together-with-rest",
+    "primary-separate",
+    "primary-separate-with-rest",
+  ]);
+  const validPrimarySources = new Set(["default", "legacy", "ranked", "either"]);
   const validDescriptionModes = new Set(["none", "compact", "detailed"]);
   const validDescriptionFormats = new Set(["text", "html", "full", "both"]);
   const validLeapModes = new Set(["none", "hungarian-until-2050"]);
   const validOrdinalModes = new Set(["none", "summary", "description"]);
 
   if (!validModes.has(normalized.mode)) {
-    throw new Error("--mode must be one of: together, separate.");
+    throw new Error(
+      "--mode must be one of: together, separate, primary-together, primary-together-with-rest, primary-separate, primary-separate-with-rest."
+    );
+  }
+
+  if (!validPrimarySources.has(normalized.primarySource)) {
+    throw new Error("--primary-source must be one of: default, legacy, ranked, either.");
   }
 
   if (!validDescriptionModes.has(normalized.descriptionMode)) {
@@ -1416,6 +1876,17 @@ function parseArgs(argv) {
 
     if (arg.startsWith("--mode=")) {
       options.mode = arg.slice("--mode=".length);
+      continue;
+    }
+
+    if (arg === "--primary-source" && argv[index + 1]) {
+      options.primarySource = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--primary-source=")) {
+      options.primarySource = arg.slice("--primary-source=".length);
       continue;
     }
 
@@ -1574,6 +2045,54 @@ function ordinalModeLabelHu(value) {
 
   if (value === "description") {
     return "leírásban";
+  }
+
+  return value;
+}
+
+function modeLabelHu(value) {
+  if (value === "together") {
+    return "naponként együtt";
+  }
+
+  if (value === "separate") {
+    return "névenként külön";
+  }
+
+  if (value === "primary-together") {
+    return "csak az elsődleges névnapok, naponként együtt";
+  }
+
+  if (value === "primary-together-with-rest") {
+    return "elsődleges névnapok együtt, a többi a leírásban";
+  }
+
+  if (value === "primary-separate") {
+    return "csak az elsődleges névnapok, névenként külön";
+  }
+
+  if (value === "primary-separate-with-rest") {
+    return "elsődleges névnapok külön, a többi csoportosan";
+  }
+
+  return value;
+}
+
+function primarySourceLabelHu(value) {
+  if (value === "default") {
+    return "alapértelmezett (legacy elsőbbség, ranking fallback)";
+  }
+
+  if (value === "legacy") {
+    return "legacy elsődleges nevek";
+  }
+
+  if (value === "ranked") {
+    return "ranking elsődleges nevek";
+  }
+
+  if (value === "either") {
+    return "legacy vagy ranking uniója";
   }
 
   return value;
