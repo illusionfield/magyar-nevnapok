@@ -22,23 +22,124 @@ async function main() {
     : buildDaysFromNames(payload.names);
   const sourceNameMap = buildNameMapFromSourceDays(sourceDays);
 
-  const eventBuildResult =
-    options.leapMode === "hungarian-until-2050"
-      ? buildLeapAwareRecurringEvents(sourceDays, sourceNameMap, options)
-      : buildRecurringEvents(sourceDays, sourceNameMap, options);
-  const events = eventBuildResult.events;
-  const calendarText = serializeCalendar(events, payload, options);
+  if (options.splitPrimaryRest) {
+    const splitDays = splitSourceDaysByPrimary(sourceDays, options.primarySource);
+    const primaryOutputPath = path.resolve(
+      process.cwd(),
+      options.primaryOutput ?? deriveSplitOutputPath(outputPath, "primary")
+    );
+    const restOutputPath = path.resolve(
+      process.cwd(),
+      options.restOutput ?? deriveSplitOutputPath(outputPath, "rest")
+    );
+    const primaryOptions = createCalendarVariantOptions(options, {
+      output: primaryOutputPath,
+      mode: options.primaryCalendarMode,
+      calendarName: `${options.calendarName} — elsődleges`,
+      calendarPartition: "primary",
+    });
+    const restOptions = createCalendarVariantOptions(options, {
+      output: restOutputPath,
+      mode: options.restCalendarMode,
+      calendarName: `${options.calendarName} — további`,
+      calendarPartition: "rest",
+    });
 
-  await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await fs.writeFile(outputPath, calendarText, "utf8");
+    const primaryResult = buildCalendarArtifact(splitDays.primaryDays, sourceNameMap, payload, primaryOptions);
+    const restResult = buildCalendarArtifact(splitDays.restDays, sourceNameMap, payload, restOptions);
 
-  console.log(`Saved ${events.length} event(s) to ${outputPath}`);
+    await Promise.all([
+      writeCalendarFile(primaryOutputPath, primaryResult.calendarText),
+      writeCalendarFile(restOutputPath, restResult.calendarText),
+    ]);
 
-  if (eventBuildResult.skippedEmptyPrimaryDays > 0) {
+    console.log(`Saved ${primaryResult.events.length} event(s) to ${primaryOutputPath}`);
+    console.log(`Saved ${restResult.events.length} event(s) to ${restOutputPath}`);
+
+    if (splitDays.skippedPrimaryDays > 0) {
+      console.log(
+        `Skipped ${splitDays.skippedPrimaryDays} day(s) from the primary calendar because the selected primary source did not produce any primary names.`
+      );
+    }
+
+    return;
+  }
+
+  const calendarResult = buildCalendarArtifact(sourceDays, sourceNameMap, payload, options);
+
+  await writeCalendarFile(outputPath, calendarResult.calendarText);
+
+  console.log(`Saved ${calendarResult.events.length} event(s) to ${outputPath}`);
+
+  if (calendarResult.skippedEmptyPrimaryDays > 0) {
     console.log(
-      `Skipped ${eventBuildResult.skippedEmptyPrimaryDays} day(s) because the selected primary source did not produce any primary names.`
+      `Skipped ${calendarResult.skippedEmptyPrimaryDays} day(s) because the selected primary source did not produce any primary names.`
     );
   }
+}
+
+function buildCalendarArtifact(sourceDays, referenceNameMap, payload, options) {
+  const eventBuildResult =
+    options.leapMode === "hungarian-until-2050"
+      ? buildLeapAwareRecurringEvents(sourceDays, referenceNameMap, options)
+      : buildRecurringEvents(sourceDays, referenceNameMap, options);
+  const events = eventBuildResult.events;
+
+  return {
+    events,
+    skippedEmptyPrimaryDays: eventBuildResult.skippedEmptyPrimaryDays,
+    calendarText: serializeCalendar(events, payload, options),
+  };
+}
+
+async function writeCalendarFile(outputPath, calendarText) {
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, calendarText, "utf8");
+}
+
+function createCalendarVariantOptions(options, overrides) {
+  return {
+    ...options,
+    ...overrides,
+  };
+}
+
+function deriveSplitOutputPath(outputPath, suffix) {
+  const parsed = path.parse(outputPath);
+  const extension = parsed.ext || ".ics";
+  return path.join(parsed.dir, `${parsed.name}-${suffix}${extension}`);
+}
+
+function splitSourceDaysByPrimary(sourceDays, primarySource) {
+  const primaryDays = [];
+  const restDays = [];
+  let skippedPrimaryDays = 0;
+
+  for (const sourceDay of sourceDays) {
+    const selection = splitPrimaryNames(sourceDay.names, primarySource);
+
+    if (selection.primaryNames.length > 0) {
+      primaryDays.push({
+        ...sourceDay,
+        names: selection.primaryNames,
+      });
+    } else {
+      skippedPrimaryDays += 1;
+    }
+
+    if (selection.restNames.length > 0) {
+      restDays.push({
+        ...sourceDay,
+        names: selection.restNames,
+      });
+    }
+  }
+
+  return {
+    primaryDays,
+    restDays,
+    skippedPrimaryDays,
+  };
 }
 
 function normalizeSourceDays(days) {
@@ -128,7 +229,7 @@ function buildNameMapFromSourceDays(sourceDays) {
   return nameMap;
 }
 
-function buildExplicitEvents(sourceDays, sourceNameMap, options) {
+function buildExplicitEvents(sourceDays, referenceNameMap, options) {
   const events = [];
   let skippedEmptyPrimaryDays = 0;
 
@@ -155,7 +256,7 @@ function buildExplicitEvents(sourceDays, sourceNameMap, options) {
       const dayResult = buildEventsForContext({
         sourceDay: actualDay.sourceDay,
         actualDate: actualDay.actualDate,
-        sourceNameMap,
+        sourceNameMap: referenceNameMap,
         actualNameMap: yearNameMap,
         options,
         year,
@@ -172,7 +273,7 @@ function buildExplicitEvents(sourceDays, sourceNameMap, options) {
   };
 }
 
-function buildLeapAwareRecurringEvents(sourceDays, sourceNameMap, options) {
+function buildLeapAwareRecurringEvents(sourceDays, referenceNameMap, options) {
   const events = [];
   let skippedEmptyPrimaryDays = 0;
 
@@ -191,8 +292,8 @@ function buildLeapAwareRecurringEvents(sourceDays, sourceNameMap, options) {
     const dayResult = buildEventsForContext({
       sourceDay,
       actualDate,
-      sourceNameMap,
-      actualNameMap: sourceNameMap,
+      sourceNameMap: referenceNameMap,
+      actualNameMap: referenceNameMap,
       options,
       year: null,
     });
@@ -213,7 +314,7 @@ function buildLeapAwareRecurringEvents(sourceDays, sourceNameMap, options) {
   };
 }
 
-function buildRecurringEvents(sourceDays, sourceNameMap, options) {
+function buildRecurringEvents(sourceDays, referenceNameMap, options) {
   const events = [];
   let skippedEmptyPrimaryDays = 0;
 
@@ -230,8 +331,8 @@ function buildRecurringEvents(sourceDays, sourceNameMap, options) {
     const dayResult = buildEventsForContext({
       sourceDay,
       actualDate,
-      sourceNameMap,
-      actualNameMap: sourceNameMap,
+      sourceNameMap: referenceNameMap,
+      actualNameMap: referenceNameMap,
       options,
       year: null,
     });
@@ -1725,6 +1826,12 @@ function buildCalendarDescription(payload, options, eventCount) {
 
   parts.push(`Forrás: ${payload?.source?.provider ?? "nevnapok.json"}`);
   parts.push(`Események: ${eventCount}`);
+
+  if (options.calendarPartition) {
+    parts.push(`Naptár-rész: ${calendarPartitionLabelHu(options.calendarPartition)}`);
+    parts.push(`Elsődleges kijelölés: ${primarySourceLabelHu(options.primarySource)}`);
+  }
+
   parts.push(`Csoportosítás: ${modeLabelHu(options.mode)}`);
 
   if (modeBehavior.isPrimaryMode) {
@@ -1749,14 +1856,20 @@ function normalizeOptions(options) {
   const normalized = {
     input: options.input ?? DEFAULT_INPUT_PATH,
     output: options.output ?? DEFAULT_OUTPUT_PATH,
+    primaryOutput: options.primaryOutput ?? null,
+    restOutput: options.restOutput ?? null,
     mode: options.mode ?? "together",
     primarySource: options.primarySource ?? "default",
+    splitPrimaryRest: options.splitPrimaryRest ?? false,
+    primaryCalendarMode: options.primaryCalendarMode ?? null,
+    restCalendarMode: options.restCalendarMode ?? null,
     descriptionMode: options.descriptionMode ?? "none",
     descriptionFormat: options.descriptionFormat ?? "text",
     includeOtherDays: options.includeOtherDays ?? false,
     leapMode: options.leapMode ?? "none",
     ordinalDay: options.ordinalDay ?? "none",
     calendarName: options.calendarName ?? DEFAULT_CALENDAR_NAME,
+    calendarPartition: options.calendarPartition ?? null,
     baseYear: options.baseYear ?? 2000,
     fromYear: options.fromYear ?? CURRENT_YEAR,
     untilYear: options.untilYear ?? 2050,
@@ -1827,6 +1940,17 @@ function normalizeOptions(options) {
     normalized.rruleUntil = formatUntilDateTime(normalized.untilYear);
   }
 
+  normalized.primaryCalendarMode = normalizeSplitCalendarMode(
+    normalized.primaryCalendarMode,
+    getModeBehavior(normalized.mode).grouped ? "together" : "separate",
+    "--primary-calendar-mode"
+  );
+  normalized.restCalendarMode = normalizeSplitCalendarMode(
+    normalized.restCalendarMode,
+    getModeBehavior(normalized.mode).grouped ? "together" : "separate",
+    "--rest-calendar-mode"
+  );
+
   return normalized;
 }
 
@@ -1868,6 +1992,33 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--primary-output" && argv[index + 1]) {
+      options.primaryOutput = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--primary-output=")) {
+      options.primaryOutput = arg.slice("--primary-output=".length);
+      continue;
+    }
+
+    if (arg === "--rest-output" && argv[index + 1]) {
+      options.restOutput = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--rest-output=")) {
+      options.restOutput = arg.slice("--rest-output=".length);
+      continue;
+    }
+
+    if (arg === "--split-primary-rest") {
+      options.splitPrimaryRest = true;
+      continue;
+    }
+
     if (arg === "--mode" && argv[index + 1]) {
       options.mode = argv[index + 1];
       index += 1;
@@ -1887,6 +2038,28 @@ function parseArgs(argv) {
 
     if (arg.startsWith("--primary-source=")) {
       options.primarySource = arg.slice("--primary-source=".length);
+      continue;
+    }
+
+    if (arg === "--primary-calendar-mode" && argv[index + 1]) {
+      options.primaryCalendarMode = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--primary-calendar-mode=")) {
+      options.primaryCalendarMode = arg.slice("--primary-calendar-mode=".length);
+      continue;
+    }
+
+    if (arg === "--rest-calendar-mode" && argv[index + 1]) {
+      options.restCalendarMode = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--rest-calendar-mode=")) {
+      options.restCalendarMode = arg.slice("--rest-calendar-mode=".length);
       continue;
     }
 
@@ -2000,6 +2173,32 @@ function capitalizeFirst(value) {
   }
 
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function normalizeSplitCalendarMode(value, fallback, optionName) {
+  const candidate = value ?? fallback;
+
+  if (candidate === "grouped" || candidate === "together") {
+    return "together";
+  }
+
+  if (candidate === "separate" || candidate === "separated") {
+    return "separate";
+  }
+
+  throw new Error(`${optionName} must be one of: grouped, together, separate.`);
+}
+
+function calendarPartitionLabelHu(value) {
+  if (value === "primary") {
+    return "elsődleges névnapok";
+  }
+
+  if (value === "rest") {
+    return "további névnapok";
+  }
+
+  return value;
 }
 
 function descriptionModeLabelHu(value) {
