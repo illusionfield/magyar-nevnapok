@@ -506,7 +506,7 @@ function splitPrimaryNames(nameEntries, primarySource) {
   } else if (primarySource === "either") {
     primaryNames = mergePrimarySelections(legacyNames, rankedNames, 2);
   } else {
-    primaryNames = legacyNames.length > 0 ? legacyNames : rankedNames;
+    primaryNames = mergePrimarySelections(legacyNames, rankedNames);
   }
 
   const selected = new Set(primaryNames);
@@ -517,7 +517,7 @@ function splitPrimaryNames(nameEntries, primarySource) {
   };
 }
 
-function mergePrimarySelections(primaryLegacy, primaryRanked, limit) {
+function mergePrimarySelections(primaryLegacy, primaryRanked, limit = Number.POSITIVE_INFINITY) {
   const merged = [];
   const seen = new Set();
 
@@ -2279,7 +2279,7 @@ function modeLabelHu(value) {
 
 function primarySourceLabelHu(value) {
   if (value === "default") {
-    return "alapértelmezett (legacy elsőbbség, ranking fallback)";
+    return "alapértelmezett (legacy + ranking kiegészítés)";
   }
 
   if (value === "legacy") {

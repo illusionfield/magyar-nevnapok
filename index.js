@@ -406,8 +406,6 @@ function applyPrimaryAssignments(names, primaryRegistryLookup) {
   for (const [monthDay, bucket] of dayBuckets.entries()) {
     const legacyEntry = primaryRegistryLookup.get(monthDay) ?? null;
     const rankingData = buildDayRankingData(bucket, legacyEntry);
-    const hasLegacyMatch = bucket.some((entry) => rankingData.legacyOrderByKey.has(entry.key));
-
     for (const bucketEntry of bucket) {
       const ranking = rankingData.byKey.get(bucketEntry.key);
       const legacyOrder = rankingData.legacyOrderByKey.get(bucketEntry.key) ?? null;
@@ -416,7 +414,7 @@ function applyPrimaryAssignments(names, primaryRegistryLookup) {
 
       bucketEntry.nameEntry.days[bucketEntry.dayIndex] = {
         ...bucketEntry.nameEntry.days[bucketEntry.dayIndex],
-        primary: hasLegacyMatch ? primaryLegacy : primaryRanked,
+        primary: primaryLegacy || primaryRanked,
         primaryLegacy,
         primaryRanked,
         legacyOrder,
@@ -570,10 +568,21 @@ function collectPrimaryAssignmentStats(names) {
 
 function compareByCombinedRanking(left, right) {
   return (
-    compareRankDesc(left.overallRank, right.overallRank) ||
+    compareWeightedCombinedRanking(left, right) ||
     compareRankDesc(left.newbornRank, right.newbornRank) ||
+    compareRankDesc(left.overallRank, right.overallRank) ||
     collator.compare(left.nameEntry.name, right.nameEntry.name)
   );
+}
+
+function compareWeightedCombinedRanking(left, right) {
+  return weightedCombinedRank(right) - weightedCombinedRank(left);
+}
+
+function weightedCombinedRank(entry) {
+  const overall = Number.isInteger(entry?.overallRank) ? entry.overallRank : 0;
+  const newborn = Number.isInteger(entry?.newbornRank) ? entry.newbornRank : 0;
+  return overall * 3 + newborn * 5;
 }
 
 function compareByOverallRanking(left, right) {
