@@ -11,11 +11,15 @@
     "ics": "node generate-ics.js",
     "edges": "node generate-formalized-edges.js",
     "test": "node test/compare-official-name-lists.js",
-    "test:primary-registry": "node test/compare-primary-registry.js"
+    "test:primary-registry": "node test/compare-primary-registry.js",
+    "delete:calendar": "node delete-calendar.mjs",
+    "delete:calendar:auth:reset": "rm -f .google-calendar-oauth.local.json token.json credentials.json"
   },
   "author": "illusionfield <illusionfield@gmail.com>",
   "license": "MIT License",
   "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
+    "googleapis": "^171.4.0",
     "puppeteer": "^23.11.1"
   }
 }
