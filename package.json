@@ -1,0 +1,19 @@
+{
+  "name": "magyar-nevnapok",
+  "version": "0.5.0",
+  "description": "Magyar hivatalos névnap adatbázis és iCalendar fájl generátor",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "scrape": "node index.js",
+    "ics": "node generate-ics.js",
+    "edges": "node generate-formalized-edges.js",
+    "test": "node test/compare-official-name-lists.js"
+  },
+  "author": "illusionfield <illusionfield@gmail.com>",
+  "license": "MIT License",
+  "dependencies": {
+    "puppeteer": "^23.11.1"
+  }
+}

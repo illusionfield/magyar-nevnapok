@@ -1,0 +1,24 @@
+# Folder view configuration files
+.DS_Store
+Desktop.ini
+._*
+Thumbs.db
+.Spotlight-V100
+.Trashes
+.Trash
+.AppleDouble
+
+# Application specific files
+node_modules/
+~$*
+
+*.sublime-workspace
+
+.local
+.env
+*.log
+*.map
+.tmp
+
+# Project specific files
+output/
