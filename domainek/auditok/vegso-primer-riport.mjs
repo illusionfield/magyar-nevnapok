@@ -1,5 +1,7 @@
-// domainek/auditok/vegso-primer-riport.mjs
-// A végső primerjegyzék teljes diagnosztikai riportja.
+/**
+ * domainek/auditok/vegso-primer-riport.mjs
+ * A végső primerjegyzék teljes diagnosztikai riportja.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import {
@@ -19,6 +21,11 @@ import {
   printKeyValueTable,
   styleText,
 } from "../../kozos/terminal-tabla.mjs";
+import {
+  buildNameRecordMap,
+  buildReverseLinkMap,
+  gyujtKapcsolodoPrimereket,
+} from "./kozos/primer-kapcsolatok.mjs";
 import {
   betoltStrukturaltFajl,
   mentStrukturaltFajl,
@@ -79,6 +86,9 @@ const SAMPLE_EXPECTATIONS = new Map([
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 const args = parseArgs(process.argv.slice(2));
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const finalRegistryPath = path.resolve(
     process.cwd(),
@@ -146,6 +156,9 @@ async function main() {
   }
 }
 
+/**
+ * A `buildFinalPrimaryRegistryReport` felépíti a szükséges adatszerkezetet.
+ */
 function buildFinalPrimaryRegistryReport({
   finalRegistryPayload,
   legacyRegistryPayload,
@@ -254,6 +267,9 @@ function buildFinalPrimaryRegistryReport({
   };
 }
 
+/**
+ * A `buildValidations` felépíti a szükséges adatszerkezetet.
+ */
 function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, overridePayload, overrideMap }) {
   const overrideDuplicates = findDuplicateMonthDays(overridePayload?.days ?? []);
   const mismatchMonthDays = [];
@@ -307,23 +323,23 @@ function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, override
   const hardFailures = [];
 
   if ((finalPayload?.stats?.dayCount ?? finalMap.size) !== 366) {
-    hardFailures.push("A végső primer registry nem 366 napos.");
+    hardFailures.push("A végső primerjegyzék nem 366 napos.");
   }
 
   if ((finalPayload?.stats?.warningUnionDayCount ?? null) !== 0) {
-    hardFailures.push("A warning-union napok száma nem nulla.");
+    hardFailures.push("A figyelmeztetéses uniós napok száma nem nulla.");
   }
 
   if (overrideDuplicates.length > 0) {
-    hardFailures.push("Duplikált override dátum található.");
+    hardFailures.push("Duplikált felülírási dátum található.");
   }
 
   if (invalidOverrideNames.length > 0) {
-    hardFailures.push("Van olyan override név, amely nem szerepel a legacy/wiki primerforrásban.");
+    hardFailures.push("Van olyan felülírt név, amely nem szerepel a legacy/wiki primerforrásban.");
   }
 
   if (missingOverrideDays.length > 0 || extraOverrideDays.length > 0) {
-    hardFailures.push("Az override dátumkészlet nem fedi pontosan a legacy–wiki primereltéréseket.");
+    hardFailures.push("A felülírási dátumkészlet nem fedi pontosan a legacy–wiki primereltéréseket.");
   }
 
   if (unexpectedMismatchDays.length > 0 || missingExpectedOverrideDays.length > 0) {
@@ -350,50 +366,27 @@ function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, override
   };
 }
 
+/**
+ * A `buildNeverPrimarySimilarPrimaryReport` felépíti a szükséges adatszerkezetet.
+ */
 function buildNeverPrimarySimilarPrimaryReport({ neverPrimary, inputPayload, finalMap, rawDayMap }) {
   const nameRecords = buildNameRecordMap(inputPayload);
   const reverseLinks = buildReverseLinkMap(nameRecords);
   const finalPrimaryByName = buildFinalPrimaryByNameMap(finalMap);
-  const finalPrimaryNameSet = new Set(finalPrimaryByName.keys());
+  const finalPrimaryNameMap = buildFinalPrimaryNameMap(finalMap);
   const matched = [];
   const unmatched = [];
 
   for (const entry of neverPrimary) {
-    const normalizedHidden = normalizeNameForMatch(entry.name);
-    const record = nameRecords.get(normalizedHidden) ?? null;
-    const directLinks = uniqueKeepOrder([
-      ...(record?.relatedNames ?? []),
-      ...(record?.nicknames ?? []),
-    ]);
-    const reverseLinksForName = Array.from(reverseLinks.get(normalizedHidden) ?? []);
-    const candidateMap = new Map();
-
-    for (const candidateName of directLinks) {
-      const normalizedCandidate = normalizeNameForMatch(candidateName);
-
-      if (!finalPrimaryNameSet.has(normalizedCandidate)) {
-        continue;
-      }
-
-      const current = candidateMap.get(normalizedCandidate) ?? createSimilarPrimaryCandidate(candidateName);
-      current.reasons.add("saját rokon/becézés");
-      candidateMap.set(normalizedCandidate, current);
-    }
-
-    for (const candidateName of reverseLinksForName) {
-      const normalizedCandidate = normalizeNameForMatch(candidateName);
-
-      if (!finalPrimaryNameSet.has(normalizedCandidate)) {
-        continue;
-      }
-
-      const current = candidateMap.get(normalizedCandidate) ?? createSimilarPrimaryCandidate(candidateName);
-      current.reasons.add("visszahivatkozás");
-      candidateMap.set(normalizedCandidate, current);
-    }
-
-    const candidates = Array.from(candidateMap.entries())
-      .map(([normalizedCandidate, candidate]) => {
+    const candidates = gyujtKapcsolodoPrimereket({
+      hiddenName: entry.name,
+      primerNevMap: finalPrimaryNameMap,
+      nameRecords,
+      reverseLinks,
+      collator,
+    })
+      .map((candidate) => {
+        const normalizedCandidate = normalizeNameForMatch(candidate.primaryName);
         const primaryDays = finalPrimaryByName.get(normalizedCandidate) ?? [];
         const dayDetails = primaryDays.map((monthDay) => {
           const finalDay = finalMap.get(monthDay);
@@ -416,7 +409,7 @@ function buildNeverPrimarySimilarPrimaryReport({ neverPrimary, inputPayload, fin
 
         return {
           primaryName: candidate.primaryName,
-          relation: Array.from(candidate.reasons).sort((left, right) => collator.compare(left, right)).join(" • "),
+          relation: candidate.relation,
           primaryMonthDays: primaryDays,
           primaryDateCount: primaryDays.length,
           singlePrimaryDayCount,
@@ -470,57 +463,9 @@ function buildNeverPrimarySimilarPrimaryReport({ neverPrimary, inputPayload, fin
   };
 }
 
-function createSimilarPrimaryCandidate(primaryName) {
-  return {
-    primaryName,
-    reasons: new Set(),
-  };
-}
-
-function buildNameRecordMap(inputPayload) {
-  const map = new Map();
-
-  for (const entry of inputPayload?.names ?? []) {
-    const name = String(entry?.name ?? "").trim();
-
-    if (!name) {
-      continue;
-    }
-
-    map.set(normalizeNameForMatch(name), {
-      name,
-      relatedNames: sanitizeLinkedNames(entry.relatedNames ?? []),
-      nicknames: sanitizeLinkedNames(entry.nicknames ?? []),
-    });
-  }
-
-  return map;
-}
-
-function buildReverseLinkMap(nameRecords) {
-  const reverse = new Map();
-
-  for (const record of nameRecords.values()) {
-    const allLinks = uniqueKeepOrder([...(record.relatedNames ?? []), ...(record.nicknames ?? [])]);
-
-    for (const linkedName of allLinks) {
-      const normalizedLinked = normalizeNameForMatch(linkedName);
-
-      if (!normalizedLinked) {
-        continue;
-      }
-
-      if (!reverse.has(normalizedLinked)) {
-        reverse.set(normalizedLinked, new Set());
-      }
-
-      reverse.get(normalizedLinked).add(record.name);
-    }
-  }
-
-  return reverse;
-}
-
+/**
+ * A `buildFinalPrimaryByNameMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildFinalPrimaryByNameMap(finalMap) {
   const map = new Map();
 
@@ -543,12 +488,28 @@ function buildFinalPrimaryByNameMap(finalMap) {
   return map;
 }
 
-function sanitizeLinkedNames(values) {
-  return uniqueKeepOrder(
-    (Array.isArray(values) ? values : []).filter((value) => /[\p{L}\p{N}]/u.test(String(value ?? "")))
-  );
+/**
+ * A `buildFinalPrimaryNameMap` a normalizált primernevekhez eltárolja az eredeti megjelenő nevet.
+ */
+function buildFinalPrimaryNameMap(finalMap) {
+  const map = new Map();
+
+  for (const day of finalMap.values()) {
+    for (const name of day.preferredNames) {
+      const normalized = normalizeNameForMatch(name);
+
+      if (!map.has(normalized)) {
+        map.set(normalized, name);
+      }
+    }
+  }
+
+  return map;
 }
 
+/**
+ * A `summarizePrimaryCounts` rövidíti a primerdarabszámok eloszlását emberileg olvasható formára.
+ */
 function summarizePrimaryCounts(dayDetails) {
   const counts = new Map();
 
@@ -562,6 +523,9 @@ function summarizePrimaryCounts(dayDetails) {
     .join(" • ");
 }
 
+/**
+ * A `summarizeOtherNamedays` összegzi, hogy egy primernapon mennyi további név szerepel.
+ */
 function summarizeOtherNamedays(dayDetails) {
   if (dayDetails.length === 0) {
     return "—";
@@ -578,12 +542,11 @@ function summarizeOtherNamedays(dayDetails) {
   return `${min}–${max}`;
 }
 
+/**
+ * A `buildSummary` összegzést készít a kapcsolódó adatokból.
+ */
 function buildSummary({
   months,
-  finalMap,
-  legacyMap,
-  wikiMap,
-  normalizedMap,
   rawDayMap,
   neverPrimary,
   neverPrimarySimilarPrimary,
@@ -628,20 +591,23 @@ function buildSummary({
   };
 }
 
+/**
+ * A `buildRegistryMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildRegistryMap(payload, options = {}) {
   if (!Array.isArray(payload?.days)) {
-    throw new Error("A primer registry payload nem tartalmaz érvényes days tömböt.");
+    throw new Error("A primerjegyzék payload nem tartalmaz érvényes days tömböt.");
   }
 
   const map = new Map();
 
   for (const day of payload.days) {
     if (!day || typeof day !== "object" || typeof day.monthDay !== "string") {
-      throw new Error("Érvénytelen napi primer registry bejegyzés.");
+      throw new Error("Érvénytelen napi primerjegyzék-bejegyzés.");
     }
 
     if (map.has(day.monthDay)) {
-      throw new Error(`Duplikált primer registry nap: ${day.monthDay}`);
+      throw new Error(`Duplikált primerjegyzék-nap: ${day.monthDay}`);
     }
 
     map.set(day.monthDay, {
@@ -661,9 +627,12 @@ function buildRegistryMap(payload, options = {}) {
   return map;
 }
 
+/**
+ * A `buildOverrideMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildOverrideMap(payload) {
   if (!Array.isArray(payload?.days)) {
-    throw new Error("Az override payload nem tartalmaz érvényes days tömböt.");
+    throw new Error("A felülírási payload nem tartalmaz érvényes days tömböt.");
   }
 
   const map = new Map();
@@ -680,6 +649,9 @@ function buildOverrideMap(payload) {
   return map;
 }
 
+/**
+ * A `buildRawDayMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildRawDayMap(payload) {
   if (!Array.isArray(payload?.names)) {
     throw new Error("A névadatbázis nem tartalmaz érvényes names tömböt.");
@@ -727,6 +699,9 @@ function buildRawDayMap(payload) {
   return map;
 }
 
+/**
+ * A `buildNeverPrimaryList` felépíti a szükséges adatszerkezetet.
+ */
 function buildNeverPrimaryList({ inputPayload, finalPrimaryUniverse }) {
   const entries = [];
 
@@ -762,6 +737,9 @@ function buildNeverPrimaryList({ inputPayload, finalPrimaryUniverse }) {
   });
 }
 
+/**
+ * A `buildNeverPrimaryByMonth` felépíti a szükséges adatszerkezetet.
+ */
 function buildNeverPrimaryByMonth(neverPrimary) {
   return MONTH_NAMES.map((monthName, index) => {
     const month = index + 1;
@@ -798,6 +776,9 @@ function buildNeverPrimaryByMonth(neverPrimary) {
   });
 }
 
+/**
+ * A `buildNameCountMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildNameCountMap(dayLists) {
   const counts = new Map();
 
@@ -820,6 +801,9 @@ function buildNameCountMap(dayLists) {
   return counts;
 }
 
+/**
+ * A `buildCountExtremes` felépíti a szükséges adatszerkezetet.
+ */
 function buildCountExtremes(countMap) {
   const entries = Array.from(countMap.values()).sort((left, right) => {
     if (left.count !== right.count) {
@@ -853,6 +837,9 @@ function buildCountExtremes(countMap) {
   };
 }
 
+/**
+ * A `buildDailyDistribution` felépíti a szükséges adatszerkezetet.
+ */
 function buildDailyDistribution(lengths) {
   const distribution = new Map();
 
@@ -868,6 +855,9 @@ function buildDailyDistribution(lengths) {
     .sort((left, right) => left.size - right.size);
 }
 
+/**
+ * A `createEmptyDayEntry` üres napi primerbejegyzést hoz létre a hiányzó napokhoz.
+ */
 function createEmptyDayEntry(monthDay) {
   const [month, day] = monthDay.split("-").map(Number);
 
@@ -885,6 +875,9 @@ function createEmptyDayEntry(monthDay) {
   };
 }
 
+/**
+ * A `createRawEmptyDayEntry` üres nyers napi bejegyzést hoz létre a hiányzó napokhoz.
+ */
 function createRawEmptyDayEntry(monthDay) {
   const [month, day] = monthDay.split("-").map(Number);
 
@@ -897,10 +890,16 @@ function createRawEmptyDayEntry(monthDay) {
   };
 }
 
+/**
+ * A `compareMonthDays` hónap-nap azonosítókat rendez időrendi sorrendbe.
+ */
 function compareMonthDays(left, right) {
   return left.localeCompare(right, "hu");
 }
 
+/**
+ * A `uniqueKeepOrder` duplikátummentes tömböt ad vissza az első előfordulások sorrendjében.
+ */
 function uniqueKeepOrder(values) {
   const seen = new Set();
   const result = [];
@@ -919,10 +918,16 @@ function uniqueKeepOrder(values) {
   return result;
 }
 
+/**
+ * A `uniqueSorted` duplikátummentes, rendezett tömböt ad vissza.
+ */
 function uniqueSorted(values) {
   return uniqueKeepOrder(values).sort((left, right) => collator.compare(left, right));
 }
 
+/**
+ * A `findDuplicateMonthDays` összegyűjti a többször előforduló hónap-nap azonosítókat.
+ */
 function findDuplicateMonthDays(days) {
   const seen = new Set();
   const duplicates = [];
@@ -945,16 +950,19 @@ function findDuplicateMonthDays(days) {
   return uniqueSorted(duplicates);
 }
 
+/**
+ * A `printReport` terminálra írja az emberileg olvasható összegzést.
+ */
 function printReport(report) {
   printKeyValueTable(
-    "Végső primer registry – források",
+    "Végső primerjegyzék – források",
     [
-      ["Végső primer registry", report.inputs.finalRegistryPath],
-      ["Legacy registry", report.inputs.legacyRegistryPath],
-      ["Wiki registry", report.inputs.wikiRegistryPath],
-      ["Normalized registry", report.inputs.normalizedRegistryPath],
+      ["Végső primerjegyzék", report.inputs.finalRegistryPath],
+      ["Legacy primerjegyzék", report.inputs.legacyRegistryPath],
+      ["Wiki primerjegyzék", report.inputs.wikiRegistryPath],
+      ["Normalizált primerjegyzék", report.inputs.normalizedRegistryPath],
       ["Névadatbázis", report.inputs.inputPath],
-      ["Override fájl", report.inputs.overridesPath],
+      ["Felülírásfájl", report.inputs.overridesPath],
     ],
     { titleStyle: ["bold", "cyan"] }
   );
@@ -963,14 +971,14 @@ function printReport(report) {
     "Validációs összegzés",
     [
       ["Végső napok száma", report.finalRegistryStats?.dayCount ?? report.months.flatMap((m) => m.rows).length],
-      ["Warning-union napok", report.finalRegistryStats?.warningUnionDayCount ?? "—"],
-      ["Override napok", report.validations.overrideDayCount],
+      ["Figyelmeztetéses uniós napok", report.finalRegistryStats?.warningUnionDayCount ?? "—"],
+      ["Felülírt napok", report.validations.overrideDayCount],
       ["Legacy–wiki primereltéréses napok", report.validations.mismatchMonthDays.length],
-      ["Duplikált override napok", formatNameList(report.validations.overrideDuplicates, { maxItems: 8, maxLength: 48 })],
-      ["Hiányzó override napok", formatNameList(report.validations.missingOverrideDays, { maxItems: 8, maxLength: 48 })],
-      ["Extra override napok", formatNameList(report.validations.extraOverrideDays, { maxItems: 8, maxLength: 48 })],
-      ["Érvénytelen override nevek", report.validations.invalidOverrideNames.length],
-      ["Primary nélkül maradó nevek", report.summary.neverPrimaryCount],
+      ["Duplikált felülírt napok", formatNameList(report.validations.overrideDuplicates, { maxItems: 8, maxLength: 48 })],
+      ["Hiányzó felülírt napok", formatNameList(report.validations.missingOverrideDays, { maxItems: 8, maxLength: 48 })],
+      ["Extra felülírt napok", formatNameList(report.validations.extraOverrideDays, { maxItems: 8, maxLength: 48 })],
+      ["Érvénytelen felülírt nevek", report.validations.invalidOverrideNames.length],
+      ["Primer nélkül maradó nevek", report.summary.neverPrimaryCount],
       ["Ebből hasonló primerrel", report.summary.neverPrimaryWithSimilarPrimaryCount],
       ["Ebből hasonló primer nélkül", report.summary.neverPrimaryWithoutSimilarPrimaryCount],
       ["Kemény hibák", report.validations.hardFailureCount],
@@ -1029,6 +1037,9 @@ function printReport(report) {
   }
 }
 
+/**
+ * A `printMonthTable` terminálra írja az emberileg olvasható összegzést.
+ */
 function printMonthTable(month, options = {}) {
   printDataTable(
     options.compactTitle
@@ -1039,8 +1050,8 @@ function printMonthTable(month, options = {}) {
       { key: "names", title: "Nevek", width: 24 },
       { key: "legacy", title: "Legacy", width: 18 },
       { key: "wiki", title: "Wiki", width: 18 },
-      { key: "normalized", title: "Normalized", width: 18 },
-      { key: "ranking", title: "Ranking", width: 18 },
+      { key: "normalized", title: "Normalizált", width: 18 },
+      { key: "ranking", title: "Rangsor", width: 18 },
       { key: "hidden", title: "Rejtett", width: 24 },
     ],
     month.rows.map((row) => ({
@@ -1060,6 +1071,9 @@ function printMonthTable(month, options = {}) {
   );
 }
 
+/**
+ * A `getMonthRowStyle` kiválasztja az adott napi sor terminálstílusát.
+ */
 function getMonthRowStyle(row) {
   if (!row.names.length && !row.legacy.length && !row.wiki.length) {
     return ["dim"];
@@ -1084,6 +1098,9 @@ function getMonthRowStyle(row) {
   return null;
 }
 
+/**
+ * A `printSummary` összegzést készít a kapcsolódó adatokból.
+ */
 function printSummary(summary) {
   printDataTable(
     "Névfrekvenciás szélsőértékek",
@@ -1099,8 +1116,8 @@ function printSummary(summary) {
       ["Végső primer", summary.metricExtremes.primaryRegistry],
       ["Legacy primer", summary.metricExtremes.legacy],
       ["Wiki primer", summary.metricExtremes.wiki],
-      ["Normalized primer", summary.metricExtremes.normalized],
-      ["Ranking primer", summary.metricExtremes.ranking],
+      ["Normalizált primer", summary.metricExtremes.normalized],
+      ["Rangsorolt primer", summary.metricExtremes.ranking],
       ["Rejtett", summary.metricExtremes.hidden],
     ].map(([metric, entry]) => ({
       metric,
@@ -1140,9 +1157,12 @@ function printSummary(summary) {
   );
 }
 
+/**
+ * A `printNeverPrimary` terminálra írja az emberileg olvasható összegzést.
+ */
 function printNeverPrimary(summary) {
   printDataTable(
-    "Primary nélkül maradó nevek",
+    "Primer nélkül maradó nevek",
     [
       { key: "name", title: "Név", width: 22 },
       { key: "dayCount", title: "Napok", width: 7, align: "right" },
@@ -1160,25 +1180,28 @@ function printNeverPrimary(summary) {
   );
 }
 
+/**
+ * A `printNeverPrimarySimilarPrimary` terminálra írja az emberileg olvasható összegzést.
+ */
 function printNeverPrimarySimilarPrimary(report) {
   printKeyValueTable(
-    "Primary nélkül maradó nevek – hasonló primer összegzés",
+    "Primer nélkül maradó nevek – hasonló primer összegzés",
     [
       ["Hasonló primerrel rendelkező rejtett nevek", report.matched.length],
       ["Hasonló primer nélkül maradó rejtett nevek", report.unmatched.length],
-      ["Összes hidden→primary kapcsolat", report.flattenedRows.length],
+      ["Összes rejtett→primer kapcsolat", report.flattenedRows.length],
     ],
     { titleStyle: ["bold", "magenta"] }
   );
 
   printDataTable(
-    "Primary nélkül maradó nevek – hasonló primerek",
+    "Primer nélkül maradó nevek – hasonló primerek",
     [
       { key: "hiddenName", title: "Rejtett név", width: 20 },
       { key: "hiddenDays", title: "Saját napok", width: 9, align: "right" },
-      { key: "primaryName", title: "Hasonló primary", width: 20 },
+      { key: "primaryName", title: "Hasonló primer", width: 20 },
       { key: "relation", title: "Kapcsolat", width: 18 },
-      { key: "primaryDays", title: "Primary napjai", width: 24 },
+      { key: "primaryDays", title: "Primer napjai", width: 24 },
       { key: "singlePrimary", title: "1 primeres", width: 10 },
       { key: "primaryCounts", title: "Primer darab", width: 16 },
       { key: "otherNamedays", title: "Egyéb névnap", width: 14 },
@@ -1212,6 +1235,9 @@ function printNeverPrimarySimilarPrimary(report) {
   );
 }
 
+/**
+ * A `printNeverPrimaryByMonth` terminálra írja az emberileg olvasható összegzést.
+ */
 function printNeverPrimaryByMonth(months) {
   for (const month of months) {
     if (month.entries.length === 0) {
@@ -1237,10 +1263,16 @@ function printNeverPrimaryByMonth(months) {
   }
 }
 
+/**
+ * A `readJson` betölti a szükséges adatot.
+ */
 async function readJson(filePath) {
   return betoltStrukturaltFajl(filePath);
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

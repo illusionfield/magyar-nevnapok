@@ -1,5 +1,7 @@
-// pipeline/lepesek.mjs
-// A kanonikus pipeline lépésregisztere és futtató segédei.
+/**
+ * pipeline/lepesek.mjs
+ * Az elsődleges pipeline lépésregisztere és futtató segédei.
+ */
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,10 +12,16 @@ import { rogzitManifestLepes } from "./manifest.mjs";
 
 const aktualisKonyvtar = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * A `modulUtvonal` a modul relatív útvonalát abszolút projektútvonallá alakítja.
+ */
 function modulUtvonal(relativ) {
   return path.resolve(aktualisKonyvtar, "..", relativ);
 }
 
+/**
+ * Az `exportalJsonValtozatokat` opcionális JSON testvérfájlokat készít a YAML artifactok mellé.
+ */
 async function exportalJsonValtozatokat(outputok = [], formatum = "yaml") {
   if (formatum !== "json") {
     return [];
@@ -35,6 +43,9 @@ async function exportalJsonValtozatokat(outputok = [], formatum = "yaml") {
   return letrehozott;
 }
 
+/**
+ * A `futtatLepest` lefuttat egy worker modult és rögzíti az eredményét a manifestben.
+ */
 async function futtatLepest({ stepId, modul, argumentumok, inputs, outputs, formatum }) {
   const kezdes = Date.now();
 
@@ -74,6 +85,9 @@ async function futtatLepest({ stepId, modul, argumentumok, inputs, outputs, form
   }
 }
 
+/**
+ * A `futtatAuditokat` sorban lefuttatja az összes fő auditmodult.
+ */
 async function futtatAuditokat(formatum = "yaml") {
   const futasok = [];
 
@@ -209,6 +223,30 @@ async function futtatAuditokat(formatum = "yaml") {
     })
   );
 
+  futasok.push(
+    await futtatLepest({
+      stepId: "audit-primer-nelkul-marado-nevek",
+      modul: "domainek/auditok/primer-nelkul-marado-nevek.mjs",
+      argumentumok: [
+        "--final",
+        kanonikusUtvonalak.primer.vegso,
+        "--normalized",
+        kanonikusUtvonalak.primer.normalizaloRiport,
+        "--input",
+        kanonikusUtvonalak.adatbazis.nevnapok,
+        "--report",
+        kanonikusUtvonalak.riportok.primerNelkulMaradoNevek,
+      ],
+      inputs: [
+        kanonikusUtvonalak.primer.vegso,
+        kanonikusUtvonalak.primer.normalizaloRiport,
+        kanonikusUtvonalak.adatbazis.nevnapok,
+      ],
+      outputs: [kanonikusUtvonalak.riportok.primerNelkulMaradoNevek],
+      formatum,
+    })
+  );
+
   return futasok;
 }
 
@@ -329,7 +367,7 @@ export const pipelineLepesek = [
   },
   {
     azonosito: "naptar-generalas",
-    leiras: "ICS naptárfájlokat generál a kanonikus adatbázisból.",
+    leiras: "ICS naptárfájlokat generál az elsődleges adatbázisból.",
     bemenetek: [kanonikusUtvonalak.adatbazis.nevnapok],
     kimenetek: [kanonikusUtvonalak.naptar.alap],
     dependsOn: ["portal-nevadatbazis-epites"],
@@ -366,13 +404,16 @@ export const pipelineLepesek = [
       kanonikusUtvonalak.primer.normalizaloRiport,
       kanonikusUtvonalak.riportok.primerNormalizalo,
       kanonikusUtvonalak.riportok.vegsoPrimer,
+      kanonikusUtvonalak.riportok.primerNelkulMaradoNevek,
     ],
     dependsOn: ["vegso-primer-feloldas", "portal-nevadatbazis-epites"],
     futtat: (opciok = {}) => futtatAuditokat(opciok.formatum ?? "yaml"),
   },
 ];
 
+/**
+ * A `keresLepest` az azonosítója alapján visszaadja a pipeline-lépést.
+ */
 export function keresLepest(azonosito) {
   return pipelineLepesek.find((lep) => lep.azonosito === azonosito) ?? null;
 }
-

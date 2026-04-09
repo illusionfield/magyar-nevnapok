@@ -1,5 +1,7 @@
-// domainek/primer/legacy-ics-atalakitas.mjs
-// A legacy ICS fájlból kanonikus primerjegyzéket előállító folyamat.
+/**
+ * domainek/primer/legacy-ics-atalakitas.mjs
+ * A legacy ICS fájlból elsődleges primerjegyzéket előállító folyamat.
+ */
 import path from "node:path";
 import {
   buildPrimaryRegistryPayload,
@@ -10,6 +12,9 @@ import { mentStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_LEGACY_ICS_PATH);
   const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_PRIMARY_REGISTRY_PATH);
@@ -20,6 +25,9 @@ async function main() {
   console.log(`Mentve: ${payload.days.length} legacy primer nap ide: ${outputPath}`);
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

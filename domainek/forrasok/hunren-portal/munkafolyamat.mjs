@@ -1,6 +1,7 @@
-// domainek/forrasok/hunren-portal/munkafolyamat.mjs
-// A HUN-REN utónévportál teljes adatgyűjtő munkafolyamata.
-import fs from "node:fs/promises";
+/**
+ * domainek/forrasok/hunren-portal/munkafolyamat.mjs
+ * A HUN-REN utónévportál teljes adatgyűjtő munkafolyamata.
+ */
 import path from "node:path";
 import puppeteer from "puppeteer";
 import {
@@ -10,6 +11,7 @@ import {
   loadPrimaryRegistry,
   normalizeNameForMatch,
 } from "../../primer/alap.mjs";
+import { epitPuppeteerInditasiBeallitasokat } from "../../../kozos/puppeteer-inditas.mjs";
 import { mentStrukturaltFajl } from "../../../kozos/strukturalt-fajl.mjs";
 import { kanonikusUtvonalak } from "../../../kozos/utvonalak.mjs";
 
@@ -48,6 +50,9 @@ const legacyPrimaryRegistryPath = path.resolve(
 const concurrency = args.concurrency ?? DEFAULT_CONCURRENCY;
 const limit = args.limit ?? null;
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   console.log("Adatgyűjtés indul a nem szerinti indexoldalakról.");
 
@@ -60,9 +65,7 @@ async function main() {
   ]);
   const primaryRegistryLookup = buildPrimaryRegistryLookup(primaryRegistry.payload.days);
   const legacyPrimaryRegistryLookup = buildPrimaryRegistryLookup(legacyPrimaryRegistry.payload.days);
-  const browser = await puppeteer.launch({
-    headless: args.headful ? false : true,
-  });
+  const browser = await puppeteer.launch(epitPuppeteerInditasiBeallitasokat(args));
 
   try {
     const discoveredNames = await discoverNames(browser);
@@ -129,6 +132,9 @@ async function main() {
   }
 }
 
+/**
+ * A `discoverNames` összegyűjti a szükséges elemeket.
+ */
 async function discoverNames(browser) {
   const indexes = [
     { gender: "female", url: FEMALE_INDEX_URL },
@@ -173,6 +179,9 @@ async function discoverNames(browser) {
   return Array.from(deduped.values());
 }
 
+/**
+ * A `scrapeNames` kinyeri a szükséges adatokat a forrásoldalról.
+ */
 async function scrapeNames(browser, names, concurrencyLimit) {
   const results = new Array(names.length);
   let cursor = 0;
@@ -213,6 +222,9 @@ async function scrapeNames(browser, names, concurrencyLimit) {
   });
 }
 
+/**
+ * A `retryScrapeName` újrapróbálásokkal futtatja a kapcsolódó műveletet.
+ */
 async function retryScrapeName(browser, page, nameMeta) {
   const retries = 3;
   let currentPage = page;
@@ -241,6 +253,9 @@ async function retryScrapeName(browser, page, nameMeta) {
   throw lastError;
 }
 
+/**
+ * A `scrapeName` kinyeri a szükséges adatokat a forrásoldalról.
+ */
 async function scrapeName(page, nameMeta) {
   await page.goto(nameMeta.detailUrl, { waitUntil: "domcontentloaded" });
 
@@ -383,6 +398,9 @@ async function scrapeName(page, nameMeta) {
   };
 }
 
+/**
+ * A `normalizeNamedays` normalizálja a megadott értéket.
+ */
 function normalizeNamedays(values) {
   if (!Array.isArray(values)) {
     return [];
@@ -409,6 +427,9 @@ function normalizeNamedays(values) {
   return normalized;
 }
 
+/**
+ * A `loadPrimaryRegistryOrThrow` betölti a szükséges adatot.
+ */
 async function loadPrimaryRegistryOrThrow(filePath, buildCommand) {
   try {
     return await loadPrimaryRegistry(filePath);
@@ -421,6 +442,9 @@ async function loadPrimaryRegistryOrThrow(filePath, buildCommand) {
   }
 }
 
+/**
+ * A `applyPrimaryAssignments` alkalmazza a kapcsolódó szabályt vagy módosítást.
+ */
 function applyPrimaryAssignments(names, registryLookups) {
   const { primaryRegistryLookup, legacyPrimaryRegistryLookup } = registryLookups;
   const decoratedNames = names.map((entry) => ({
@@ -458,6 +482,9 @@ function applyPrimaryAssignments(names, registryLookups) {
   return decoratedNames;
 }
 
+/**
+ * A `buildDayBuckets` felépíti a szükséges adatszerkezetet.
+ */
 function buildDayBuckets(names) {
   const buckets = new Map();
 
@@ -482,6 +509,9 @@ function buildDayBuckets(names) {
   return buckets;
 }
 
+/**
+ * A `buildDayRankingData` felépíti a szükséges adatszerkezetet.
+ */
 function buildDayRankingData(dayEntries, legacyEntry) {
   const byKey = new Map();
   const overallSorted = [...dayEntries].sort(compareByOverallRanking);
@@ -489,6 +519,11 @@ function buildDayRankingData(dayEntries, legacyEntry) {
   const combinedSorted = [...dayEntries].sort(compareByCombinedRanking);
   const total = dayEntries.length;
 
+  // Három nézetet vezetünk párhuzamosan:
+  // - összesített népszerűség,
+  // - újszülöttnév-trend,
+  // - a kettőből képzett kombinált sorrend.
+  // A későbbi primerjelölés nem egyetlen forrásrangon, hanem ezek összhangján alapul.
   for (const [index, entry] of overallSorted.entries()) {
     const current = byKey.get(entry.key) ?? {
       dayOrder: null,
@@ -532,6 +567,8 @@ function buildDayRankingData(dayEntries, legacyEntry) {
     };
 
     current.dayOrder = index + 1;
+    // A pontszámot úgy képezzük, hogy az összesített és az újszülöttsúly összeadódik,
+    // majd finom tie-breakerként megőrizzük a kombinált sorrend pozícióját is.
     current.score = current.overallWeight + current.newbornWeight;
     byKey.set(entry.key, current);
   }
@@ -547,6 +584,9 @@ function buildDayRankingData(dayEntries, legacyEntry) {
   };
 }
 
+/**
+ * A `collectPrimaryAssignmentStats` összegyűjti a szükséges elemeket.
+ */
 function collectPrimaryAssignmentStats(names) {
   const stats = {
     primaryAssignmentCount: 0,
@@ -595,6 +635,9 @@ function collectPrimaryAssignmentStats(names) {
   return stats;
 }
 
+/**
+ * A `compareByCombinedRanking` az összetett rang alapján hasonlítja össze a jelölteket.
+ */
 function compareByCombinedRanking(left, right) {
   return (
     compareWeightedCombinedRanking(left, right) ||
@@ -604,16 +647,25 @@ function compareByCombinedRanking(left, right) {
   );
 }
 
+/**
+ * A `compareWeightedCombinedRanking` súlyozott összetett rang alapján hasonlítja össze a jelölteket.
+ */
 function compareWeightedCombinedRanking(left, right) {
   return weightedCombinedRank(right) - weightedCombinedRank(left);
 }
 
+/**
+ * A `weightedCombinedRank` súlyozott összesített rangértéket számol a jelöltnek.
+ */
 function weightedCombinedRank(entry) {
   const overall = Number.isInteger(entry?.overallRank) ? entry.overallRank : 0;
   const newborn = Number.isInteger(entry?.newbornRank) ? entry.newbornRank : 0;
   return overall * 3 + newborn * 5;
 }
 
+/**
+ * A `compareByOverallRanking` az összesített gyakorisági rang alapján rendezi a jelölteket.
+ */
 function compareByOverallRanking(left, right) {
   return (
     compareRankDesc(left.overallRank, right.overallRank) ||
@@ -622,6 +674,9 @@ function compareByOverallRanking(left, right) {
   );
 }
 
+/**
+ * A `compareByNewbornRanking` az újszülöttgyakorisági rang alapján rendezi a jelölteket.
+ */
 function compareByNewbornRanking(left, right) {
   return (
     compareRankDesc(left.newbornRank, right.newbornRank) ||
@@ -630,6 +685,9 @@ function compareByNewbornRanking(left, right) {
   );
 }
 
+/**
+ * A `compareRankDesc` csökkenő rangsor szerint hasonlítja össze a jelölteket.
+ */
 function compareRankDesc(left, right) {
   const leftValue = Number.isInteger(left) ? left : Number.NEGATIVE_INFINITY;
   const rightValue = Number.isInteger(right) ? right : Number.NEGATIVE_INFINITY;
@@ -637,16 +695,25 @@ function compareRankDesc(left, right) {
   return rightValue - leftValue;
 }
 
+/**
+ * A `getFrequencyRank` számszerű rangértéket ad a gyakorisági kategóriához.
+ */
 function getFrequencyRank(entry) {
   return Number.isInteger(entry?.rank) ? entry.rank : null;
 }
 
+/**
+ * A `uniqueNames` normalizált, rendezett és duplikátummentes névlistát ad vissza.
+ */
 function uniqueNames(values) {
   return Array.from(new Set(values.map((value) => normalizeText(value)).filter(Boolean))).sort(
     (left, right) => collator.compare(left, right)
   );
 }
 
+/**
+ * A `normalizeInteger` normalizálja a megadott értéket.
+ */
 function normalizeInteger(value) {
   const normalized = normalizeText(value);
 
@@ -658,6 +725,9 @@ function normalizeInteger(value) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+/**
+ * A `normalizeFrequencyText` normalizálja a megadott értéket.
+ */
 function normalizeFrequencyText(value) {
   const normalized = normalizeText(value)
     .replace(/[„”"]/g, "")
@@ -668,6 +738,9 @@ function normalizeFrequencyText(value) {
   return normalized || null;
 }
 
+/**
+ * A `buildFrequency` felépíti a szükséges adatszerkezetet.
+ */
 function buildFrequency(frequency) {
   return {
     overall: normalizeFrequencyEntry(frequency?.overall),
@@ -675,6 +748,9 @@ function buildFrequency(frequency) {
   };
 }
 
+/**
+ * A `normalizeFrequencyEntry` normalizálja a megadott értéket.
+ */
 function normalizeFrequencyEntry(value) {
   const labelHu = normalizeFrequencyText(value);
 
@@ -699,6 +775,9 @@ function normalizeFrequencyEntry(value) {
   };
 }
 
+/**
+ * A `buildFrequencyMeta` felépíti a szükséges adatszerkezetet.
+ */
 function buildFrequencyMeta(frequency) {
   const overall = normalizeFrequencyEntry(frequency?.overall);
   const newborns = normalizeFrequencyEntry(frequency?.newborns);
@@ -720,6 +799,9 @@ function buildFrequencyMeta(frequency) {
   };
 }
 
+/**
+ * A `frequencyDeltaDirection` irányjelzőt készít a gyakoriságváltozáshoz.
+ */
 function frequencyDeltaDirection(delta) {
   if (delta === 0) {
     return "flat";
@@ -728,6 +810,9 @@ function frequencyDeltaDirection(delta) {
   return delta > 0 ? "up" : "down";
 }
 
+/**
+ * A `frequencyDeltaTag` rövid gépi címkét ad a gyakoriságváltozáshoz.
+ */
 function frequencyDeltaTag(delta) {
   if (delta === 0) {
     return "same";
@@ -736,6 +821,9 @@ function frequencyDeltaTag(delta) {
   return delta > 0 ? `up-${delta}` : `down-${Math.abs(delta)}`;
 }
 
+/**
+ * A `frequencyDeltaLabelHu` magyar címkét ad a gyakoriságváltozáshoz.
+ */
 function frequencyDeltaLabelHu(delta) {
   if (delta === 0) {
     return "hasonló az újszülötteknél";
@@ -755,6 +843,9 @@ function frequencyDeltaLabelHu(delta) {
   return `jóval ${direction} az újszülötteknél`;
 }
 
+/**
+ * A `normalizeFormalizedText` normalizálja a megadott értéket.
+ */
 function normalizeFormalizedText(value) {
   const normalized = normalizeText(value)
     .replace(/:"/g, ': "')
@@ -765,6 +856,9 @@ function normalizeFormalizedText(value) {
   return normalized || null;
 }
 
+/**
+ * A `buildFormalized` felépíti a szükséges adatszerkezetet.
+ */
 function buildFormalized(value, tokens) {
   const raw = normalizeFormalizedText(value);
 
@@ -800,6 +894,9 @@ function buildFormalized(value, tokens) {
   };
 }
 
+/**
+ * A `normalizeFormalizedTokens` normalizálja a megadott értéket.
+ */
 function normalizeFormalizedTokens(tokens) {
   if (!Array.isArray(tokens)) {
     return [];
@@ -821,6 +918,9 @@ function normalizeFormalizedTokens(tokens) {
     .filter(Boolean);
 }
 
+/**
+ * A `parseFormalizedTokens` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseFormalizedTokens(tokens) {
   const elements = [];
   const operations = [];
@@ -902,6 +1002,9 @@ function parseFormalizedTokens(tokens) {
   };
 }
 
+/**
+ * A `findNearestFormalizedElementIndex` megkeresi a legközelebbi érdemi formalizált elemet.
+ */
 function findNearestFormalizedElementIndex(sequence, startIndex, direction) {
   for (
     let index = startIndex + direction;
@@ -916,6 +1019,9 @@ function findNearestFormalizedElementIndex(sequence, startIndex, direction) {
   return null;
 }
 
+/**
+ * A `createFormalizedElement` önálló formalizált elemet hoz létre a tokenekből.
+ */
 function createFormalizedElement(index, tokens) {
   const raw = normalizeFormalizedText(tokens.map((token) => token.text).join(" ")) ?? "";
   const normalized = normalizeFormalizedElementText(raw) ?? raw;
@@ -933,6 +1039,9 @@ function createFormalizedElement(index, tokens) {
   };
 }
 
+/**
+ * A `formalizedElementKind` meghatározza a formalizált elem szerepét és típusát.
+ */
 function formalizedElementKind(tokens, normalized, references) {
   if (normalized === "~") {
     return "self";
@@ -954,11 +1063,17 @@ function formalizedElementKind(tokens, normalized, references) {
   return "expression";
 }
 
+/**
+ * A `normalizeFormalizedElementText` normalizálja a megadott értéket.
+ */
 function normalizeFormalizedElementText(value) {
   const normalized = normalizeFormalizedText(value)?.replace(/\s*‣\s*/g, " ") ?? "";
   return normalizeFormalizedText(normalized);
 }
 
+/**
+ * A `createFormalizedOperation` önálló formalizált műveletet hoz létre a tokenekből.
+ */
 function createFormalizedOperation(index, tokens) {
   const raw = normalizeText(tokens.map((token) => token.text).join(" "));
 
@@ -980,6 +1095,9 @@ function createFormalizedOperation(index, tokens) {
   };
 }
 
+/**
+ * A `parseFormalizedOperation` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseFormalizedOperation(raw) {
   const compact = normalizeText(raw).replace(/\s*=\s*/g, " ").trim();
   const firstParenIndex = compact.indexOf("(");
@@ -1002,6 +1120,9 @@ function parseFormalizedOperation(raw) {
   };
 }
 
+/**
+ * A `canonicalizeOperationLabel` egységes, irányadó alakra hozza az értéket.
+ */
 function canonicalizeOperationLabel(value) {
   const compact = normalizeText(value).replace(/\s*=\s*/g, " ").trim();
   const slug = operationSlug(compact);
@@ -1041,6 +1162,9 @@ function canonicalizeOperationLabel(value) {
   return compact;
 }
 
+/**
+ * A `operationCodeFromLabel` stabil műveletkódot képez a szöveges címkéből.
+ */
 function operationCodeFromLabel(label) {
   switch (label) {
     case ">":
@@ -1064,6 +1188,9 @@ function operationCodeFromLabel(label) {
   }
 }
 
+/**
+ * A `parseFormalizedQualifierAttributes` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseFormalizedQualifierAttributes(value) {
   return splitTopLevel(value, ",")
     .map((part) => normalizeText(part))
@@ -1085,6 +1212,9 @@ function parseFormalizedQualifierAttributes(value) {
     });
 }
 
+/**
+ * Az `extractTopLevelParentheticalContents` kiemeli a legfelső szintű zárójeles tartalmakat.
+ */
 function extractTopLevelParentheticalContents(value) {
   const results = [];
   let depth = 0;
@@ -1129,6 +1259,9 @@ function extractTopLevelParentheticalContents(value) {
   return results;
 }
 
+/**
+ * A `splitTopLevel` felbontja a megadott szöveget vagy listát.
+ */
 function splitTopLevel(value, separator) {
   const parts = [];
   let depth = 0;
@@ -1163,6 +1296,9 @@ function splitTopLevel(value, separator) {
   return parts;
 }
 
+/**
+ * A `operationSlug` URL- és keresésbarát rövid azonosítót készít a műveletből.
+ */
 function operationSlug(value) {
   return value
     .normalize("NFD")
@@ -1174,6 +1310,9 @@ function operationSlug(value) {
     .replace(/\s+/g, " ");
 }
 
+/**
+ * A `genderFromUrl` a forrásoldal URL-jéből vezeti le a nemet.
+ */
 function genderFromUrl(url) {
   if (typeof url !== "string") {
     return null;
@@ -1190,11 +1329,17 @@ function genderFromUrl(url) {
   return null;
 }
 
+/**
+ * A `normalizeNullableText` normalizálja a megadott értéket.
+ */
 function normalizeNullableText(value) {
   const normalized = normalizeText(value);
   return normalized || null;
 }
 
+/**
+ * A `parseMonthDayValue` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseMonthDayValue(value) {
   if (typeof value === "string") {
     const normalized = normalizeText(value);
@@ -1260,14 +1405,23 @@ function parseMonthDayValue(value) {
   };
 }
 
+/**
+ * A `isValidMonthDay` ellenőrzi a kapcsolódó feltételt.
+ */
 function isValidMonthDay(month, day) {
   return Number.isInteger(month) && Number.isInteger(day) && month >= 1 && month <= 12 && day >= 1 && day <= 31;
 }
 
+/**
+ * A `formatMonthDay` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatMonthDay(month, day) {
   return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * A `normalizeText` normalizálja a megadott értéket.
+ */
 function normalizeText(value) {
   if (typeof value !== "string") {
     return "";
@@ -1284,34 +1438,18 @@ function normalizeText(value) {
     .trim();
 }
 
-async function withRetries(task, options) {
-  const retries = options?.retries ?? 1;
-  const label = options?.label ?? "task";
-
-  let lastError = null;
-
-  for (let attempt = 1; attempt <= retries; attempt += 1) {
-    try {
-      return await task();
-    } catch (error) {
-      lastError = error;
-      console.warn(`${attempt}/${retries}. kísérlet sikertelen ennél: ${label}. ${error.message}`);
-
-      if (attempt < retries) {
-        await sleep(500 * attempt);
-      }
-    }
-  }
-
-  throw lastError;
-}
-
+/**
+ * A `createPage` új, előkonfigurált böngészőoldalt hoz létre.
+ */
 async function createPage(browser) {
   const page = await browser.newPage();
   page.setDefaultNavigationTimeout(DEFAULT_TIMEOUT_MS);
   return page;
 }
 
+/**
+ * A `safeClosePage` csendben bezárja az oldalt, ha az még nyitva van.
+ */
 async function safeClosePage(page) {
   if (!page) {
     return;
@@ -1324,12 +1462,18 @@ async function safeClosePage(page) {
   }
 }
 
+/**
+ * A `sleep` egyszerű várakozó Promise-t ad vissza.
+ */
 function sleep(timeoutMs) {
   return new Promise((resolve) => {
     setTimeout(resolve, timeoutMs);
   });
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

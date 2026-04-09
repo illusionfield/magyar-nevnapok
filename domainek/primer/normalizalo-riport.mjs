@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import fs from "node:fs";
-import fsp from "node:fs/promises";
 import path from "node:path";
 import zlib from "node:zlib";
 import {
@@ -54,6 +53,9 @@ const DEFAULT_CONFIG = {
 
 const args = parseArgs(process.argv.slice(2));
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
   const diffPath = path.resolve(process.cwd(), args.diff ?? DEFAULT_DIFF_PATH);
@@ -77,10 +79,16 @@ async function main() {
   console.log(`Kézi átnézést igényel: ${report.summary.unresolved}`);
 }
 
+/**
+ * A `readJson` betölti a szükséges adatot.
+ */
 function readJson(filePath) {
   return betoltStrukturaltFajlSzinkron(filePath);
 }
 
+/**
+ * A `readMaybeZippedJson` betölti a szükséges adatot.
+ */
 function readMaybeZippedJson(filePath) {
   if (filePath.endsWith(".zip")) {
     return readSingleJsonFromZip(filePath);
@@ -89,6 +97,9 @@ function readMaybeZippedJson(filePath) {
   return readJson(filePath);
 }
 
+/**
+ * A `readSingleJsonFromZip` betölti a szükséges adatot.
+ */
 function readSingleJsonFromZip(zipPath) {
   const buffer = fs.readFileSync(zipPath);
   const eocdSig = 0x06054b50;
@@ -165,6 +176,9 @@ function readSingleJsonFromZip(zipPath) {
   return JSON.parse(content.toString("utf8"));
 }
 
+/**
+ * A `normalizeAscii` normalizálja a megadott értéket.
+ */
 function normalizeAscii(value) {
   return String(value ?? "")
     .normalize("NFD")
@@ -174,6 +188,9 @@ function normalizeAscii(value) {
     .trim();
 }
 
+/**
+ * A `removeParenContent` eltávolítja a zárójelezett részeket az összehasonlításhoz.
+ */
 function removeParenContent(value) {
   return String(value ?? "")
     .replace(/\s*\([^)]*\)\s*/g, " ")
@@ -181,6 +198,9 @@ function removeParenContent(value) {
     .trim();
 }
 
+/**
+ * A `buildNameIndex` felépíti a szükséges adatszerkezetet.
+ */
 function buildNameIndex(names) {
   const index = new Map();
 
@@ -204,6 +224,9 @@ function buildNameIndex(names) {
   return index;
 }
 
+/**
+ * A `buildRelatedMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildRelatedMap(names) {
   const related = new Map();
 
@@ -229,10 +252,16 @@ function buildRelatedMap(names) {
   return related;
 }
 
+/**
+ * A `makeDayKey` egységes hónap-nap kulcsot képez a napi rekordhoz.
+ */
 function makeDayKey(month, day) {
   return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * A `parseMonthDay` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseMonthDay(monthDay) {
   const match = String(monthDay).match(/^(\d{2})-(\d{2})$/);
 
@@ -249,14 +278,23 @@ function parseMonthDay(monthDay) {
   };
 }
 
+/**
+ * A `isLeapSensitiveDay` ellenőrzi a kapcsolódó feltételt.
+ */
 function isLeapSensitiveDay(monthDay) {
   return ["02-24", "02-25", "02-26", "02-27", "02-28", "02-29"].includes(monthDay);
 }
 
+/**
+ * A `monthDaySort` hónap-nap kulcsokat rendez időrendbe.
+ */
 function monthDaySort(left, right) {
   return left.localeCompare(right, "hu");
 }
 
+/**
+ * A `resolveCanonicalName` a névváltozatból irányadó névalakot vezet le.
+ */
 function resolveCanonicalName(name, config) {
   const clean = removeParenContent(name).trim();
   const ascii = normalizeAscii(clean);
@@ -281,6 +319,9 @@ function resolveCanonicalName(name, config) {
   };
 }
 
+/**
+ * A `convertRegistryDayNames` a napi primerneveket összehasonlítható irányadó alakra hozza.
+ */
 function convertRegistryDayNames(dayNames, config) {
   return (dayNames ?? []).map((name) => {
     const resolved = resolveCanonicalName(name, config);
@@ -294,6 +335,9 @@ function convertRegistryDayNames(dayNames, config) {
   });
 }
 
+/**
+ * A `buildNameDayRegistry` felépíti a szükséges adatszerkezetet.
+ */
 function buildNameDayRegistry(names, config) {
   const byDay = new Map();
 
@@ -329,6 +373,9 @@ function buildNameDayRegistry(names, config) {
   return byDay;
 }
 
+/**
+ * A `scoreCandidate` pontszámot ad egy lehetséges primerjelöltnek.
+ */
 function scoreCandidate(candidate) {
   const rankingScore = Number(candidate.rankingScore ?? 0);
   const overallRank = Number(candidate.overallRank ?? 0);
@@ -343,6 +390,9 @@ function scoreCandidate(candidate) {
   );
 }
 
+/**
+ * A `selectDatabasePrimaryCandidates` kiválasztja az adatbázis alapján legerősebb primerjelölteket.
+ */
 function selectDatabasePrimaryCandidates(candidates) {
   const grouped = new Map();
 
@@ -387,6 +437,9 @@ function selectDatabasePrimaryCandidates(candidates) {
   return rankedOnly.length > 0 ? rankedOnly : normalized.slice(0, 2);
 }
 
+/**
+ * A `buildUnifiedPrimary` felépíti a szükséges adatszerkezetet.
+ */
 function buildUnifiedPrimary({ wikiData, legacyDiff, config, inputPath, diffPath }) {
   const names = wikiData.names ?? [];
   const databaseByDay = buildNameDayRegistry(names, config);
@@ -569,6 +622,9 @@ function buildUnifiedPrimary({ wikiData, legacyDiff, config, inputPath, diffPath
   };
 }
 
+/**
+ * A `collectSuggestions` összegyűjti a szükséges elemeket.
+ */
 function collectSuggestions({ legacyCanonical, nameIndex, relatedMap, config }) {
   const nameIndexSuggestions = new Set();
   const relatedSuggestions = new Set();
@@ -610,6 +666,9 @@ function collectSuggestions({ legacyCanonical, nameIndex, relatedMap, config }) 
   };
 }
 
+/**
+ * A `buildRegistryStats` felépíti a szükséges adatszerkezetet.
+ */
 function buildRegistryStats(days) {
   return {
     dayCount: days.length,
@@ -620,12 +679,18 @@ function buildRegistryStats(days) {
   };
 }
 
+/**
+ * A `uniqueSorted` duplikátummentes, rendezett tömböt ad vissza.
+ */
 function uniqueSorted(values) {
   return Array.from(new Set(values.filter(Boolean))).sort((left, right) =>
     left.localeCompare(right, "hu")
   );
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
   const positional = [];

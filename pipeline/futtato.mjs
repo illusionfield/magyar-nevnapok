@@ -1,11 +1,16 @@
-// pipeline/futtato.mjs
-// A kanonikus pipeline futtatása és állapotvizsgálata.
+/**
+ * pipeline/futtato.mjs
+ * Az elsődleges pipeline futtatása és állapotvizsgálata.
+ */
 
 import fs from "node:fs/promises";
 import { pipelineLepesek, keresLepest } from "./lepesek.mjs";
 import { betoltManifest } from "./manifest.mjs";
 import { letezik } from "../kozos/fajlrendszer.mjs";
 
+/**
+ * A `fajlIdo` a megadott fájl utolsó módosítási idejét adja vissza.
+ */
 async function fajlIdo(utvonal) {
   try {
     const stat = await fs.stat(utvonal);
@@ -15,14 +20,15 @@ async function fajlIdo(utvonal) {
   }
 }
 
-function egyedi(lista) {
-  return [...new Set(lista)];
-}
-
+/**
+ * A `meghatarozLepesAllapot` eldönti, hogy egy pipeline-lépés kész, hiányzó vagy elavult állapotban van-e.
+ */
 async function meghatarozLepesAllapot(lep, mindenLepes) {
   const hianyzikKimenet = !(await Promise.all(lep.kimenetek.map((ut) => letezik(ut)))).every(Boolean);
 
   if (hianyzikKimenet) {
+    // Ha a lépés kimenete még nem létezik, két esetet különböztetünk meg:
+    // vagy a futtatás hiányzik, vagy még a bemeneti előfeltételei sem állnak rendelkezésre.
     const hianyoznakBemenetek = (await Promise.all(lep.bemenetek.map((ut) => letezik(ut)))).some(
       (ertek) => !ertek
     );
@@ -36,6 +42,8 @@ async function meghatarozLepesAllapot(lep, mindenLepes) {
     const legujabbBemenet = Math.max(...bemenetIdok);
     const legregebbiKimenet = Math.min(...kimenetIdok);
 
+    // A legregebbi kimenetet hasonlítjuk a legfrissebb bemenethez, mert egy többfájlos lépés
+    // csak akkor tekinthető valóban frissnek, ha minden kimenete újabb minden releváns bemenetnél.
     if (legujabbBemenet > legregebbiKimenet) {
       return "elavult";
     }
@@ -48,6 +56,8 @@ async function meghatarozLepesAllapot(lep, mindenLepes) {
     }
 
     const fuggAllapot = await meghatarozLepesAllapot(fuggLep, mindenLepes);
+    // A lépés saját fájlszintű frissessége önmagában nem elég: ha bármelyik függősége elavult,
+    // ezt a lépést is várakozó állapotúnak mutatjuk, hogy a CLI-ben tiszta legyen a teendősor.
     if (fuggAllapot !== "kesz") {
       return "fuggoseg-frissitesre-var";
     }
@@ -56,6 +66,9 @@ async function meghatarozLepesAllapot(lep, mindenLepes) {
   return "kesz";
 }
 
+/**
+ * A `kibontCel` feloldja a kért pipeline-célt a teljes végrehajtási sorrendre.
+ */
 function kibontCel(cel) {
   if (cel === "teljes") {
     return pipelineLepesek.map((lep) => lep.azonosito);
@@ -68,6 +81,9 @@ function kibontCel(cel) {
 
   const felhalmozott = new Set();
 
+  /**
+   * A `bejar` rekurzívan összegyűjti a célhoz szükséges függőségi lépéseket.
+   */
   function bejar(azonosito) {
     const aktualis = keresLepest(azonosito);
     if (!aktualis || felhalmozott.has(azonosito)) {
@@ -87,6 +103,9 @@ function kibontCel(cel) {
     .filter((azonosito) => felhalmozott.has(azonosito));
 }
 
+/**
+ * A `listazPipelineAllapot` elkészíti a lépések aktuális állapotnézetét.
+ */
 export async function listazPipelineAllapot() {
   const manifest = await betoltManifest();
   const sorok = [];
@@ -108,6 +127,9 @@ export async function listazPipelineAllapot() {
   return sorok;
 }
 
+/**
+ * A `futtatPipelineCelt` lefuttatja a kért pipeline-célt és annak függőségeit.
+ */
 export async function futtatPipelineCelt(cel, opciok = {}) {
   const sorrend = kibontCel(cel);
   const eredmenyek = [];
@@ -135,6 +157,9 @@ export async function futtatPipelineCelt(cel, opciok = {}) {
   return eredmenyek;
 }
 
+/**
+ * A `listazPipelineCelokat` visszaadja az összes választható pipeline-célt.
+ */
 export function listazPipelineCelokat() {
   return ["teljes", ...pipelineLepesek.map((lep) => lep.azonosito)];
 }

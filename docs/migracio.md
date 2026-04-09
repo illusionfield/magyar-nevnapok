@@ -6,7 +6,7 @@ A korábbi, egymástól független root scriptfájlak helyét átvette:
 
 - az egységes `nevnapok` CLI,
 - a deklarált pipeline,
-- a kanonikus YAML artifactkészlet,
+- az elsődleges YAML artifactkészlet,
 - az új domain-szerkezet.
 
 ## Régi → új gondolkodás
@@ -21,8 +21,9 @@ Most:
 
 - a pipeline mondja meg a sorrendet,
 - a manifest mutatja az állapotot,
-- az artifactok helye és szerepe kanonikus,
-- a CLI és a TUI ugyanazt a szolgáltatásréteget használja.
+- az artifactok helye és szerepe egyértelmű és irányadó,
+- a CLI és a TUI ugyanazt a szolgáltatásréteget használja,
+- és a névadatbázisból közvetlen CSV- és Excel-export is kérhető külön scriptírás nélkül.
 
 ## Ajánlott új munkafolyamat
 

@@ -1,28 +1,41 @@
-// domainek/naptar/ics-generalas.mjs
-// A kanonikus névadatbázisból ICS naptárfájlokat generál.
+/**
+ * domainek/naptar/ics-generalas.mjs
+ * Az elsődleges névadatbázisból ICS naptárfájlokat generál.
+ */
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { betoltStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
+import { normalizeNameForMatch } from "../primer/alap.mjs";
+import {
+  betoltHelyiPrimerFelulirasokat,
+  buildHelyiPrimerFelulirasMap,
+} from "../primer/helyi-primer-felulirasok.mjs";
 
 const DEFAULT_INPUT_PATH = kanonikusUtvonalak.adatbazis.nevnapok;
 const DEFAULT_OUTPUT_PATH = kanonikusUtvonalak.naptar.alap;
 const DEFAULT_CALENDAR_NAME = "Névnapok";
+const DEFAULT_LOCAL_PRIMARY_OVERRIDES_PATH = kanonikusUtvonalak.kezi.primerFelulirasokHelyi;
 const CURRENT_YEAR = new Date().getFullYear();
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 
 const args = parseArgs(process.argv.slice(2));
 const options = normalizeOptions(args);
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const inputPath = path.resolve(process.cwd(), options.input);
   const outputPath = path.resolve(process.cwd(), options.output);
 
   const payload = await betoltStrukturaltFajl(inputPath);
-  const sourceDays = Array.isArray(payload.days)
-    ? normalizeSourceDays(payload.days)
-    : buildDaysFromNames(payload.names);
+  const localPrimaryOverrideMap = await loadLocalPrimaryOverrideMap(options.localPrimaryOverrides);
+  const sourceDays = applyLocalPrimaryOverridesToSourceDays(
+    Array.isArray(payload.days) ? normalizeSourceDays(payload.days) : buildDaysFromNames(payload.names),
+    localPrimaryOverrideMap
+  );
   const sourceNameMap = buildNameMapFromSourceDays(sourceDays);
   const jobs = buildCalendarJobs(sourceDays, outputPath, options);
 
@@ -40,6 +53,24 @@ async function main() {
   }
 }
 
+/**
+ * A `loadLocalPrimaryOverrideMap` opcionálisan betölti a helyi primerkiegészítéseket.
+ *
+ * A hívó dönt arról, hogy ezt a réteget kéri-e. Így a közös, repo-szintű kimenetek és a
+ * személyes naptárak ugyanazt a generátort használhatják eltérő override-forrással.
+ */
+async function loadLocalPrimaryOverrideMap(localPrimaryOverridesPath) {
+  if (!localPrimaryOverridesPath) {
+    return new Map();
+  }
+
+  const { payload } = await betoltHelyiPrimerFelulirasokat(localPrimaryOverridesPath);
+  return buildHelyiPrimerFelulirasMap(payload);
+}
+
+/**
+ * A `buildCalendarJobs` felépíti a szükséges adatszerkezetet.
+ */
 function buildCalendarJobs(sourceDays, outputPath, options) {
   const leapStrategies =
     options.leapMode === "hungarian-until-2050" && options.leapStrategy === "both"
@@ -117,6 +148,9 @@ function buildCalendarJobs(sourceDays, outputPath, options) {
   return jobs;
 }
 
+/**
+ * A `buildCalendarNameForJob` felépíti a szükséges adatszerkezetet.
+ */
 function buildCalendarNameForJob(calendarName, leapStrategy, includeLeapStrategySuffix) {
   if (!includeLeapStrategySuffix) {
     return calendarName;
@@ -125,16 +159,25 @@ function buildCalendarNameForJob(calendarName, leapStrategy, includeLeapStrategy
   return `${calendarName} — ${leapStrategyFileSuffix(leapStrategy)}`;
 }
 
+/**
+ * A `deriveLeapStrategyOutputPath` származtatott értéket képez a bemenetből.
+ */
 function deriveLeapStrategyOutputPath(outputPath, leapStrategy) {
   return deriveOutputPathWithSuffix(outputPath, leapStrategyFileSuffix(leapStrategy));
 }
 
+/**
+ * A `deriveOutputPathWithSuffix` fájlnév-utótagot vagy rövid jelölést készít.
+ */
 function deriveOutputPathWithSuffix(outputPath, suffix) {
   const parsed = path.parse(outputPath);
   const extension = parsed.ext || ".ics";
   return path.join(parsed.dir, `${parsed.name}-${suffix}${extension}`);
 }
 
+/**
+ * A `calendarPartitionLogLabel` rövid naplózási címkét ad a naptárpartícióhoz.
+ */
 function calendarPartitionLogLabel(value) {
   if (value === "primary") {
     return "elsődleges naptár";
@@ -147,6 +190,9 @@ function calendarPartitionLogLabel(value) {
   return "naptár";
 }
 
+/**
+ * A `buildCalendarArtifact` felépíti a szükséges adatszerkezetet.
+ */
 function buildCalendarArtifact(sourceDays, referenceNameMap, payload, options) {
   const eventBuildResult =
     options.leapMode === "hungarian-until-2050"
@@ -161,11 +207,17 @@ function buildCalendarArtifact(sourceDays, referenceNameMap, payload, options) {
   };
 }
 
+/**
+ * A `writeCalendarFile` elmenti vagy kiírja a kapcsolódó adatot.
+ */
 async function writeCalendarFile(outputPath, calendarText) {
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(outputPath, calendarText, "utf8");
 }
 
+/**
+ * A `createCalendarVariantOptions` előállítja az összes generálandó naptárváltozat beállításait.
+ */
 function createCalendarVariantOptions(options, overrides) {
   return {
     ...options,
@@ -173,10 +225,16 @@ function createCalendarVariantOptions(options, overrides) {
   };
 }
 
+/**
+ * A `deriveSplitOutputPath` származtatott értéket képez a bemenetből.
+ */
 function deriveSplitOutputPath(outputPath, suffix) {
   return deriveOutputPathWithSuffix(outputPath, suffix);
 }
 
+/**
+ * A `splitSourceDaysByPrimary` felbontja a megadott szöveget vagy listát.
+ */
 function splitSourceDaysByPrimary(sourceDays, primarySource) {
   const primaryDays = [];
   const restDays = [];
@@ -209,6 +267,9 @@ function splitSourceDaysByPrimary(sourceDays, primarySource) {
   };
 }
 
+/**
+ * A `normalizeSourceDays` normalizálja a megadott értéket.
+ */
 function normalizeSourceDays(days) {
   if (!Array.isArray(days)) {
     throw new Error("A bemeneti adatfájl nem tartalmaz érvényes days tömböt.");
@@ -224,6 +285,9 @@ function normalizeSourceDays(days) {
     .sort((left, right) => left.monthDay.localeCompare(right.monthDay));
 }
 
+/**
+ * A `buildDaysFromNames` felépíti a szükséges adatszerkezetet.
+ */
 function buildDaysFromNames(names) {
   if (!Array.isArray(names)) {
     throw new Error("A bemeneti adatfájl nem tartalmaz érvényes names vagy days tömböt.");
@@ -259,6 +323,7 @@ function buildDaysFromNames(names) {
           day: dayEntry.day,
           monthDay: dayEntry.monthDay,
           primary: dayEntry.primary === true,
+          primaryLocal: dayEntry.primaryLocal === true,
           primaryLegacy: dayEntry.primaryLegacy === true,
           primaryRanked: dayEntry.primaryRanked === true,
           legacyOrder: Number.isInteger(dayEntry.legacyOrder) ? dayEntry.legacyOrder : null,
@@ -278,6 +343,55 @@ function buildDaysFromNames(names) {
     .sort((left, right) => left.monthDay.localeCompare(right.monthDay));
 }
 
+/**
+ * Az `applyLocalPrimaryOverridesToSourceDays` a helyi primerkiegészítéseket rájelöli a napi névbejegyzésekre.
+ *
+ * Itt nem mozgatunk neveket másik napra és nem írjuk át a közös adatbázist sem:
+ * kizárólag egy futásidejű jelölést adunk (`primaryLocal`), amelyet később a primer-szétválasztó
+ * logika figyelembe vesz. Így ugyanabból a bemeneti YAML-ból készülhet közös és személyes naptár is.
+ */
+function applyLocalPrimaryOverridesToSourceDays(sourceDays, localPrimaryOverrideMap) {
+  if (!(localPrimaryOverrideMap instanceof Map) || localPrimaryOverrideMap.size === 0) {
+    return sourceDays;
+  }
+
+  return sourceDays.map((sourceDay) => {
+    const localOverrideDay = localPrimaryOverrideMap.get(sourceDay.monthDay) ?? null;
+
+    if (!localOverrideDay || !Array.isArray(sourceDay.names)) {
+      return sourceDay;
+    }
+
+    const localNameSet = new Set(
+      (localOverrideDay.addedPreferredNames ?? []).map((name) => normalizeNameForMatch(name))
+    );
+
+    if (localNameSet.size === 0) {
+      return sourceDay;
+    }
+
+    return {
+      ...sourceDay,
+      names: sourceDay.names.map((entry) => {
+        if (!entry || typeof entry !== "object" || typeof entry.name !== "string") {
+          return entry;
+        }
+
+        return {
+          ...entry,
+          dayMeta: {
+            ...(entry.dayMeta ?? {}),
+            primaryLocal: localNameSet.has(normalizeNameForMatch(entry.name)),
+          },
+        };
+      }),
+    };
+  });
+}
+
+/**
+ * A `buildNameMapFromSourceDays` felépíti a szükséges adatszerkezetet.
+ */
 function buildNameMapFromSourceDays(sourceDays) {
   const nameMap = new Map();
 
@@ -296,6 +410,9 @@ function buildNameMapFromSourceDays(sourceDays) {
   return nameMap;
 }
 
+/**
+ * A `buildLeapAwareEvents` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapAwareEvents(sourceDays, referenceNameMap, options) {
   if (options.leapStrategy === "b") {
     return buildLeapAwareRecurringEventsRecurrenceId(sourceDays, referenceNameMap, options);
@@ -304,6 +421,9 @@ function buildLeapAwareEvents(sourceDays, referenceNameMap, options) {
   return buildLeapAwareRecurringEvents(sourceDays, referenceNameMap, options);
 }
 
+/**
+ * A `buildLeapAwareRecurringEventsRecurrenceId` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapAwareRecurringEventsRecurrenceId(sourceDays, referenceNameMap, options) {
   const events = [];
   let skippedEmptyPrimaryDays = 0;
@@ -357,7 +477,7 @@ function buildLeapAwareRecurringEventsRecurrenceId(sourceDays, referenceNameMap,
 
       if (overrideResult.events.length !== masterResult.events.length) {
         throw new Error(
-          `Leap override event count mismatch on ${sourceDay.monthDay}: expected ${masterResult.events.length}, got ${overrideResult.events.length}.`
+          `A szökőéves felülírás eseményszáma eltér ennél a napnál: ${sourceDay.monthDay}. Várt: ${masterResult.events.length}, kapott: ${overrideResult.events.length}.`
         );
       }
 
@@ -382,6 +502,9 @@ function buildLeapAwareRecurringEventsRecurrenceId(sourceDays, referenceNameMap,
   };
 }
 
+/**
+ * A `buildLeapYearsInRange` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapYearsInRange(fromYear, untilYear) {
   const years = [];
 
@@ -394,6 +517,9 @@ function buildLeapYearsInRange(fromYear, untilYear) {
   return years;
 }
 
+/**
+ * A `buildLeapYearNameMaps` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapYearNameMaps(sourceDays, leapYears, leapMode) {
   const maps = new Map();
 
@@ -410,50 +536,9 @@ function buildLeapYearNameMaps(sourceDays, leapYears, leapMode) {
   return maps;
 }
 
-function buildExplicitEvents(sourceDays, referenceNameMap, options) {
-  const events = [];
-  let skippedEmptyPrimaryDays = 0;
-
-  for (let year = options.fromYear; year <= options.untilYear; year += 1) {
-    const actualDays = sourceDays
-      .map((sourceDay) => {
-        const actualDate = resolveActualDate(year, sourceDay, options.leapMode);
-
-        return {
-          year,
-          sourceDay,
-          actualDate,
-        };
-      })
-      .sort((left, right) => {
-        const leftKey = formatMonthDay(left.actualDate.month, left.actualDate.day);
-        const rightKey = formatMonthDay(right.actualDate.month, right.actualDate.day);
-        return leftKey.localeCompare(rightKey);
-      });
-
-    const yearNameMap = buildYearNameMap(actualDays);
-
-    for (const actualDay of actualDays) {
-      const dayResult = buildEventsForContext({
-        sourceDay: actualDay.sourceDay,
-        actualDate: actualDay.actualDate,
-        sourceNameMap: referenceNameMap,
-        actualNameMap: yearNameMap,
-        options,
-        year,
-      });
-
-      events.push(...dayResult.events);
-      skippedEmptyPrimaryDays += dayResult.skippedEmptyPrimaryDays;
-    }
-  }
-
-  return {
-    events,
-    skippedEmptyPrimaryDays,
-  };
-}
-
+/**
+ * A `buildLeapAwareRecurringEvents` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapAwareRecurringEvents(sourceDays, referenceNameMap, options) {
   const events = [];
   let skippedEmptyPrimaryDays = 0;
@@ -495,6 +580,9 @@ function buildLeapAwareRecurringEvents(sourceDays, referenceNameMap, options) {
   };
 }
 
+/**
+ * A `buildRecurringEvents` felépíti a szükséges adatszerkezetet.
+ */
 function buildRecurringEvents(sourceDays, referenceNameMap, options) {
   const events = [];
   let skippedEmptyPrimaryDays = 0;
@@ -528,6 +616,9 @@ function buildRecurringEvents(sourceDays, referenceNameMap, options) {
   };
 }
 
+/**
+ * A `buildEventsForContext` felépíti a szükséges adatszerkezetet.
+ */
 function buildEventsForContext(context) {
   const { sourceDay, actualDate, sourceNameMap, actualNameMap, options, year } = context;
   const modeBehavior = getModeBehavior(options.mode);
@@ -627,6 +718,9 @@ function buildEventsForContext(context) {
   };
 }
 
+/**
+ * A `getModeBehavior` visszaadja az aktuális futási módhoz tartozó viselkedési szabályokat.
+ */
 function getModeBehavior(mode) {
   const behaviors = {
     together: {
@@ -670,7 +764,13 @@ function getModeBehavior(mode) {
   return behaviors[mode] ?? behaviors.together;
 }
 
+/**
+ * A `splitPrimaryNames` felbontja a megadott szöveget vagy listát.
+ */
 function splitPrimaryNames(nameEntries, primarySource) {
+  const localNames = nameEntries
+    .filter((entry) => entry.dayMeta?.primaryLocal)
+    .sort(compareByRankedPrimaryOrder);
   const legacyNames = nameEntries
     .filter((entry) => entry.dayMeta?.primaryLegacy)
     .sort(compareByLegacyPrimaryOrder);
@@ -690,6 +790,8 @@ function splitPrimaryNames(nameEntries, primarySource) {
     primaryNames = mergePrimarySelections(legacyNames, rankedNames);
   }
 
+  primaryNames = mergeForcedLocalPrimarySelections(primaryNames, localNames);
+
   const selected = new Set(primaryNames);
 
   return {
@@ -698,6 +800,34 @@ function splitPrimaryNames(nameEntries, primarySource) {
   };
 }
 
+/**
+ * A `mergeForcedLocalPrimarySelections` a helyi, felhasználói primereket hozzáfűzi az alap kiválasztáshoz.
+ *
+ * A helyi jelölés nem helyettesíti a közös primerforrásokat, hanem kiegészíti őket. Ezért az alap,
+ * közös primernevek sorrendjét meghagyjuk, és csak utána vesszük fel a még nem szereplő, helyben
+ * kijelölt neveket.
+ */
+function mergeForcedLocalPrimarySelections(basePrimaryNames, localPrimaryNames) {
+  const merged = [];
+  const seen = new Set();
+
+  for (const entry of [...basePrimaryNames, ...localPrimaryNames]) {
+    const key = normalizeNameForMatch(entry?.name);
+
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    merged.push(entry);
+  }
+
+  return merged;
+}
+
+/**
+ * A `mergePrimarySelections` összevonja a különböző primerforrásokból érkező jelöléseket.
+ */
 function mergePrimarySelections(primaryLegacy, primaryRanked, limit = Number.POSITIVE_INFINITY) {
   const merged = [];
   const seen = new Set();
@@ -720,6 +850,9 @@ function mergePrimarySelections(primaryLegacy, primaryRanked, limit = Number.POS
   return merged;
 }
 
+/**
+ * A `compareByLegacyPrimaryOrder` a legacy primer-sorrend alapján rendezi a neveket.
+ */
 function compareByLegacyPrimaryOrder(left, right) {
   const leftOrder = Number.isInteger(left.dayMeta?.legacyOrder)
     ? left.dayMeta.legacyOrder
@@ -731,6 +864,9 @@ function compareByLegacyPrimaryOrder(left, right) {
   return leftOrder - rightOrder || compareByRankedPrimaryOrder(left, right);
 }
 
+/**
+ * A `compareByRankedPrimaryOrder` a rangsorolt primer-sorrend alapján rendezi a neveket.
+ */
 function compareByRankedPrimaryOrder(left, right) {
   const leftOrder = Number.isInteger(left.dayMeta?.ranking?.dayOrder)
     ? left.dayMeta.ranking.dayOrder
@@ -742,6 +878,9 @@ function compareByRankedPrimaryOrder(left, right) {
   return leftOrder - rightOrder || collator.compare(left.name, right.name);
 }
 
+/**
+ * A `buildYearNameMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildYearNameMap(actualDays) {
   const nameMap = new Map();
 
@@ -762,6 +901,9 @@ function buildYearNameMap(actualDays) {
   return nameMap;
 }
 
+/**
+ * A `buildLeapRuleForSourceDay` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapRuleForSourceDay(sourceDay) {
   const shiftedMap = new Map([
     ["02-24", "02-25"],
@@ -791,6 +933,9 @@ function buildLeapRuleForSourceDay(sourceDay) {
   };
 }
 
+/**
+ * A `buildLeapAwareRecurrence` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapAwareRecurrence(sourceDay, options) {
   const rrule = buildYearlyRRule(sourceDay.month, sourceDay.day, options);
   const leapRule = buildLeapRuleForSourceDay(sourceDay);
@@ -820,6 +965,9 @@ function buildLeapAwareRecurrence(sourceDay, options) {
   };
 }
 
+/**
+ * A `buildGroupedEvent` felépíti a szükséges adatszerkezetet.
+ */
 function buildGroupedEvent(context) {
   const { sourceDay, actualDate, options, year } = context;
   const eventNames = Array.isArray(context.eventNames) ? context.eventNames : sourceDay.names;
@@ -844,6 +992,9 @@ function buildGroupedEvent(context) {
   };
 }
 
+/**
+ * A `buildSingleNameEvent` felépíti a szükséges adatszerkezetet.
+ */
 function buildSingleNameEvent(context) {
   const { nameEntry, sourceDay, actualDate, options, year } = context;
   const ordinalText =
@@ -862,6 +1013,9 @@ function buildSingleNameEvent(context) {
   };
 }
 
+/**
+ * A `buildGroupedDescription` felépíti a szükséges adatszerkezetet.
+ */
 function buildGroupedDescription(context) {
   const {
     actualDate,
@@ -1028,6 +1182,9 @@ function buildGroupedDescription(context) {
   };
 }
 
+/**
+ * A `buildSingleNameDescription` felépíti a szükséges adatszerkezetet.
+ */
 function buildSingleNameDescription(context) {
   const { nameEntry, actualDate, sourceNameMap, actualNameMap, options, year } = context;
   const displayYear = resolveDescriptionYear(options, year);
@@ -1148,6 +1305,9 @@ function buildSingleNameDescription(context) {
   };
 }
 
+/**
+ * A `buildCompactPlainLine` felépíti a szükséges adatszerkezetet.
+ */
 function buildCompactPlainLine(nameEntry, otherDays) {
   const segments = [`Név: ${nameEntry.name}`];
 
@@ -1176,6 +1336,9 @@ function buildCompactPlainLine(nameEntry, otherDays) {
   return segments.join("; ");
 }
 
+/**
+ * A `buildCompactHtmlLine` felépíti a szükséges adatszerkezetet.
+ */
 function buildCompactHtmlLine(nameEntry, otherDays) {
   const parts = [`<strong>${escapeHtml(nameEntry.name)}</strong>`];
   const metadata = [];
@@ -1213,7 +1376,10 @@ function buildCompactHtmlLine(nameEntry, otherDays) {
   return parts.join("");
 }
 
-function buildDetailedPlainLines(nameEntry, otherDays, indentLevel) {
+/**
+ * A `buildDetailedPlainLines` részletes, sima szöveges leírássorokat állít elő egy névhez.
+ */
+function buildDetailedPlainLines(nameEntry, otherDays, _indentLevel) {
   const lines = [buildDetailedNameBanner(nameEntry)];
 
   const leapShiftText = buildLeapShiftLine(nameEntry);
@@ -1256,6 +1422,9 @@ function buildDetailedPlainLines(nameEntry, otherDays, indentLevel) {
   return lines;
 }
 
+/**
+ * A `buildDetailedHtmlItem` felépíti a szükséges adatszerkezetet.
+ */
 function buildDetailedHtmlItem(nameEntry, otherDays) {
   const items = [];
 
@@ -1299,6 +1468,9 @@ function buildDetailedHtmlItem(nameEntry, otherDays) {
   return `<li><strong>${escapeHtml(buildDetailedNameTitle(nameEntry))}</strong>${items.length > 0 ? `<ul>${items.join("")}</ul>` : ""}</li>`;
 }
 
+/**
+ * A `buildFrequencyText` felépíti a szükséges adatszerkezetet.
+ */
 function buildFrequencyText(frequency) {
   if (!frequency) {
     return null;
@@ -1320,6 +1492,9 @@ function buildFrequencyText(frequency) {
   return parts.length > 0 ? parts.join(", ") : null;
 }
 
+/**
+ * A `describeFrequency` emberileg olvasható gyakoriságleírást készít.
+ */
 function describeFrequency(scope, label) {
   const prefix = scope === "overall" ? "össznépesség alapján" : "újszülötteknél";
 
@@ -1334,6 +1509,9 @@ function describeFrequency(scope, label) {
   return `${prefix} ${label}`;
 }
 
+/**
+ * A `frequencyLabelHu` magyar címkévé alakítja a gyakorisági kategóriát.
+ */
 function frequencyLabelHu(value) {
   if (!value) {
     return null;
@@ -1350,6 +1528,9 @@ function frequencyLabelHu(value) {
   return null;
 }
 
+/**
+ * A `normalizeNamedayEntries` normalizálja a megadott értéket.
+ */
 function normalizeNamedayEntries(days) {
   if (!Array.isArray(days)) {
     return [];
@@ -1372,6 +1553,9 @@ function normalizeNamedayEntries(days) {
   return normalized;
 }
 
+/**
+ * A `parseNamedayValue` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseNamedayValue(value) {
   if (typeof value === "string") {
     const match = value.match(/^(\d{2})-(\d{2})$/);
@@ -1388,6 +1572,7 @@ function parseNamedayValue(value) {
       day,
       monthDay: `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
       primary: false,
+      primaryLocal: false,
       primaryLegacy: false,
       primaryRanked: false,
       legacyOrder: null,
@@ -1417,6 +1602,7 @@ function parseNamedayValue(value) {
     day,
     monthDay,
     primary: value.primary === true,
+    primaryLocal: value.primaryLocal === true,
     primaryLegacy: value.primaryLegacy === true,
     primaryRanked: value.primaryRanked === true,
     legacyOrder: Number.isInteger(value.legacyOrder) ? value.legacyOrder : null,
@@ -1424,6 +1610,9 @@ function parseNamedayValue(value) {
   };
 }
 
+/**
+ * A `normalizeRanking` normalizálja a megadott értéket.
+ */
 function normalizeRanking(value) {
   if (!value || typeof value !== "object") {
     return null;
@@ -1450,20 +1639,32 @@ function normalizeRanking(value) {
   };
 }
 
+/**
+ * A `buildOtherDaysList` felépíti a szükséges adatszerkezetet.
+ */
 function buildOtherDaysList(monthDays, currentMonthDay) {
   return monthDays.filter((monthDay) => monthDay !== currentMonthDay);
 }
 
+/**
+ * A `formatOtherDaysHu` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatOtherDaysHu(monthDays) {
   const formatted = monthDays.map(formatMonthDayHuFromMonthDay).filter(Boolean);
   return formatted.length > 0 ? joinDisplayValues(formatted) : null;
 }
 
+/**
+ * A `formatOtherDaysHuLines` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatOtherDaysHuLines(monthDays) {
   const formatted = monthDays.map(formatMonthDayHuFromMonthDay).filter(Boolean);
   return wrapDisplayValues(formatted, 22);
 }
 
+/**
+ * A `decorateNameEntryForDescription` leíráskészítéshez dúsítja a névrekordot.
+ */
 function decorateNameEntryForDescription(nameEntry, actualDate, year) {
   return {
     ...nameEntry,
@@ -1471,6 +1672,9 @@ function decorateNameEntryForDescription(nameEntry, actualDate, year) {
   };
 }
 
+/**
+ * A `buildLeapShiftData` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapShiftData(actualDate, year) {
   if (year == null && actualDate?.leapRule) {
     return {
@@ -1508,6 +1712,9 @@ function buildLeapShiftData(actualDate, year) {
   };
 }
 
+/**
+ * A `resolveDescriptionYear` kiválasztja, melyik évhez készüljön a dátumfüggő leírás.
+ */
 function resolveDescriptionYear(options, year) {
   if (year != null) {
     return year;
@@ -1520,6 +1727,9 @@ function resolveDescriptionYear(options, year) {
   return null;
 }
 
+/**
+ * A `resolveOrdinalDate` feloldja a sorszámhoz tartozó tényleges dátumot.
+ */
 function resolveOrdinalDate(actualDate, year) {
   if (year == null) {
     return {
@@ -1548,6 +1758,9 @@ function resolveOrdinalDate(actualDate, year) {
   };
 }
 
+/**
+ * A `buildDetailedDateHeader` felépíti a szükséges adatszerkezetet.
+ */
 function buildDetailedDateHeader(actualDate, year, enabled) {
   if (!enabled || year == null) {
     return null;
@@ -1561,6 +1774,9 @@ function buildDetailedDateHeader(actualDate, year, enabled) {
   return `${year}. év ${week}. hete és ${dayOfYear}. napja${leapLabel}.`;
 }
 
+/**
+ * A `buildLeapShiftOverview` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapShiftOverview(actualDate, year) {
   const leapShift = buildLeapShiftData(actualDate, year);
 
@@ -1571,19 +1787,31 @@ function buildLeapShiftOverview(actualDate, year) {
   return `Ezen a napon szökőévben eltér a névnap szokásos dátuma.`;
 }
 
+/**
+ * A `shouldShowLeapYearBadge` eldönti, hogy meg kell-e jeleníteni a szökőéves jelölést.
+ */
 function shouldShowLeapYearBadge(actualDate, year) {
   return isLeapYear(year) && actualDate.month === 2 && actualDate.day >= 20 && actualDate.day <= 29;
 }
 
+/**
+ * A `buildDetailedNameTitle` felépíti a szükséges adatszerkezetet.
+ */
 function buildDetailedNameTitle(nameEntry) {
   const gender = prettifyGender(nameEntry.gender?.label);
   return gender ? `${nameEntry.name} (${gender})` : nameEntry.name;
 }
 
+/**
+ * A `buildDetailedNameBanner` felépíti a szükséges adatszerkezetet.
+ */
 function buildDetailedNameBanner(nameEntry) {
   return `----[ ${buildDetailedNameTitle(nameEntry)} ]----`;
 }
 
+/**
+ * A `buildLeapShiftLine` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapShiftLine(nameEntry) {
   if (!nameEntry?.leapShift) {
     return null;
@@ -1592,52 +1820,39 @@ function buildLeapShiftLine(nameEntry) {
   return `${formatMonthDayHu(nameEntry.leapShift.actual.month, nameEntry.leapShift.actual.day)}; egyébként ${formatMonthDayHu(nameEntry.leapShift.regular.month, nameEntry.leapShift.regular.day)}`;
 }
 
-function buildOriginMeaningText(nameEntry) {
-  const parts = [];
-
-  if (nameEntry.origin) {
-    parts.push(`Eredete: ${nameEntry.origin}`);
-  }
-
-  if (nameEntry.meaning) {
-    parts.push(`Jelentése: ${nameEntry.meaning}`);
-  }
-
-  return parts.length > 0 ? parts.join(" | ") : null;
-}
-
-function buildOriginMeaningHtml(nameEntry) {
-  const parts = [];
-
-  if (nameEntry.origin) {
-    parts.push(`<strong>Eredete:</strong> ${escapeHtml(nameEntry.origin)}`);
-  }
-
-  if (nameEntry.meaning) {
-    parts.push(`<strong>Jelentése:</strong> ${escapeHtml(nameEntry.meaning)}`);
-  }
-
-  return parts.length > 0 ? parts.join(" | ") : null;
-}
-
+/**
+ * A `buildNicknamesText` felépíti a szükséges adatszerkezetet.
+ */
 function buildNicknamesText(nameEntry) {
   const values = sanitizeDisplayValues(nameEntry?.nicknames);
   return values.length > 0 ? joinDisplayValues(values) : null;
 }
 
+/**
+ * A `buildNicknamesLines` felépíti a szükséges adatszerkezetet.
+ */
 function buildNicknamesLines(nameEntry) {
   return wrapDisplayValues(sanitizeDisplayValues(nameEntry?.nicknames), 28);
 }
 
+/**
+ * A `buildRelatedNamesText` felépíti a szükséges adatszerkezetet.
+ */
 function buildRelatedNamesText(nameEntry) {
   const values = sanitizeDisplayValues(nameEntry?.relatedNames);
   return values.length > 0 ? joinDisplayValues(values) : null;
 }
 
+/**
+ * A `buildRelatedNamesLines` felépíti a szükséges adatszerkezetet.
+ */
 function buildRelatedNamesLines(nameEntry) {
   return wrapDisplayValues(sanitizeDisplayValues(nameEntry?.relatedNames), 28);
 }
 
+/**
+ * A `buildDetailedFrequencyLines` felépíti a szükséges adatszerkezetet.
+ */
 function buildDetailedFrequencyLines(nameEntry) {
   const overall = frequencyLabelHu(nameEntry.frequency?.overall);
   const newborns = frequencyLabelHu(nameEntry.frequency?.newborns);
@@ -1664,6 +1879,9 @@ function buildDetailedFrequencyLines(nameEntry) {
   return lines;
 }
 
+/**
+ * A `buildDetailedFrequencyHtml` felépíti a szükséges adatszerkezetet.
+ */
 function buildDetailedFrequencyHtml(nameEntry) {
   const lines = buildDetailedFrequencyLines(nameEntry);
 
@@ -1674,6 +1892,9 @@ function buildDetailedFrequencyHtml(nameEntry) {
   return lines.map((line) => escapeHtml(line)).join("<br>");
 }
 
+/**
+ * Az `appendPlainDetailSection` új szöveges részblokkot fűz a leíráshoz.
+ */
 function appendPlainDetailSection(lines, label, values) {
   const cleanValues = values.map(normalizeInlineDisplayText).filter(Boolean);
 
@@ -1690,6 +1911,9 @@ function appendPlainDetailSection(lines, label, values) {
   lines.push("");
 }
 
+/**
+ * Az `appendRestNamesSectionPlain` a nem primer nevek szakaszát fűzi a sima szöveghez.
+ */
 function appendRestNamesSectionPlain(lines, restNames) {
   const wrappedNames = wrapDisplayValues(
     restNames.map((entry) => entry.name).filter(Boolean),
@@ -1713,6 +1937,9 @@ function appendRestNamesSectionPlain(lines, restNames) {
   lines.push("");
 }
 
+/**
+ * A `buildRestNamesSectionHtml` felépíti a szükséges adatszerkezetet.
+ */
 function buildRestNamesSectionHtml(restNames) {
   const values = sanitizeDisplayValues(restNames.map((entry) => entry.name));
 
@@ -1724,6 +1951,9 @@ function buildRestNamesSectionHtml(restNames) {
   return `<p><strong>A nap további névnapjai</strong></p><ul>${items}</ul>`;
 }
 
+/**
+ * A `describeFrequencyValue` emberileg olvasható alakra hozza a gyakorisági értéket.
+ */
 function describeFrequencyValue(label) {
   if (label === "néhány előfordulás") {
     return "csak néhány előfordulás ismert";
@@ -1736,6 +1966,9 @@ function describeFrequencyValue(label) {
   return label;
 }
 
+/**
+ * A `normalizeInlineDisplayText` normalizálja a megadott értéket.
+ */
 function normalizeInlineDisplayText(value) {
   if (typeof value !== "string") {
     return "";
@@ -1747,10 +1980,16 @@ function normalizeInlineDisplayText(value) {
     .trim();
 }
 
+/**
+ * A `joinDisplayValues` összefűzi a kapcsolódó értékeket.
+ */
 function joinDisplayValues(values) {
   return values.join(" • ");
 }
 
+/**
+ * A `sanitizeDisplayValues` kiszűri vagy megtisztítja a zajos bemenetet.
+ */
 function sanitizeDisplayValues(values) {
   if (!Array.isArray(values)) {
     return [];
@@ -1773,6 +2012,9 @@ function sanitizeDisplayValues(values) {
   return normalized;
 }
 
+/**
+ * A `wrapDisplayValues` megjelenítésbarát sorokra töri a hosszú értéklistát.
+ */
 function wrapDisplayValues(values, maxLength = 44) {
   if (!Array.isArray(values) || values.length === 0) {
     return [];
@@ -1806,6 +2048,9 @@ function wrapDisplayValues(values, maxLength = 44) {
   return rows;
 }
 
+/**
+ * A `capitalizeSentence` nagybetűssé teszi a mondat első karakterét.
+ */
 function capitalizeSentence(value) {
   if (typeof value !== "string" || value.length === 0) {
     return "";
@@ -1814,6 +2059,9 @@ function capitalizeSentence(value) {
   return value.charAt(0).toLocaleUpperCase("hu-HU") + value.slice(1);
 }
 
+/**
+ * Az `ensureTrailingSentence` gondoskodik a mondatzáró írásjelről.
+ */
 function ensureTrailingSentence(value) {
   if (typeof value !== "string" || value.length === 0) {
     return "";
@@ -1822,6 +2070,9 @@ function ensureTrailingSentence(value) {
   return /[.!?]$/.test(value) ? value : `${value}.`;
 }
 
+/**
+ * A `polishFrequencyMetaLabel` végleges, magyar címkét készít a gyakorisági metaadathoz.
+ */
 function polishFrequencyMetaLabel(value) {
   if (typeof value !== "string" || value.length === 0) {
     return "";
@@ -1842,6 +2093,9 @@ function polishFrequencyMetaLabel(value) {
   return `az újszülötteknél ${modifier}${adjective}`.trim();
 }
 
+/**
+ * A `buildOrdinalDescriptionLines` felépíti a szükséges adatszerkezetet.
+ */
 function buildOrdinalDescriptionLines(actualDate, year) {
   if (year != null) {
     const ordinalDate = resolveOrdinalDate(actualDate, year);
@@ -1863,12 +2117,18 @@ function buildOrdinalDescriptionLines(actualDate, year) {
   return [`${regular}. nap.`, `Szökőévben: ${leap}. nap.`];
 }
 
+/**
+ * A `buildOrdinalDescriptionHtml` felépíti a szükséges adatszerkezetet.
+ */
 function buildOrdinalDescriptionHtml(actualDate, year) {
   const lines = buildOrdinalDescriptionLines(actualDate, year);
   const items = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
   return `<p><strong>Az év napja</strong></p><ul>${items}</ul>`;
 }
 
+/**
+ * A `buildOrdinalTextForEvent` felépíti a szükséges adatszerkezetet.
+ */
 function buildOrdinalTextForEvent(actualDate, year) {
   if (year != null) {
     const ordinalDate = resolveOrdinalDate(actualDate, year);
@@ -1887,6 +2147,9 @@ function buildOrdinalTextForEvent(actualDate, year) {
   return `${regular}. nap (szökőévben: ${leap}.)`;
 }
 
+/**
+ * A `buildGroupedEventUidKey` felépíti a szükséges adatszerkezetet.
+ */
 function buildGroupedEventUidKey(sourceDay, eventNames, options) {
   const summaryBase = eventNames.map((entry) => entry.name).join(", ");
   return [
@@ -1897,6 +2160,9 @@ function buildGroupedEventUidKey(sourceDay, eventNames, options) {
   ].join("|");
 }
 
+/**
+ * A `buildSingleNameEventUidKey` felépíti a szükséges adatszerkezetet.
+ */
 function buildSingleNameEventUidKey(nameEntry, sourceDay, options) {
   return [
     options.calendarPartition ?? "all",
@@ -1906,11 +2172,17 @@ function buildSingleNameEventUidKey(nameEntry, sourceDay, options) {
   ].join("|");
 }
 
+/**
+ * A `buildUid` felépíti a szükséges adatszerkezetet.
+ */
 function buildUid(parts) {
   const hash = crypto.createHash("sha1").update(`${parts.type}|${parts.key}`).digest("hex");
   return `nevnap-${hash.slice(0, 24)}@nevnapok.local`;
 }
 
+/**
+ * A `buildYearlyRRule` felépíti a szükséges adatszerkezetet.
+ */
 function buildYearlyRRule(month, day, options) {
   const parts = [`FREQ=YEARLY`, `BYMONTH=${month}`, `BYMONTHDAY=${day}`];
 
@@ -1921,6 +2193,9 @@ function buildYearlyRRule(month, day, options) {
   return parts.join(";");
 }
 
+/**
+ * A `resolveActualDate` a szökőéves szabályokkal együtt meghatározza a tényleges eseménydátumot.
+ */
 function resolveActualDate(year, sourceDay, leapMode) {
   const sourceMonthDay = sourceDay.monthDay;
 
@@ -1956,6 +2231,9 @@ function resolveActualDate(year, sourceDay, leapMode) {
   };
 }
 
+/**
+ * A `serializeCalendar` ICS szöveggé alakítja a naptárstruktúrát.
+ */
 function serializeCalendar(events, payload, options) {
   const dtstamp = formatDateTimeUtc(new Date());
   const lines = [
@@ -2028,6 +2306,9 @@ function serializeCalendar(events, payload, options) {
   return lines.map(foldLine).join("\r\n").concat("\r\n");
 }
 
+/**
+ * A `buildCalendarDescription` felépíti a szükséges adatszerkezetet.
+ */
 function buildCalendarDescription(payload, options, eventCount) {
   const parts = [];
   const modeBehavior = getModeBehavior(options.mode);
@@ -2061,6 +2342,9 @@ function buildCalendarDescription(payload, options, eventCount) {
   return parts.join("; ");
 }
 
+/**
+ * A `normalizeOptions` normalizálja a megadott értéket.
+ */
 function normalizeOptions(options) {
   const normalized = {
     input: options.input ?? DEFAULT_INPUT_PATH,
@@ -2079,6 +2363,7 @@ function normalizeOptions(options) {
     leapMode: options.leapMode ?? "none",
     ordinalDay: options.ordinalDay ?? "none",
     calendarName: options.calendarName ?? DEFAULT_CALENDAR_NAME,
+    localPrimaryOverrides: options.localPrimaryOverrides ?? null,
     calendarPartition: options.calendarPartition ?? null,
     baseYear: options.baseYear ?? 2000,
     fromYear: options.fromYear ?? CURRENT_YEAR,
@@ -2166,6 +2451,9 @@ function normalizeOptions(options) {
   return normalized;
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 
@@ -2341,6 +2629,25 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--local-primary-overrides") {
+      const kovetkezo = argv[index + 1];
+
+      if (!kovetkezo || kovetkezo.startsWith("--")) {
+        options.localPrimaryOverrides = DEFAULT_LOCAL_PRIMARY_OVERRIDES_PATH;
+      } else {
+        options.localPrimaryOverrides = kovetkezo;
+        index += 1;
+      }
+
+      continue;
+    }
+
+    if (arg.startsWith("--local-primary-overrides=")) {
+      const value = arg.slice("--local-primary-overrides=".length);
+      options.localPrimaryOverrides = value || DEFAULT_LOCAL_PRIMARY_OVERRIDES_PATH;
+      continue;
+    }
+
     if (arg === "--base-year" && argv[index + 1]) {
       options.baseYear = Number(argv[index + 1]);
       index += 1;
@@ -2378,6 +2685,9 @@ function parseArgs(argv) {
   return options;
 }
 
+/**
+ * A `prettifyGender` emberileg olvasható nemmegnevezést ad vissza.
+ */
 function prettifyGender(value) {
   if (value === "female") {
     return "női";
@@ -2390,14 +2700,9 @@ function prettifyGender(value) {
   return value;
 }
 
-function capitalizeFirst(value) {
-  if (typeof value !== "string" || value.length === 0) {
-    return "";
-  }
-
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
+/**
+ * A `normalizeLeapStrategyOption` normalizálja a megadott értéket.
+ */
 function normalizeLeapStrategyOption(value) {
   const candidate = String(value ?? "a").trim().toLowerCase();
 
@@ -2416,6 +2721,9 @@ function normalizeLeapStrategyOption(value) {
   throw new Error("A --leap-strategy kapcsoló értéke ezek egyike lehet: a, b, both.");
 }
 
+/**
+ * A `leapStrategyFileSuffix` fájlnév-utótagot ad a szökőéves stratégiához.
+ */
 function leapStrategyFileSuffix(value) {
   if (value === "b") {
     return "B";
@@ -2424,6 +2732,9 @@ function leapStrategyFileSuffix(value) {
   return "A";
 }
 
+/**
+ * A `leapStrategyLabelHu` magyar címkét ad a szökőéves stratégiához.
+ */
 function leapStrategyLabelHu(value) {
   if (value === "a") {
     return "A (RRULE + EXDATE + RDATE)";
@@ -2440,6 +2751,9 @@ function leapStrategyLabelHu(value) {
   return value;
 }
 
+/**
+ * A `normalizeSplitCalendarMode` normalizálja a megadott értéket.
+ */
 function normalizeSplitCalendarMode(value, fallback, optionName) {
   const candidate = value ?? fallback;
 
@@ -2454,6 +2768,9 @@ function normalizeSplitCalendarMode(value, fallback, optionName) {
   throw new Error(`${optionName} kapcsoló értéke ezek egyike lehet: grouped, together, separate.`);
 }
 
+/**
+ * A `calendarPartitionLabelHu` magyar címkét ad a naptárpartícióhoz.
+ */
 function calendarPartitionLabelHu(value) {
   if (value === "primary") {
     return "elsődleges névnapok";
@@ -2466,6 +2783,9 @@ function calendarPartitionLabelHu(value) {
   return value;
 }
 
+/**
+ * A `descriptionModeLabelHu` magyar címkét ad a leírásmódhoz.
+ */
 function descriptionModeLabelHu(value) {
   if (value === "none") {
     return "nincs";
@@ -2482,6 +2802,9 @@ function descriptionModeLabelHu(value) {
   return value;
 }
 
+/**
+ * A `descriptionFormatLabelHu` magyar címkét ad a leírásformátumhoz.
+ */
 function descriptionFormatLabelHu(value) {
   if (value === "text") {
     return "csak szöveg";
@@ -2498,6 +2821,9 @@ function descriptionFormatLabelHu(value) {
   return value;
 }
 
+/**
+ * A `ordinalModeLabelHu` magyar címkét ad a sorszám-megjelenítési módhoz.
+ */
 function ordinalModeLabelHu(value) {
   if (value === "none") {
     return "nincs";
@@ -2514,6 +2840,9 @@ function ordinalModeLabelHu(value) {
   return value;
 }
 
+/**
+ * A `modeLabelHu` magyar címkét ad az aktuális működési módhoz.
+ */
 function modeLabelHu(value) {
   if (value === "together") {
     return "naponként együtt";
@@ -2542,6 +2871,9 @@ function modeLabelHu(value) {
   return value;
 }
 
+/**
+ * A `primarySourceLabelHu` magyar címkét ad a primerforrás típusához.
+ */
 function primarySourceLabelHu(value) {
   if (value === "default") {
     return "alapértelmezett (legacy + ranking kiegészítés)";
@@ -2562,10 +2894,16 @@ function primarySourceLabelHu(value) {
   return value;
 }
 
+/**
+ * A `uniqueSorted` duplikátummentes, rendezett tömböt ad vissza.
+ */
 function uniqueSorted(values) {
   return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
 }
 
+/**
+ * Az `addDays` a megadott dátumhoz naptári napokat ad hozzá.
+ */
 function addDays(year, month, day, amount) {
   const date = new Date(Date.UTC(year, month - 1, day));
   date.setUTCDate(date.getUTCDate() + amount);
@@ -2577,14 +2915,23 @@ function addDays(year, month, day, amount) {
   };
 }
 
+/**
+ * A `formatDateValue` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatDateValue(year, month, day) {
   return `${String(year).padStart(4, "0")}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * A `formatDateValueFromDate` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatDateValueFromDate(date) {
   return formatDateValue(date.year, date.month, date.day);
 }
 
+/**
+ * A `formatDateTimeUtc` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatDateTimeUtc(date) {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -2596,14 +2943,23 @@ function formatDateTimeUtc(date) {
   return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
 }
 
+/**
+ * A `formatUntilDateTime` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatUntilDateTime(year) {
   return `${String(year).padStart(4, "0")}1231T235959Z`;
 }
 
+/**
+ * A `formatMonthDay` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatMonthDay(month, day) {
   return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * A `formatMonthDayHu` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatMonthDayHu(month, day) {
   const monthLabels = [
     null,
@@ -2624,11 +2980,17 @@ function formatMonthDayHu(month, day) {
   return `${monthLabels[month] ?? String(month)} ${day}.`;
 }
 
+/**
+ * A `formatMonthDayHuFromMonthDay` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatMonthDayHuFromMonthDay(monthDay) {
   const parsed = parseNamedayValue(monthDay);
   return parsed ? formatMonthDayHu(parsed.month, parsed.day) : null;
 }
 
+/**
+ * A `getIsoWeek` visszaadja a dátum ISO-hetszámát.
+ */
 function getIsoWeek(year, month, day) {
   const date = new Date(Date.UTC(year, month - 1, day));
   const dayNumber = date.getUTCDay() || 7;
@@ -2637,6 +2999,9 @@ function getIsoWeek(year, month, day) {
   return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
 }
 
+/**
+ * A `isLeapYear` ellenőrzi a kapcsolódó feltételt.
+ */
 function isLeapYear(year) {
   if (year % 400 === 0) {
     return true;
@@ -2649,6 +3014,9 @@ function isLeapYear(year) {
   return year % 4 === 0;
 }
 
+/**
+ * A `getDayOfYear` visszaadja az év naptári sorszámát.
+ */
 function getDayOfYear(year, month, day) {
   const current = Date.UTC(year, month - 1, day);
   const start = Date.UTC(year, 0, 1);
@@ -2656,10 +3024,16 @@ function getDayOfYear(year, month, day) {
   return Math.floor(diff / 86_400_000) + 1;
 }
 
+/**
+ * A `formatTextProperty` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatTextProperty(name, value) {
   return `${name}:${escapeIcsText(value)}`;
 }
 
+/**
+ * A `escapeIcsText` kimenetbiztos alakra escape-eli a szöveget.
+ */
 function escapeIcsText(value) {
   return String(value)
     .replace(/\\/g, "\\\\")
@@ -2670,6 +3044,9 @@ function escapeIcsText(value) {
     .replace(/,/g, "\\,");
 }
 
+/**
+ * A `escapeHtml` kimenetbiztos alakra escape-eli a szöveget.
+ */
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -2679,6 +3056,9 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * A `foldLine` a célformátum szabályai szerint tördel egy sort.
+ */
 function foldLine(line) {
   const maxBytes = 75;
 

@@ -1,4 +1,5 @@
 const USE_COLOR = !("NO_COLOR" in process.env);
+const ANSI_MINTA = /\u001b\[[0-9;]*m/g;
 const ANSI = {
   reset: "\u001b[0m",
   bold: "\u001b[1m",
@@ -12,6 +13,9 @@ const ANSI = {
   gray: "\u001b[90m",
 };
 
+/**
+ * A `printKeyValueTable` kétoszlopos mutató-érték táblát ír a terminálra.
+ */
 export function printKeyValueTable(title, entries, options = {}) {
   const rows = entries.map(([label, value]) => ({
     label,
@@ -37,6 +41,9 @@ export function printKeyValueTable(title, entries, options = {}) {
   );
 }
 
+/**
+ * A `printDataTable` általános szöveges táblát rajzol a terminálra.
+ */
 export function printDataTable(title, columns, rows, options = {}) {
   console.log("");
   console.log(styleText(title, options.titleStyle ?? ["bold"]));
@@ -49,6 +56,9 @@ export function printDataTable(title, columns, rows, options = {}) {
   console.log(renderTable(columns, rows, options));
 }
 
+/**
+ * A `printValueGrid` többoszlopos névrácsot jelenít meg a terminálon.
+ */
 export function printValueGrid(title, values, options = {}) {
   const normalizedValues = Array.isArray(values) ? values : [];
 
@@ -80,6 +90,9 @@ export function printValueGrid(title, values, options = {}) {
   printDataTable(title, columns, rows, options);
 }
 
+/**
+ * A `formatNameList` rövid, olvasható névlista-összefoglalót készít.
+ */
 export function formatNameList(values, options = {}) {
   const normalizedValues = Array.isArray(values)
     ? values.map((value) => String(value ?? "").trim()).filter(Boolean)
@@ -98,6 +111,9 @@ export function formatNameList(values, options = {}) {
   return truncate(`${visible}${suffix}`, maxLength);
 }
 
+/**
+ * A `formatDiffNote` rövid eltérésmagyarázatot készít a két oldal különbségeiből.
+ */
 export function formatDiffNote({ shared, onlyLeft, onlyRight, leftLabel, rightLabel }) {
   const parts = [];
 
@@ -116,6 +132,9 @@ export function formatDiffNote({ shared, onlyLeft, onlyRight, leftLabel, rightLa
   return parts.length > 0 ? parts.join("; ") : "—";
 }
 
+/**
+ * A `styleText` ANSI-stílusokkal formázza a terminálra írt szöveget.
+ */
 export function styleText(text, styles) {
   const normalizedText = String(text ?? "");
 
@@ -141,6 +160,9 @@ export function styleText(text, styles) {
   return `${prefix}${normalizedText}${ANSI.reset}`;
 }
 
+/**
+ * A `renderTable` teljes Unicode keretes szöveges táblát állít elő.
+ */
 function renderTable(columns, rows, options = {}) {
   const preparedColumns = columns.map((column, index) => ({
     ...column,
@@ -163,9 +185,9 @@ function renderTable(columns, rows, options = {}) {
   );
 
   const widths = preparedColumns.map((column, index) => {
-    const headerLength = column.title.length;
+    const headerLength = lathatoHossz(column.title);
     const contentLength = preparedRows.reduce(
-      (max, row) => Math.max(max, row[index]?.length ?? 0),
+      (max, row) => Math.max(max, lathatoHossz(row[index] ?? "")),
       0
     );
 
@@ -200,21 +222,28 @@ function renderTable(columns, rows, options = {}) {
   return lines.join("\n");
 }
 
+/**
+ * Az `alignCell` a cella tartalmát a kívánt igazítással tölti ki.
+ */
 function alignCell(value, width, align) {
+  const padding = Math.max(0, width - lathatoHossz(value));
+
   if (align === "right") {
-    return value.padStart(width, " ");
+    return `${" ".repeat(padding)}${value}`;
   }
 
   if (align === "center") {
-    const padding = width - value.length;
     const left = Math.floor(padding / 2);
     const right = padding - left;
     return `${" ".repeat(left)}${value}${" ".repeat(right)}`;
   }
 
-  return value.padEnd(width, " ");
+  return `${value}${" ".repeat(padding)}`;
 }
 
+/**
+ * A `stringifyValue` emberileg olvasható sztringgé alakítja az értéket.
+ */
 function stringifyValue(value) {
   if (value == null) {
     return "—";
@@ -235,10 +264,13 @@ function stringifyValue(value) {
   return JSON.stringify(value);
 }
 
+/**
+ * A `truncate` a túl hosszú szöveget a megadott szélességre rövidíti.
+ */
 function truncate(value, maxWidth) {
   const normalized = String(value ?? "").replace(/\s+/g, " ").trim();
 
-  if (normalized.length <= maxWidth) {
+  if (lathatoHossz(normalized) <= maxWidth) {
     return normalized;
   }
 
@@ -246,5 +278,20 @@ function truncate(value, maxWidth) {
     return "…";
   }
 
-  return `${normalized.slice(0, Math.max(0, maxWidth - 1))}…`;
+  const csupasz = csupaszitAnsi(normalized);
+  return `${csupasz.slice(0, Math.max(0, maxWidth - 1))}…`;
+}
+
+/**
+ * A `csupaszitAnsi` eltávolítja a terminálszínezés ANSI vezérlőkódjait.
+ */
+function csupaszitAnsi(value) {
+  return String(value ?? "").replace(ANSI_MINTA, "");
+}
+
+/**
+ * A `lathatoHossz` a ténylegesen látható karakterhosszt adja vissza ANSI nélkül.
+ */
+function lathatoHossz(value) {
+  return csupaszitAnsi(value).length;
 }

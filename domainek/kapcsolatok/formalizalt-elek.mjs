@@ -1,5 +1,7 @@
-// domainek/kapcsolatok/formalizalt-elek.mjs
-// A formalizált eredetleírásokból kereshető él-listát generál.
+/**
+ * domainek/kapcsolatok/formalizalt-elek.mjs
+ * A formalizált eredetleírásokból kereshető él-listát generál.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { betoltStrukturaltFajl, mentStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
@@ -10,6 +12,9 @@ const DEFAULT_OUTPUT_PATH = kanonikusUtvonalak.adatbazis.formalizaltElek;
 
 const args = parseArgs(process.argv.slice(2));
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
   const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_OUTPUT_PATH);
@@ -43,10 +48,16 @@ async function main() {
   console.log(`Mentve: ${edges.length} formalizált él ide: ${outputPath}`);
 }
 
+/**
+ * A `buildEdges` felépíti a szükséges adatszerkezetet.
+ */
 function buildEdges(names) {
   return names.flatMap((nameEntry) => buildEdgesForName(nameEntry));
 }
 
+/**
+ * A `buildEdgesForName` felépíti a szükséges adatszerkezetet.
+ */
 function buildEdgesForName(nameEntry) {
   const formalized = nameEntry?.formalized;
 
@@ -106,6 +117,9 @@ function buildEdgesForName(nameEntry) {
   });
 }
 
+/**
+ * Az `edgeNamesForElement` kigyűjti egy formalizált elemhez kapcsolódó neveket.
+ */
 function edgeNamesForElement(element, selfName) {
   if (!element) {
     return [];
@@ -132,6 +146,9 @@ function edgeNamesForElement(element, selfName) {
   return Array.from(names);
 }
 
+/**
+ * A `buildSearchText` felépíti a szükséges adatszerkezetet.
+ */
 function buildSearchText(parts) {
   const values = [
     parts.name,
@@ -152,6 +169,9 @@ function buildSearchText(parts) {
     .trim();
 }
 
+/**
+ * A `countBy` összeszámolja a kapcsolódó elemeket.
+ */
 function countBy(values, keySelector) {
   const counts = {};
 
@@ -163,6 +183,9 @@ function countBy(values, keySelector) {
   return counts;
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

@@ -1,6 +1,7 @@
-// domainek/auditok/primer-normalizalo-osszevetes.mjs
-// A normalizáló riport és a primerforrások összevetése.
-import fs from "node:fs/promises";
+/**
+ * domainek/auditok/primer-normalizalo-osszevetes.mjs
+ * A normalizáló riport és a primerforrások összevetése.
+ */
 import path from "node:path";
 import {
   DEFAULT_PRIMARY_REGISTRY_PATH,
@@ -17,6 +18,9 @@ const DEFAULT_REPORT_PATH = kanonikusUtvonalak.riportok.primerNormalizalo;
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 const args = parseArgs(process.argv.slice(2));
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const normalizedPath = path.resolve(
     process.cwd(),
@@ -56,6 +60,9 @@ async function main() {
   printReport(report);
 }
 
+/**
+ * A `summarizeNormalizer` rövid összegzést készít a normalizáló riport metaadataiból.
+ */
 function summarizeNormalizer(payload) {
   return {
     stats: payload?.stats ?? null,
@@ -64,6 +71,9 @@ function summarizeNormalizer(payload) {
   };
 }
 
+/**
+ * A `compareRegistries` részletes eltérésképet készít a két primerjegyzék között.
+ */
 function compareRegistries(leftPayload, rightPayload, labels) {
   const leftMap = buildRegistryMap(leftPayload);
   const rightMap = buildRegistryMap(rightPayload);
@@ -182,6 +192,9 @@ function compareRegistries(leftPayload, rightPayload, labels) {
   };
 }
 
+/**
+ * A `buildRegistryMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildRegistryMap(payload) {
   if (!Array.isArray(payload.days)) {
     throw new Error("A primerjegyzék payload nem tartalmaz érvényes days tömböt.");
@@ -210,6 +223,9 @@ function buildRegistryMap(payload) {
   return map;
 }
 
+/**
+ * A `compareNameSets` összeveti a két névlista közös, bal oldali és jobb oldali elemeit.
+ */
 function compareNameSets(leftValues, rightValues) {
   const leftSet = new Set(leftValues.map(normalizeNameForMatch));
   const rightSet = new Set(rightValues.map(normalizeNameForMatch));
@@ -227,6 +243,9 @@ function compareNameSets(leftValues, rightValues) {
   };
 }
 
+/**
+ * A `getMatchType` meghatározza a kapcsolódó elem típusát.
+ */
 function getMatchType(leftValues, rightValues, shared, onlyLeft, onlyRight) {
   if (onlyLeft.length === 0 && onlyRight.length === 0) {
     return "exact";
@@ -247,6 +266,9 @@ function getMatchType(leftValues, rightValues, shared, onlyLeft, onlyRight) {
   return "right-only";
 }
 
+/**
+ * A `incrementMatchCounters` növeli a kapcsolódó számlálókat.
+ */
 function incrementMatchCounters(summary, type, prefix) {
   if (type === "exact") {
     summary[`exact${prefix}MatchDayCount`] += 1;
@@ -261,6 +283,9 @@ function incrementMatchCounters(summary, type, prefix) {
   summary[`disjoint${prefix}MatchDayCount`] += 1;
 }
 
+/**
+ * A `buildMismatchEntry` felépíti a szükséges adatszerkezetet.
+ */
 function buildMismatchEntry({ monthDay, leftDay, rightDay, match, field, labels }) {
   return {
     monthDay,
@@ -275,6 +300,9 @@ function buildMismatchEntry({ monthDay, leftDay, rightDay, match, field, labels 
   };
 }
 
+/**
+ * A `buildMissingDayEntry` felépíti a szükséges adatszerkezetet.
+ */
 function buildMissingDayEntry(source, day) {
   return {
     source,
@@ -284,6 +312,9 @@ function buildMissingDayEntry(source, day) {
   };
 }
 
+/**
+ * A `formatMatchType` meghatározza a kapcsolódó elem típusát.
+ */
 function formatMatchType(type, labels) {
   if (type === "exact") {
     return "pontos egyezés";
@@ -304,6 +335,9 @@ function formatMatchType(type, labels) {
   return "teljes eltérés";
 }
 
+/**
+ * A `buildSortedMismatchDays` felépíti a szükséges adatszerkezetet.
+ */
 function buildSortedMismatchDays(entries) {
   return entries.slice().sort((left, right) => {
     const priority = getMismatchPriority(left.type) - getMismatchPriority(right.type);
@@ -324,6 +358,9 @@ function buildSortedMismatchDays(entries) {
   });
 }
 
+/**
+ * A `getMismatchPriority` sorrendezési prioritást ad az eltéréstípushoz.
+ */
 function getMismatchPriority(type) {
   if (type === "disjoint") {
     return 0;
@@ -340,11 +377,14 @@ function getMismatchPriority(type) {
   return 3;
 }
 
+/**
+ * A `printReport` terminálra írja az emberileg olvasható összegzést.
+ */
 function printReport(report) {
   printKeyValueTable("Források", [
-    ["Normalizált registry", report.normalizedPath],
-    ["Legacy registry", report.legacyPath],
-    ["Wiki registry", report.wikiPath],
+    ["Normalizált primerjegyzék", report.normalizedPath],
+    ["Legacy primerjegyzék", report.legacyPath],
+    ["Wiki primerjegyzék", report.wikiPath],
     ["Riport", report.reportPath],
   ], {
     keyWidth: 20,
@@ -360,7 +400,7 @@ function printReport(report) {
       ["Kézi szökőéves felülbírálás", report.normalizer.summary?.manualLeapOverride ?? "—"],
       ["Kézi átnézésre vár", report.normalizer.summary?.manualConflictReview ?? "—"],
       ["Függőben maradt", report.normalizer.summary?.unresolved ?? "—"],
-      ["Review queue", report.normalizer.reviewQueueLength],
+      ["Átnézendő sor", report.normalizer.reviewQueueLength],
     ], {
       keyWidth: 42,
       valueWidth: 64,
@@ -368,19 +408,22 @@ function printReport(report) {
   }
 
   printComparisonSection(
-    "NORMALIZÁLT VS. LEGACY REGISTRY",
+    "NORMALIZÁLT VS. LEGACY PRIMERJEGYZÉK",
     report.comparisons.legacy,
     "Normalizált",
     "Legacy"
   );
   printComparisonSection(
-    "NORMALIZÁLT VS. WIKI REGISTRY",
+    "NORMALIZÁLT VS. WIKI PRIMERJEGYZÉK",
     report.comparisons.wiki,
     "Normalizált",
     "Wiki"
   );
 }
 
+/**
+ * A `printComparisonSection` terminálra írja az emberileg olvasható összegzést.
+ */
 function printComparisonSection(title, comparison, leftLabel, rightLabel) {
   printKeyValueTable(title, [
     [`${leftLabel} napok`, comparison.summary.leftDayCount],
@@ -440,6 +483,9 @@ function printComparisonSection(title, comparison, leftLabel, rightLabel) {
   );
 }
 
+/**
+ * A `ratio` százalékos arányt formáz két darabszám alapján.
+ */
 function ratio(part, whole) {
   if (!whole) {
     return "0.00%";
@@ -448,18 +494,16 @@ function ratio(part, whole) {
   return `${((part / whole) * 100).toFixed(2)}%`;
 }
 
+/**
+ * A `uniqueSorted` duplikátummentes, rendezett tömböt ad vissza.
+ */
 function uniqueSorted(values) {
   return Array.from(new Set(values)).sort((left, right) => collator.compare(left, right));
 }
 
-function joinNamesForConsole(values) {
-  if (!Array.isArray(values) || values.length === 0) {
-    return "—";
-  }
-
-  return values.join(" • ");
-}
-
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

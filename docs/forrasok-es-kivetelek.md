@@ -7,9 +7,20 @@
 - legacy ICS névnapkészlet
 - kézi primer-felülírások
 
+## Puppeteer és HUN-REN HTTP-kompatibilitás
+
+A HUN-REN utónévportál jelenleg sima HTTP-n érhető el. A Puppeteer 24-es vonalával
+érkező Chromium fej nélküli módja bizonyos oldalakat HTTPS-first logika miatt
+`ERR_BLOCKED_BY_CLIENT` hibával blokkolhat.
+
+A projekt ezért központi Puppeteer-indítási kompatibilitási kapcsolókat használ,
+így a HUN-REN scraper továbbra is stabilan fut a frissített böngészőmotorral is.
+Ez a workaround a `kozos/puppeteer-inditas.mjs` modulban van összefogva, hogy a
+Wikipédia- és a HUN-REN-scraper ugyanazt a viselkedést kapja.
+
 ## Kézi primer-felülírások
 
-A kézi primerdöntések kanonikus forrása:
+A kézi primerdöntések elsődleges forrása:
 
 ```text
   data/primary-registry-overrides.yaml

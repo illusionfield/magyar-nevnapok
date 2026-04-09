@@ -1,6 +1,7 @@
-// domainek/auditok/hivatalos-nevjegyzek.mjs
-// A hivatalos névjegyzékkel való összevetés és kivétellista-kezelés folyamata.
-import fs from "node:fs/promises";
+/**
+ * domainek/auditok/hivatalos-nevjegyzek.mjs
+ * A hivatalos névjegyzékkel való összevetés és kivétellista-kezelés folyamata.
+ */
 import path from "node:path";
 import { printDataTable, printKeyValueTable, printValueGrid } from "../../kozos/terminal-tabla.mjs";
 import {
@@ -20,6 +21,9 @@ const OFFICIAL_SOURCES = {
 
 const args = parseArgs(process.argv.slice(2));
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
   const reportPath = path.resolve(process.cwd(), args.report ?? DEFAULT_REPORT_PATH);
@@ -70,6 +74,9 @@ async function main() {
   }
 }
 
+/**
+ * A `betoltKivetellistat` betölti a szükséges adatot.
+ */
 async function betoltKivetellistat(exceptionsPath) {
   if (!(await letezik(exceptionsPath))) {
     return {
@@ -85,6 +92,9 @@ async function betoltKivetellistat(exceptionsPath) {
   return betoltStrukturaltFajl(exceptionsPath);
 }
 
+/**
+ * A `loadOfficialList` betölti a szükséges adatot.
+ */
 async function loadOfficialList(gender, url) {
   const response = await fetch(url, {
     headers: {
@@ -115,6 +125,9 @@ async function loadOfficialList(gender, url) {
   };
 }
 
+/**
+ * A `buildNameSet` felépíti a szükséges adatszerkezetet.
+ */
 function buildNameSet(names, gender) {
   return new Set(
     names
@@ -124,6 +137,9 @@ function buildNameSet(names, gender) {
   );
 }
 
+/**
+ * A `compareGenderLists` összeveti a hivatalos és az adatbázisbeli névlistát egy nemre vetítve.
+ */
 function compareGenderLists({
   labelHu,
   official,
@@ -169,12 +185,18 @@ function compareGenderLists({
   };
 }
 
+/**
+ * A `difference` a bal oldali halmazból kiszűri a jobb oldalról hiányzó elemeket.
+ */
 function difference(left, right) {
   return Array.from(left)
     .filter((name) => !right.has(name))
     .sort((a, b) => a.localeCompare(b, "hu"));
 }
 
+/**
+ * A `hasDifferences` kiszűri a hiányzó vagy eltérő elemeket a két oldal között.
+ */
 function hasDifferences(comparison) {
   return Object.values(comparison.genders).some(
     (entry) =>
@@ -183,6 +205,9 @@ function hasDifferences(comparison) {
   );
 }
 
+/**
+ * A `printComparison` terminálra írja az emberileg olvasható összegzést.
+ */
 function printComparison(comparison) {
   printKeyValueTable("Források", [
     ["Összehasonlított fájl", comparison.input],
@@ -277,6 +302,9 @@ function printComparison(comparison) {
   });
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

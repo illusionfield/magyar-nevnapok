@@ -1,9 +1,11 @@
-// domainek/forrasok/wikipedia/munkafolyamat.mjs
-// A Wikipédia napi oldalairól primer névnapokat gyűjtő folyamat.
-import fs from "node:fs/promises";
+/**
+ * domainek/forrasok/wikipedia/munkafolyamat.mjs
+ * A Wikipédia napi oldalairól primer névnapokat gyűjtő folyamat.
+ */
 import path from "node:path";
 import puppeteer from "puppeteer";
 import { normalizeNameForMatch } from "../../primer/alap.mjs";
+import { epitPuppeteerInditasiBeallitasokat } from "../../../kozos/puppeteer-inditas.mjs";
 import { mentStrukturaltFajl } from "../../../kozos/strukturalt-fajl.mjs";
 import { kanonikusUtvonalak } from "../../../kozos/utvonalak.mjs";
 
@@ -36,12 +38,13 @@ const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_OUTPUT_PAT
 const concurrency = args.concurrency ?? DEFAULT_CONCURRENCY;
 const limit = args.limit ?? null;
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   console.log("A Wikipédia-névnapgyűjtés elindult.");
 
-  const browser = await puppeteer.launch({
-    headless: args.headful ? false : true,
-  });
+  const browser = await puppeteer.launch(epitPuppeteerInditasiBeallitasokat(args));
 
   try {
     const discoveredDays = await discoverDayPages(browser);
@@ -63,6 +66,9 @@ async function main() {
   }
 }
 
+/**
+ * A `discoverDayPages` összegyűjti a szükséges elemeket.
+ */
 async function discoverDayPages(browser) {
   const page = await createPage(browser);
 
@@ -124,6 +130,9 @@ async function discoverDayPages(browser) {
   }
 }
 
+/**
+ * A `parseWikipediaDayLink` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseWikipediaDayLink(candidate) {
   const href = toAbsoluteUrl(candidate.href, WIKIPEDIA_CATEGORY_URL);
   const titleCandidate = normalizeWhitespace(candidate.title || candidate.text || deriveTitleFromHref(href));
@@ -150,6 +159,9 @@ function parseWikipediaDayLink(candidate) {
   };
 }
 
+/**
+ * A `scrapeDayPages` kinyeri a szükséges adatokat a forrásoldalról.
+ */
 async function scrapeDayPages(browser, dayPages, concurrencyLimit) {
   const results = new Array(dayPages.length);
   let cursor = 0;
@@ -188,6 +200,9 @@ async function scrapeDayPages(browser, dayPages, concurrencyLimit) {
   });
 }
 
+/**
+ * A `retryScrapeDay` újrapróbálásokkal futtatja a kapcsolódó műveletet.
+ */
 async function retryScrapeDay(browser, page, dayMeta) {
   const retries = 3;
   let currentPage = page;
@@ -216,6 +231,9 @@ async function retryScrapeDay(browser, page, dayMeta) {
   throw lastError;
 }
 
+/**
+ * A `scrapeDay` kinyeri a szükséges adatokat a forrásoldalról.
+ */
 async function scrapeDay(page, dayMeta) {
   await page.goto(dayMeta.url, { waitUntil: "domcontentloaded" });
 
@@ -317,6 +335,9 @@ async function scrapeDay(page, dayMeta) {
   };
 }
 
+/**
+ * A `applyWikipediaLeapDayExceptions` alkalmazza a kapcsolódó szabályt vagy módosítást.
+ */
 function applyWikipediaLeapDayExceptions(days) {
   const clonedDays = days.map((entry) => ({
     ...entry,
@@ -345,6 +366,9 @@ function applyWikipediaLeapDayExceptions(days) {
   });
 }
 
+/**
+ * A `buildPayload` felépíti a szükséges adatszerkezetet.
+ */
 function buildPayload(days) {
   const stats = {
     dayCount: days.length,
@@ -363,6 +387,9 @@ function buildPayload(days) {
   };
 }
 
+/**
+ * A `dedupeKeepOrder` eltávolítja a duplikátumokat az első előfordulások sorrendjét megtartva.
+ */
 function dedupeKeepOrder(values) {
   const seen = new Set();
   const result = [];
@@ -381,6 +408,9 @@ function dedupeKeepOrder(values) {
   return result;
 }
 
+/**
+ * A `deriveTitleFromHref` származtatott értéket képez a bemenetből.
+ */
 function deriveTitleFromHref(href) {
   try {
     const url = new URL(href, WIKIPEDIA_CATEGORY_URL);
@@ -390,6 +420,9 @@ function deriveTitleFromHref(href) {
   }
 }
 
+/**
+ * A `toAbsoluteUrl` átalakítja az értéket a kívánt formára.
+ */
 function toAbsoluteUrl(value, baseUrl) {
   try {
     return new URL(value, baseUrl).href;
@@ -398,6 +431,9 @@ function toAbsoluteUrl(value, baseUrl) {
   }
 }
 
+/**
+ * A `normalizeWhitespace` normalizálja a megadott értéket.
+ */
 function normalizeWhitespace(value) {
   return String(value ?? "")
     .replace(/\u00a0/g, " ")
@@ -405,12 +441,18 @@ function normalizeWhitespace(value) {
     .trim();
 }
 
+/**
+ * A `createPage` új, előkonfigurált böngészőoldalt hoz létre.
+ */
 async function createPage(browser) {
   const page = await browser.newPage();
   page.setDefaultNavigationTimeout(DEFAULT_TIMEOUT_MS);
   return page;
 }
 
+/**
+ * A `safeClosePage` csendben bezárja az oldalt, ha az még nyitva van.
+ */
 async function safeClosePage(page) {
   if (!page) {
     return;
@@ -423,12 +465,18 @@ async function safeClosePage(page) {
   }
 }
 
+/**
+ * A `sleep` egyszerű várakozó Promise-t ad vissza.
+ */
 function sleep(timeoutMs) {
   return new Promise((resolve) => {
     setTimeout(resolve, timeoutMs);
   });
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

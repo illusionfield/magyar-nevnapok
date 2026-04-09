@@ -1,6 +1,7 @@
-// domainek/auditok/legacy-primer-osszevetes.mjs
-// Legacy primer vs. aktuális adatbázis összevető audit.
-import fs from "node:fs/promises";
+/**
+ * domainek/auditok/legacy-primer-osszevetes.mjs
+ * Legacy primer vs. aktuális adatbázis összevető audit.
+ */
 import path from "node:path";
 import {
   buildPrimaryRegistryLookup,
@@ -21,6 +22,9 @@ const DEFAULT_REPORT_PATH = kanonikusUtvonalak.riportok.legacyPrimer;
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 const args = parseArgs(process.argv.slice(2));
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
   const reportPath = path.resolve(process.cwd(), args.report ?? DEFAULT_REPORT_PATH);
@@ -50,10 +54,16 @@ async function main() {
   printComparison(comparison);
 }
 
+/**
+ * A `readJson` betölti a szükséges adatot.
+ */
 async function readJson(filePath) {
   return betoltStrukturaltFajl(filePath);
 }
 
+/**
+ * A `buildCurrentDayMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildCurrentDayMap(payload) {
   if (!Array.isArray(payload.names)) {
     throw new Error("A bemeneti adatbázis nem tartalmaz érvényes names tömböt.");
@@ -114,6 +124,9 @@ function buildCurrentDayMap(payload) {
   return dayMap;
 }
 
+/**
+ * A `validateDayEntry` ellenőrzi, hogy egy napi névbejegyzés minden kötelező mezőt tartalmaz-e.
+ */
 function validateDayEntry(name, dayEntry) {
   if (!dayEntry || typeof dayEntry !== "object") {
     throw new Error(`Érvénytelen napi bejegyzés ennél a névnél: ${name}`);
@@ -148,6 +161,9 @@ function validateDayEntry(name, dayEntry) {
   }
 }
 
+/**
+ * A `compareRegistry` összeveti a legacy primerjegyzéket az aktuális névadatbázis napi nézetével.
+ */
 function compareRegistry(registryLookup, currentDayMap) {
   const summary = {
     registryDayCount: registryLookup.size,
@@ -263,6 +279,9 @@ function compareRegistry(registryLookup, currentDayMap) {
   };
 }
 
+/**
+ * A `compareLegacyPrimaryVsRankedPrimary` a legacy és a rangsorolt primerjelöléseket hasonlítja össze.
+ */
 function compareLegacyPrimaryVsRankedPrimary(currentDayMap) {
   const summary = {
     dayCount: 0,
@@ -339,6 +358,9 @@ function compareLegacyPrimaryVsRankedPrimary(currentDayMap) {
   };
 }
 
+/**
+ * A `buildRegistryDifferenceEntry` kiszűri a hiányzó vagy eltérő elemeket a két oldal között.
+ */
 function buildRegistryDifferenceEntry(
   registryDay,
   currentDay,
@@ -361,6 +383,9 @@ function buildRegistryDifferenceEntry(
   };
 }
 
+/**
+ * A `getPrimaryMismatchType` meghatározza a kapcsolódó elem típusát.
+ */
 function getPrimaryMismatchType(legacy, ranked, shared) {
   if (legacy.length > 0 && ranked.length > 0 && shared.length > 0) {
     return "overlap";
@@ -377,6 +402,9 @@ function getPrimaryMismatchType(legacy, ranked, shared) {
   return "ranked-only";
 }
 
+/**
+ * A `formatPrimaryMismatchType` meghatározza a kapcsolódó elem típusát.
+ */
 function formatPrimaryMismatchType(type) {
   if (type === "disjoint") {
     return "teljes eltérés";
@@ -393,6 +421,9 @@ function formatPrimaryMismatchType(type) {
   return "csak ranking";
 }
 
+/**
+ * A `buildTopMismatchDays` felépíti a szükséges adatszerkezetet.
+ */
 function buildTopMismatchDays(mismatchDays) {
   return mismatchDays.slice().sort((left, right) => {
     const typeDifference =
@@ -414,6 +445,9 @@ function buildTopMismatchDays(mismatchDays) {
   });
 }
 
+/**
+ * A `getPrimaryMismatchPriority` sorrendezési prioritást ad a primereltérés típusához.
+ */
 function getPrimaryMismatchPriority(type) {
   if (type === "disjoint") {
     return 0;
@@ -431,10 +465,13 @@ function getPrimaryMismatchPriority(type) {
 }
 
 
+/**
+ * A `printComparison` terminálra írja az emberileg olvasható összegzést.
+ */
 function printComparison(comparison) {
   printKeyValueTable("Források", [
     ["Összehasonlított adatbázis", comparison.inputPath],
-    ["Primer registry", comparison.registryPath],
+    ["Primerjegyzék", comparison.registryPath],
     ["Riport", comparison.reportPath],
     ["Adatbázis generálva", comparison.generatedAt ?? "—"],
     ["Adatverzió", comparison.jsonVersion ?? "—"],
@@ -443,7 +480,7 @@ function printComparison(comparison) {
     valueWidth: 90,
   });
 
-  printKeyValueTable("LEGACY REGISTRY VS. ADATBÁZIS", [
+  printKeyValueTable("LEGACY PRIMERJEGYZÉK VS. ADATBÁZIS", [
     ["Primerjegyzék napjai", comparison.registryComparison.summary.registryDayCount],
     ["Aktuális adatbázis napok", comparison.registryComparison.summary.currentDayCount],
     ["Teljes részhalmaz-egyezés", comparison.registryComparison.summary.subsetCount],
@@ -494,7 +531,7 @@ function printComparison(comparison) {
     comparison.registryComparison.differences.preferredShortfallDays
   );
 
-  printKeyValueTable("LEGACY PRIMARY VS. SZÁMÍTOTT PRIMARY (RANKING)", [
+  printKeyValueTable("LEGACY PRIMER VS. SZÁMÍTOTT PRIMER (RANGSOR)", [
     ["Összehasonlított napok", comparison.primaryComparison.summary.dayCount],
     ["Pontos egyezés", comparison.primaryComparison.summary.exactDayCount],
     ["Részleges átfedés", comparison.primaryComparison.summary.overlapDayCount],
@@ -502,11 +539,11 @@ function printComparison(comparison) {
     ["Csak legacy van", comparison.primaryComparison.summary.legacyOnlyDayCount],
     ["Csak számított ranking van", comparison.primaryComparison.summary.rankedOnlyDayCount],
     [
-      "Közös primary nevek legacyhoz képest",
+      "Közös primernevek legacyhoz képest",
       `${comparison.primaryComparison.summary.sharedPrimaryCount}/${comparison.primaryComparison.summary.legacyPrimaryCount} (${comparison.primaryComparison.summary.legacyCoverageRate})`,
     ],
     [
-      "Közös primary nevek rankinghez képest",
+      "Közös primernevek rangsorhoz képest",
       `${comparison.primaryComparison.summary.sharedPrimaryCount}/${comparison.primaryComparison.summary.rankedPrimaryCount} (${comparison.primaryComparison.summary.rankedCoverageRate})`,
     ],
     ["Eltérő napok", comparison.primaryComparison.differences.mismatchDays.length],
@@ -516,19 +553,19 @@ function printComparison(comparison) {
   });
 
   printDataTable(
-    "Legacy primary vs. ranking — eltérő napok",
+    "Legacy primer vs. rangsorolt primer — eltérő napok",
     [
       { key: "monthDay", title: "Nap", width: 7 },
       { key: "typeLabel", title: "Eltérés", width: 18 },
       {
         key: "legacyPrimary",
-        title: "Legacy",
+        title: "Legacy primer",
         width: 26,
         value: (row) => formatNameList(row.legacyPrimary, { maxItems: 4, maxLength: 26 }),
       },
       {
         key: "rankedPrimary",
-        title: "Ranking",
+        title: "Rangsorolt primer",
         width: 26,
         value: (row) => formatNameList(row.rankedPrimary, { maxItems: 4, maxLength: 26 }),
       },
@@ -542,7 +579,7 @@ function printComparison(comparison) {
             onlyLeft: row.onlyLegacyPrimary,
             onlyRight: row.onlyRankedPrimary,
             leftLabel: "legacy",
-            rightLabel: "ranking",
+            rightLabel: "rangsor",
           }),
       },
     ],
@@ -550,6 +587,9 @@ function printComparison(comparison) {
   );
 }
 
+/**
+ * A `ratio` százalékos arányt formáz két darabszám alapján.
+ */
 function ratio(part, whole) {
   if (!whole) {
     return "0.00%";
@@ -558,18 +598,16 @@ function ratio(part, whole) {
   return `${((part / whole) * 100).toFixed(2)}%`;
 }
 
+/**
+ * A `uniqueSorted` duplikátummentes, rendezett tömböt ad vissza.
+ */
 function uniqueSorted(values) {
   return Array.from(new Set(values)).sort((left, right) => collator.compare(left, right));
 }
 
-function joinNamesForConsole(names) {
-  if (!Array.isArray(names) || names.length === 0) {
-    return "—";
-  }
-
-  return names.join(" • ");
-}
-
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

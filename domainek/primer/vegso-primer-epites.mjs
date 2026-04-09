@@ -1,5 +1,7 @@
-// domainek/primer/vegso-primer-epites.mjs
-// Legacy, wiki és kézi felülírás alapján végső primerjegyzéket épít.
+/**
+ * domainek/primer/vegso-primer-epites.mjs
+ * Legacy, wiki és kézi felülírás alapján végső primerjegyzéket épít.
+ */
 import path from "node:path";
 import {
   areNameSetsEqual,
@@ -18,6 +20,9 @@ import { mentStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const legacyPath = path.resolve(
     process.cwd(),
@@ -51,10 +56,13 @@ async function main() {
 
   console.log(`Mentve: ${payload.days.length} végső primer nap ide: ${outputPath}`);
   console.log(`Pontos legacy–wiki egyezésű napok: ${payload.stats.exactAgreementDayCount}`);
-  console.log(`Kézi override-os napok: ${payload.stats.overrideDayCount}`);
+  console.log(`Kézi felülírásos napok: ${payload.stats.overrideDayCount}`);
   console.log(`Figyelmeztetéses unió napok: ${payload.stats.warningUnionDayCount}`);
 }
 
+/**
+ * A `buildFinalPrimaryRegistryPayload` felépíti a szükséges adatszerkezetet.
+ */
 export function buildFinalPrimaryRegistryPayload({
   legacyPayload,
   wikiPayload,
@@ -101,14 +109,19 @@ export function buildFinalPrimaryRegistryPayload({
     let warning = false;
 
     if (overrideDay) {
+      // A kézi felülírás elsőbbséget élvez, mert ez a projekt tudatos, dokumentált döntési pontja.
       preferredNames = [...overrideNames];
       source = "manual-override";
       stats.overrideDayCount += 1;
     } else if (areNameSetsEqual(legacyNames, wikiNames)) {
+      // Ha a két gépi forrás ugyanarra jut, nem tartjuk meg mesterségesen mindkét oldalt:
+      // a cél itt egy egyértelmű, irányadó napi primerlista előállítása.
       preferredNames = [...legacyNames];
       source = "legacy-wiki-exact";
       stats.exactAgreementDayCount += 1;
     } else {
+      // Az eltérő napok nem vesznek el: warning-union forrással mindkét oldal jelöltjei megmaradnak,
+      // és az auditok külön is láthatóvá teszik, hogy itt kézi döntés vagy további vizsgálat jöhet szóba.
       preferredNames = orderedUniqueNameUnion(legacyNames, wikiNames);
       source = "warning-union";
       warning = true;
@@ -156,6 +169,9 @@ export function buildFinalPrimaryRegistryPayload({
   };
 }
 
+/**
+ * A `buildRegistryMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildRegistryMap(payload, label) {
   if (!Array.isArray(payload?.days)) {
     throw new Error(`A(z) ${label} primerjegyzék payloadból hiányzik a days tömb.`);
@@ -194,6 +210,9 @@ function buildRegistryMap(payload, label) {
   return map;
 }
 
+/**
+ * A `buildOverridesMap` felépíti a szükséges adatszerkezetet.
+ */
 function buildOverridesMap(payload) {
   if (!Array.isArray(payload?.days)) {
     throw new Error("A primerjegyzék-felülírás payloadból hiányzik a days tömb.");
@@ -231,6 +250,9 @@ function buildOverridesMap(payload) {
   return map;
 }
 
+/**
+ * A `validateOverridesAgainstSources` ellenőrzi, hogy a kézi felülírások forrásnevei tényleg léteznek-e.
+ */
 function validateOverridesAgainstSources(overrideMap, legacyMap, wikiMap) {
   for (const overrideDay of overrideMap.values()) {
     const legacyDay = legacyMap.get(overrideDay.monthDay) ?? null;
@@ -255,6 +277,9 @@ function validateOverridesAgainstSources(overrideMap, legacyMap, wikiMap) {
   }
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 

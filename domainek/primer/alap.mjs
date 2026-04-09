@@ -1,5 +1,7 @@
-// domainek/primer/alap.mjs
-// Közös primerjegyzék-segédek, betöltés, parse és összevetési primitívek.
+/**
+ * domainek/primer/alap.mjs
+ * Közös primerjegyzék-segédek, betöltés, parse és összevetési primitívek.
+ */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { betoltStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
@@ -12,6 +14,9 @@ export const DEFAULT_WIKI_PRIMARY_REGISTRY_PATH = kanonikusUtvonalak.primer.wiki
 export const DEFAULT_FINAL_PRIMARY_REGISTRY_PATH = kanonikusUtvonalak.primer.vegso;
 export const DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH = kanonikusUtvonalak.kezi.primerFelulirasok;
 
+/**
+ * A `loadPrimaryRegistry` betölti a szükséges adatot.
+ */
 export async function loadPrimaryRegistry(filePath = DEFAULT_PRIMARY_REGISTRY_PATH) {
   const resolvedPath = path.resolve(process.cwd(), filePath);
   const payload = await betoltStrukturaltFajl(resolvedPath);
@@ -26,6 +31,9 @@ export async function loadPrimaryRegistry(filePath = DEFAULT_PRIMARY_REGISTRY_PA
   };
 }
 
+/**
+ * A `loadPrimaryRegistryOverrides` betölti a szükséges adatot.
+ */
 export async function loadPrimaryRegistryOverrides(
   filePath = DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH
 ) {
@@ -42,6 +50,9 @@ export async function loadPrimaryRegistryOverrides(
   };
 }
 
+/**
+ * A `buildPrimaryRegistryPayload` felépíti a szükséges adatszerkezetet.
+ */
 export async function buildPrimaryRegistryPayload({
   inputPath = DEFAULT_LEGACY_ICS_PATH,
   generatedAt = new Date().toISOString(),
@@ -67,7 +78,10 @@ export async function buildPrimaryRegistryPayload({
   };
 }
 
-export function parseLegacyPrimaryRegistryIcs(text, sourceFile) {
+/**
+ * A `parseLegacyPrimaryRegistryIcs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
+export function parseLegacyPrimaryRegistryIcs(text, _sourceFile) {
   const unfoldedLines = unfoldIcsLines(text);
   const dayMap = new Map();
   let current = null;
@@ -127,6 +141,9 @@ export function parseLegacyPrimaryRegistryIcs(text, sourceFile) {
   return applyLegacyLeapDayExceptions(days);
 }
 
+/**
+ * A `applyLegacyLeapDayExceptions` alkalmazza a kapcsolódó szabályt vagy módosítást.
+ */
 function applyLegacyLeapDayExceptions(days) {
   const clonedDays = days.map((entry) => ({
     ...entry,
@@ -157,6 +174,9 @@ function applyLegacyLeapDayExceptions(days) {
   return clonedDays;
 }
 
+/**
+ * A `previousMonthDay` visszaadja az adott nap előtti naptári nap azonosítóját.
+ */
 function previousMonthDay(monthDay) {
   const parsed = parseMonthDay(monthDay);
 
@@ -170,6 +190,9 @@ function previousMonthDay(monthDay) {
   return formatMonthDay(date.getUTCMonth() + 1, date.getUTCDate());
 }
 
+/**
+ * A `buildPrimaryRegistryLookup` felépíti a szükséges adatszerkezetet.
+ */
 export function buildPrimaryRegistryLookup(registryDays) {
   const lookup = new Map();
 
@@ -191,6 +214,9 @@ export function buildPrimaryRegistryLookup(registryDays) {
   return lookup;
 }
 
+/**
+ * A `normalizeNameForMatch` normalizálja a megadott értéket.
+ */
 export function normalizeNameForMatch(value) {
   return String(value ?? "")
     .normalize("NFC")
@@ -198,6 +224,9 @@ export function normalizeNameForMatch(value) {
     .trim();
 }
 
+/**
+ * A `formatMonthDay` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 export function formatMonthDay(month, day) {
   if (!Number.isInteger(month) || !Number.isInteger(day)) {
     return null;
@@ -206,6 +235,9 @@ export function formatMonthDay(month, day) {
   return `${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * A `parseMonthDay` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 export function parseMonthDay(monthDay) {
   const match = String(monthDay).match(/^(\d{2})-(\d{2})$/);
 
@@ -220,6 +252,9 @@ export function parseMonthDay(monthDay) {
   };
 }
 
+/**
+ * Az `areNameListsExactlyEqual` sorrendérzékenyen hasonlít össze két névlistát.
+ */
 export function areNameListsExactlyEqual(leftValues, rightValues) {
   if (!Array.isArray(leftValues) || !Array.isArray(rightValues)) {
     return false;
@@ -238,6 +273,9 @@ export function areNameListsExactlyEqual(leftValues, rightValues) {
   return true;
 }
 
+/**
+ * Az `areNameSetsEqual` sorrendtől függetlenül hasonlít össze két névhalmazt.
+ */
 export function areNameSetsEqual(leftValues, rightValues) {
   const left = dedupeKeepOrder(leftValues).map(normalizeNameForMatch).sort();
   const right = dedupeKeepOrder(rightValues).map(normalizeNameForMatch).sort();
@@ -255,10 +293,16 @@ export function areNameSetsEqual(leftValues, rightValues) {
   return true;
 }
 
+/**
+ * Az `orderedUniqueNameUnion` megtartott sorrenddel készít duplikátummentes név-uniót.
+ */
 export function orderedUniqueNameUnion(...lists) {
   return dedupeKeepOrder(lists.flatMap((values) => (Array.isArray(values) ? values : [])));
 }
 
+/**
+ * Az `unfoldIcsLines` visszaállítja az ICS szabvány szerinti sortördelésből az eredeti sorokat.
+ */
 function unfoldIcsLines(text) {
   const lines = String(text).split(/\r?\n/);
   const unfolded = [];
@@ -275,6 +319,9 @@ function unfoldIcsLines(text) {
   return unfolded;
 }
 
+/**
+ * A `parseDateValue` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseDateValue(value) {
   const match = String(value).match(/^(\d{4})(\d{2})(\d{2})$/);
 
@@ -292,6 +339,9 @@ function parseDateValue(value) {
   };
 }
 
+/**
+ * A `splitSummaryNames` összegzést készít a kapcsolódó adatokból.
+ */
 function splitSummaryNames(value) {
   return dedupeKeepOrder(
     String(value)
@@ -301,6 +351,9 @@ function splitSummaryNames(value) {
   );
 }
 
+/**
+ * A `dedupeKeepOrder` eltávolítja a duplikátumokat az első előfordulások sorrendjét megtartva.
+ */
 export function dedupeKeepOrder(values) {
   const seen = new Set();
   const result = [];
@@ -319,6 +372,9 @@ export function dedupeKeepOrder(values) {
   return result;
 }
 
+/**
+ * Az `unescapeIcsText` az ICS-escape szekvenciákat olvasható szöveggé alakítja.
+ */
 function unescapeIcsText(value) {
   return String(value ?? "")
     .replace(/\\n/gi, "\n")

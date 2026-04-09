@@ -1,5 +1,7 @@
-// domainek/naptar/apple-kompat-fixturak.mjs
-// Apple Calendar kompatibilitási kísérleti fixture-öket állít elő.
+/**
+ * domainek/naptar/apple-kompat-fixturak.mjs
+ * Apple Calendar kompatibilitási kísérleti fixture-öket állít elő.
+ */
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -21,6 +23,9 @@ const SHIFT_MAP = new Map([
 const args = parseArgs(process.argv.slice(2));
 const options = normalizeOptions(args);
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const outputDir = path.resolve(process.cwd(), options.outputDir);
   const leapYears = buildLeapYears(options.fromYear, options.untilYear);
@@ -61,6 +66,9 @@ async function main() {
   console.log(`Szökőévek a tartományban: ${leapYears.join(", ") || "nincs"}`);
 }
 
+/**
+ * A `buildFixtures` felépíti a szükséges adatszerkezetet.
+ */
 function buildFixtures(options, leapYears) {
   return [
     {
@@ -68,9 +76,9 @@ function buildFixtures(options, leapYears) {
       filename: "A-rrule-exdate-rdate.ics",
       strategy: "rrule-exdate-rdate",
       calendar: buildCalendar({
-        name: "Apple Compat A — RRULE EXDATE RDATE",
+        name: "Apple kompat A — RRULE EXDATE RDATE",
         description:
-          "Diagnostic fixture: recurring events with RRULE + EXDATE + RDATE for leap-year February shifts.",
+          "Diagnosztikai fixture: ismétlődő események RRULE + EXDATE + RDATE stratégiával a szökőéves februári eltolásokhoz.",
         events: buildRRuleExdateRdateEvents(options, leapYears),
       }),
     },
@@ -79,9 +87,9 @@ function buildFixtures(options, leapYears) {
       filename: "B-rrule-recurrence-id.ics",
       strategy: "rrule-recurrence-id-overrides",
       calendar: buildCalendar({
-        name: "Apple Compat B — RRULE RECURRENCE-ID",
+        name: "Apple kompat B — RRULE RECURRENCE-ID",
         description:
-          "Diagnostic fixture: recurring master events plus detached RECURRENCE-ID overrides for leap-year February shifts.",
+          "Diagnosztikai fixture: ismétlődő főesemények és leválasztott RECURRENCE-ID felülírások a szökőéves februári eltolásokhoz.",
         events: buildRecurrenceIdEvents(options, leapYears),
       }),
     },
@@ -90,15 +98,18 @@ function buildFixtures(options, leapYears) {
       filename: "C-explicit-yearly.ics",
       strategy: "explicit-yearly-events",
       calendar: buildCalendar({
-        name: "Apple Compat C — explicit yearly",
+        name: "Apple kompat C — explicit éves",
         description:
-          "Diagnostic fixture: one explicit event per year for leap-year February shifts. Control group.",
+          "Diagnosztikai fixture: évente egy explicit esemény a szökőéves februári eltolásokhoz. Kontrollcsoport.",
         events: buildExplicitYearlyEvents(options),
       }),
     },
   ];
 }
 
+/**
+ * A `buildCalendar` felépíti a szükséges adatszerkezetet.
+ */
 function buildCalendar({ name, description, events }) {
   return {
     name,
@@ -107,6 +118,9 @@ function buildCalendar({ name, description, events }) {
   };
 }
 
+/**
+ * A `buildRRuleExdateRdateEvents` felépíti a szükséges adatszerkezetet.
+ */
 function buildRRuleExdateRdateEvents(options, leapYears) {
   return SOURCE_DAYS.map((monthDay) => {
     const { month, day } = parseMonthDay(monthDay);
@@ -121,8 +135,8 @@ function buildRRuleExdateRdateEvents(options, leapYears) {
       uid: buildUid(`A|${monthDay}`),
       dtstart: formatDateValue(options.fromYear, month, day),
       dtend: formatDateValueFromDate(addDays(options.fromYear, month, day, 1)),
-      summary: `Compat ${monthDay}`,
-      description: `Source day ${monthDay}. Leap-year target: ${leapTarget}. Strategy: RRULE + EXDATE + RDATE.`,
+      summary: `Kompat ${monthDay}`,
+      description: `Forrásnap: ${monthDay}. Szökőéves cél: ${leapTarget}. Stratégia: RRULE + EXDATE + RDATE.`,
       rrule: buildYearlyRRule(month, day, options.untilYear),
       exdates,
       rdates,
@@ -130,6 +144,9 @@ function buildRRuleExdateRdateEvents(options, leapYears) {
   });
 }
 
+/**
+ * A `buildRecurrenceIdEvents` felépíti a szükséges adatszerkezetet.
+ */
 function buildRecurrenceIdEvents(options, leapYears) {
   const events = [];
 
@@ -142,8 +159,8 @@ function buildRecurrenceIdEvents(options, leapYears) {
       uid,
       dtstart: formatDateValue(options.fromYear, month, day),
       dtend: formatDateValueFromDate(addDays(options.fromYear, month, day, 1)),
-      summary: `Compat ${monthDay}`,
-      description: `Source day ${monthDay}. Leap-year target: ${leapTarget}. Strategy: RRULE + RECURRENCE-ID override.`,
+      summary: `Kompat ${monthDay}`,
+      description: `Forrásnap: ${monthDay}. Szökőéves cél: ${leapTarget}. Stratégia: RRULE + RECURRENCE-ID felülírás.`,
       rrule: buildYearlyRRule(month, day, options.untilYear),
       exdates: [],
       rdates: [],
@@ -157,8 +174,8 @@ function buildRecurrenceIdEvents(options, leapYears) {
         recurrenceId: formatDateValue(year, month, day),
         dtstart: formatDateValue(year, actual.month, actual.day),
         dtend: formatDateValueFromDate(addDays(year, actual.month, actual.day, 1)),
-        summary: `Compat ${monthDay}`,
-        description: `Detached override for ${monthDay} in leap year ${year}.`,
+        summary: `Kompat ${monthDay}`,
+        description: `Leválasztott felülírás ehhez a forrásnaphoz: ${monthDay}, szökőév: ${year}.`,
         sequence: 1,
       });
     }
@@ -167,6 +184,9 @@ function buildRecurrenceIdEvents(options, leapYears) {
   return events;
 }
 
+/**
+ * A `buildExplicitYearlyEvents` felépíti a szükséges adatszerkezetet.
+ */
 function buildExplicitYearlyEvents(options) {
   const events = [];
 
@@ -177,8 +197,8 @@ function buildExplicitYearlyEvents(options) {
         uid: buildUid(`C|${monthDay}|${year}`),
         dtstart: formatDateValue(year, actual.month, actual.day),
         dtend: formatDateValueFromDate(addDays(year, actual.month, actual.day, 1)),
-        summary: `Compat ${monthDay}`,
-        description: `Explicit yearly event for source day ${monthDay} in ${year}.`,
+        summary: `Kompat ${monthDay}`,
+        description: `Explicit éves esemény a(z) ${monthDay} forrásnaphoz ${year} évben.`,
       });
     }
   }
@@ -186,11 +206,14 @@ function buildExplicitYearlyEvents(options) {
   return events;
 }
 
+/**
+ * A `serializeCalendar` ICS szöveggé alakítja a naptárstruktúrát.
+ */
 function serializeCalendar(calendar) {
   const dtstamp = formatDateTimeUtc(new Date());
   const lines = [
     "BEGIN:VCALENDAR",
-    "PRODID:-//illusionfield//Apple Calendar Compatibility Fixture//EN",
+    "PRODID:-//illusionfield//Apple Calendar Kompatibilitási Fixture//HU",
     "VERSION:2.0",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
@@ -231,7 +254,7 @@ function serializeCalendar(calendar) {
     lines.push(formatTextProperty("DESCRIPTION", event.description));
     lines.push("STATUS:CONFIRMED");
     lines.push("TRANSP:TRANSPARENT");
-    lines.push(formatTextProperty("CATEGORIES", "Compatibility Test"));
+    lines.push(formatTextProperty("CATEGORIES", "Kompatibilitási teszt"));
     lines.push("END:VEVENT");
   }
 
@@ -239,6 +262,9 @@ function serializeCalendar(calendar) {
   return lines.map(foldLine).join("\r\n").concat("\r\n");
 }
 
+/**
+ * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseArgs(argv) {
   const options = {};
 
@@ -281,6 +307,9 @@ function parseArgs(argv) {
   return options;
 }
 
+/**
+ * A `normalizeOptions` normalizálja a megadott értéket.
+ */
 function normalizeOptions(options) {
   const normalized = {
     outputDir: options.outputDir ?? DEFAULT_OUTPUT_DIR,
@@ -299,6 +328,9 @@ function normalizeOptions(options) {
   return normalized;
 }
 
+/**
+ * A `buildLeapYears` felépíti a szükséges adatszerkezetet.
+ */
 function buildLeapYears(fromYear, untilYear) {
   const years = [];
 
@@ -311,20 +343,32 @@ function buildLeapYears(fromYear, untilYear) {
   return years;
 }
 
+/**
+ * A `resolveActualMonthDay` feloldja, hogy egy forrásnap adott évben melyik tényleges napra essen.
+ */
 function resolveActualMonthDay(sourceMonthDay, year) {
   const shiftedMonthDay = isLeapYear(year) ? SHIFT_MAP.get(sourceMonthDay) : null;
   return parseMonthDay(shiftedMonthDay ?? sourceMonthDay);
 }
 
+/**
+ * A `buildYearlyRRule` felépíti a szükséges adatszerkezetet.
+ */
 function buildYearlyRRule(month, day, untilYear) {
   return `FREQ=YEARLY;BYMONTH=${month};BYMONTHDAY=${day};UNTIL=${formatUntilDateTime(untilYear)}`;
 }
 
+/**
+ * A `buildUid` felépíti a szükséges adatszerkezetet.
+ */
 function buildUid(seed) {
   const hash = crypto.createHash("sha1").update(seed).digest("hex");
   return `compat-${hash.slice(0, 24)}@nevnapok.local`;
 }
 
+/**
+ * A `parseMonthDay` feldolgozza a bemenetet és strukturált eredményt ad vissza.
+ */
 function parseMonthDay(monthDay) {
   const match = String(monthDay).match(/^(\d{2})-(\d{2})$/);
 
@@ -338,6 +382,9 @@ function parseMonthDay(monthDay) {
   };
 }
 
+/**
+ * Az `addDays` a megadott dátumhoz naptári napokat ad hozzá.
+ */
 function addDays(year, month, day, amount) {
   const date = new Date(Date.UTC(year, month - 1, day));
   date.setUTCDate(date.getUTCDate() + amount);
@@ -349,26 +396,44 @@ function addDays(year, month, day, amount) {
   };
 }
 
+/**
+ * A `formatDateValue` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatDateValue(year, month, day) {
   return `${String(year).padStart(4, "0")}${String(month).padStart(2, "0")}${String(day).padStart(2, "0")}`;
 }
 
+/**
+ * A `formatDateValueFromDate` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatDateValueFromDate(date) {
   return formatDateValue(date.year, date.month, date.day);
 }
 
+/**
+ * A `formatUntilDateTime` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatUntilDateTime(year) {
   return `${String(year).padStart(4, "0")}1231T235959Z`;
 }
 
+/**
+ * A `formatDateTimeUtc` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatDateTimeUtc(date) {
   return `${String(date.getUTCFullYear()).padStart(4, "0")}${String(date.getUTCMonth() + 1).padStart(2, "0")}${String(date.getUTCDate()).padStart(2, "0")}T${String(date.getUTCHours()).padStart(2, "0")}${String(date.getUTCMinutes()).padStart(2, "0")}${String(date.getUTCSeconds()).padStart(2, "0")}Z`;
 }
 
+/**
+ * A `formatTextProperty` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatTextProperty(name, value) {
   return `${name}:${escapeText(value)}`;
 }
 
+/**
+ * A `escapeText` kimenetbiztos alakra escape-eli a szöveget.
+ */
 function escapeText(value) {
   return String(value ?? "")
     .replace(/\\/g, "\\\\")
@@ -377,6 +442,9 @@ function escapeText(value) {
     .replace(/,/g, "\\,");
 }
 
+/**
+ * A `foldLine` a célformátum szabályai szerint tördel egy sort.
+ */
 function foldLine(line) {
   if (line.length <= 75) {
     return line;
@@ -394,6 +462,9 @@ function foldLine(line) {
   return chunks.join("\r\n");
 }
 
+/**
+ * A `isLeapYear` ellenőrzi a kapcsolódó feltételt.
+ */
 function isLeapYear(year) {
   return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }

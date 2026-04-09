@@ -18,3 +18,36 @@ test("a CLI súgó elérhető", async () => {
   assert.match(stdout, /audit/i);
   assert.match(stdout, /tui/i);
 });
+
+test("a kimenet súgó tartalmazza a csv és excel formátumokat", async () => {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [binUtvonal, "kimenet", "general", "--help"],
+    {
+      cwd: gyoker,
+    }
+  );
+
+  assert.match(stdout, /csv/i);
+  assert.match(stdout, /excel/i);
+});
+
+test("az audit súgó tartalmazza a primer nélkül maradó nevek auditot", async () => {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [binUtvonal, "audit", "futtat", "--help"],
+    {
+      cwd: gyoker,
+    }
+  );
+
+  assert.match(stdout, /primer-nelkul-marado-nevek/);
+});
+
+test("a TUI súgó tartalmazza a primer szerkesztő kezdőnézetét", async () => {
+  const { stdout } = await execFileAsync(process.execPath, [binUtvonal, "tui", "--help"], {
+    cwd: gyoker,
+  });
+
+  assert.match(stdout, /primer-szerkeszto/);
+});

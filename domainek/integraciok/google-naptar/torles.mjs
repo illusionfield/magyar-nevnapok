@@ -1,5 +1,7 @@
-// domainek/integraciok/google-naptar/torles.mjs
-// Google Naptár adminisztratív törlő folyamatának kanonikus helye.
+/**
+ * domainek/integraciok/google-naptar/torles.mjs
+ * Google Naptár adminisztratív törlő folyamatának elsődleges helye.
+ */
 import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -27,10 +29,16 @@ const PAGE_SIZE = 2500;
 const MAX_RETRIES = 5;
 const SEND_UPDATES = 'none';
 
+/**
+ * A `sleep` egyszerű várakozó Promise-t ad vissza.
+ */
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * A `isRetryableError` ellenőrzi a kapcsolódó feltételt.
+ */
 function isRetryableError(error) {
   const status = error?.response?.status;
   const reason = error?.response?.data?.error?.errors?.[0]?.reason;
@@ -55,10 +63,16 @@ function isRetryableError(error) {
   return false;
 }
 
+/**
+ * A `getCalendarName` emberileg olvasható naptárnevet ad vissza.
+ */
 function getCalendarName(calendarItem) {
   return calendarItem.summary?.trim() || '(névtelen naptár)';
 }
 
+/**
+ * A `formatCalendarLine` megjelenítésre alkalmas alakra formázza a megadott értéket.
+ */
 function formatCalendarLine(calendarItem, index) {
   const details = [calendarItem.accessRole ?? 'ismeretlen'];
 
@@ -69,6 +83,9 @@ function formatCalendarLine(calendarItem, index) {
   return `${index + 1}. ${getCalendarName(calendarItem)} [${details.join(', ')}]`;
 }
 
+/**
+ * A `isLocalhostRedirectUri` ellenőrzi a kapcsolódó feltételt.
+ */
 function isLocalhostRedirectUri(value) {
   try {
     const redirectUri = new URL(value);
@@ -78,6 +95,9 @@ function isLocalhostRedirectUri(value) {
   }
 }
 
+/**
+ * A `readOAuthConfigFile` betölti a szükséges adatot.
+ */
 function readOAuthConfigFile(configPath, label) {
   if (!fs.existsSync(configPath)) {
     return {
@@ -140,14 +160,23 @@ function readOAuthConfigFile(configPath, label) {
   }
 }
 
+/**
+ * A `readOAuthConfig` betölti a szükséges adatot.
+ */
 function readOAuthConfig() {
   return readOAuthConfigFile(OAUTH_CONFIG_PATH, 'helyi OAuth konfiguráció');
 }
 
+/**
+ * A `readLegacyCredentialsConfig` betölti a szükséges adatot.
+ */
 function readLegacyCredentialsConfig() {
   return readOAuthConfigFile(LEGACY_CREDENTIALS_PATH, 'legacy credentials.json');
 }
 
+/**
+ * A `readTokenConfig` betölti a szükséges adatot.
+ */
 function readTokenConfig() {
   if (!fs.existsSync(TOKEN_PATH)) {
     return {
@@ -188,6 +217,9 @@ function readTokenConfig() {
   }
 }
 
+/**
+ * A `promptNonEmpty` interaktív választ kér a felhasználótól.
+ */
 async function promptNonEmpty(rl, label, validate) {
   while (true) {
     const value = (await rl.question(label)).trim();
@@ -205,6 +237,9 @@ async function promptNonEmpty(rl, label, validate) {
   }
 }
 
+/**
+ * A `promptChoice` interaktív választ kér a felhasználótól.
+ */
 async function promptChoice(rl, title, options) {
   console.log('');
   console.log(title);
@@ -230,6 +265,9 @@ async function promptChoice(rl, title, options) {
   }
 }
 
+/**
+ * A `openUrlInBrowser` megpróbálja megnyitni a kapcsolódó erőforrást.
+ */
 function openUrlInBrowser(url) {
   let result;
 
@@ -251,6 +289,9 @@ function openUrlInBrowser(url) {
   return true;
 }
 
+/**
+ * A `normalizeLocalPath` normalizálja a megadott értéket.
+ */
 function normalizeLocalPath(inputValue) {
   let value = inputValue.trim();
 
@@ -274,6 +315,9 @@ function normalizeLocalPath(inputValue) {
   return path.resolve(value);
 }
 
+/**
+ * A `buildOAuthConfig` felépíti a szükséges adatszerkezetet.
+ */
 function buildOAuthConfig({clientId, clientSecret, projectId}) {
   const trimmedProjectId = projectId.trim();
 
@@ -290,6 +334,9 @@ function buildOAuthConfig({clientId, clientSecret, projectId}) {
   };
 }
 
+/**
+ * A `createOAuthClient` OAuth2 klienst hoz létre a helyi konfiguráció alapján.
+ */
 function createOAuthClient(credentialsConfig) {
   const config = credentialsConfig.installed || credentialsConfig.web;
 
@@ -300,6 +347,9 @@ function createOAuthClient(credentialsConfig) {
   );
 }
 
+/**
+ * A `saveToken` elmenti vagy kiírja a kapcsolódó adatot.
+ */
 function saveToken(tokenPayload) {
   if (!tokenPayload || typeof tokenPayload !== 'object') {
     return;
@@ -314,6 +364,9 @@ function saveToken(tokenPayload) {
   fs.writeFileSync(TOKEN_PATH, `${JSON.stringify(mergedToken, null, 2)}\n`, 'utf8');
 }
 
+/**
+ * A `attachTokenPersistence` rákapcsolja a szükséges eseménykezelést vagy mellékhatást.
+ */
 function attachTokenPersistence(auth) {
   if (typeof auth.on !== 'function') {
     return;
@@ -324,10 +377,16 @@ function attachTokenPersistence(auth) {
   });
 }
 
+/**
+ * A `writeOAuthConfig` elmenti vagy kiírja a kapcsolódó adatot.
+ */
 function writeOAuthConfig(config) {
   fs.writeFileSync(OAUTH_CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
 }
 
+/**
+ * A `promptForManualOAuthConfig` interaktív választ kér a felhasználótól.
+ */
 async function promptForManualOAuthConfig(rl) {
   console.log('');
   console.log('Kézi OAuth-kliens beállítás');
@@ -356,6 +415,9 @@ async function promptForManualOAuthConfig(rl) {
   });
 }
 
+/**
+ * A `promptForOAuthConfigFromJsonFile` interaktív választ kér a felhasználótól.
+ */
 async function promptForOAuthConfigFromJsonFile(rl) {
   console.log('');
   console.log('OAuth kliens importálása letöltött JSON-ból');
@@ -386,6 +448,9 @@ async function promptForOAuthConfigFromJsonFile(rl) {
   }
 }
 
+/**
+ * A `runBrowserSetupStep` végigvezeti a felhasználót egy böngészős OAuth-előkészítő lépésen.
+ */
 async function runBrowserSetupStep(rl, {title, url, instructions}) {
   console.log('');
   console.log(title);
@@ -417,6 +482,9 @@ async function runBrowserSetupStep(rl, {title, url, instructions}) {
   return doneAnswer !== 'q';
 }
 
+/**
+ * A `runGuidedBrowserOAuthSetup` lépésről lépésre végigvezeti a felhasználót a böngészős OAuth-beállításon.
+ */
 async function runGuidedBrowserOAuthSetup(rl) {
   console.log('');
   console.log('Vezetett Google-bejelentkezési beállítás');
@@ -529,6 +597,9 @@ async function runGuidedBrowserOAuthSetup(rl) {
   return promptForManualOAuthConfig(rl);
 }
 
+/**
+ * Az `ensureOAuthConfig` gondoskodik használható helyi OAuth-konfigurációról.
+ */
 async function ensureOAuthConfig(rl) {
   const existing = readOAuthConfig();
 
@@ -584,6 +655,9 @@ async function ensureOAuthConfig(rl) {
   return config;
 }
 
+/**
+ * A `createCalendarClient` hitelesített Google Calendar API klienst hoz létre.
+ */
 async function createCalendarClient(rl) {
   const oauthConfig = await ensureOAuthConfig(rl);
 
@@ -628,6 +702,9 @@ async function createCalendarClient(rl) {
   });
 }
 
+/**
+ * A `listCalendars` lekéri és rendezve visszaadja az elérhető naptárakat.
+ */
 async function listCalendars(calendar) {
   const calendars = [];
   let pageToken;
@@ -665,6 +742,9 @@ async function listCalendars(calendar) {
   return calendars;
 }
 
+/**
+ * A `promptForCalendar` interaktív választ kér a felhasználótól.
+ */
 async function promptForCalendar(rl, calendars) {
   console.log('');
   console.log('Elérhető naptárak:');
@@ -692,6 +772,9 @@ async function promptForCalendar(rl, calendars) {
   }
 }
 
+/**
+ * A `promptForAction` interaktív választ kér a felhasználótól.
+ */
 async function promptForAction(rl, calendarItem) {
   console.log(`\nKijelölt naptár: ${getCalendarName(calendarItem)}`);
   console.log('Válassz műveletet:');
@@ -717,6 +800,9 @@ async function promptForAction(rl, calendarItem) {
   }
 }
 
+/**
+ * A `confirmAction` megerősítést kér a veszélyes művelet előtt.
+ */
 async function confirmAction(rl, action, calendarItem, extraLine) {
   const calendarName = getCalendarName(calendarItem);
   const confirmationToken = action === 'delete-events'
@@ -737,6 +823,9 @@ async function confirmAction(rl, action, calendarItem, extraLine) {
   return answer === confirmationToken;
 }
 
+/**
+ * A `listAllEventIds` összegyűjti a kijelölt naptár törölhető eseményazonosítóit.
+ */
 async function listAllEventIds(calendar, calendarId) {
   const eventIds = [];
   let pageToken;
@@ -769,6 +858,9 @@ async function listAllEventIds(calendar, calendarId) {
   return eventIds;
 }
 
+/**
+ * A `deleteEventWithRetry` elvégzi a kapcsolódó törlési műveletet.
+ */
 async function deleteEventWithRetry(calendar, calendarId, eventId) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
@@ -801,6 +893,9 @@ async function deleteEventWithRetry(calendar, calendarId, eventId) {
   }
 }
 
+/**
+ * A `assertEventDeleteAccess` ellenőrzi a kötelező előfeltételeket.
+ */
 function assertEventDeleteAccess(calendarItem) {
   const accessRole = calendarItem.accessRole ?? 'ismeretlen';
 
@@ -811,6 +906,9 @@ function assertEventDeleteAccess(calendarItem) {
   }
 }
 
+/**
+ * A `assertCalendarDeleteAccess` ellenőrzi a kötelező előfeltételeket.
+ */
 function assertCalendarDeleteAccess(calendarItem) {
   const accessRole = calendarItem.accessRole ?? 'ismeretlen';
 
@@ -825,6 +923,9 @@ function assertCalendarDeleteAccess(calendarItem) {
   }
 }
 
+/**
+ * A `deleteEventIds` elvégzi a kapcsolódó törlési műveletet.
+ */
 async function deleteEventIds(calendar, calendarId, eventIds) {
   if (eventIds.length === 0) {
     console.log('Nem található aktív esemény. Nincs mit törölni.');
@@ -843,6 +944,9 @@ async function deleteEventIds(calendar, calendarId, eventIds) {
   console.log(`Kész. ${eventIds.length} esemény törölve.`);
 }
 
+/**
+ * A `deleteCalendar` elvégzi a kapcsolódó törlési műveletet.
+ */
 async function deleteCalendar(calendar, calendarItem) {
   assertCalendarDeleteAccess(calendarItem);
 
@@ -853,6 +957,9 @@ async function deleteCalendar(calendar, calendarItem) {
   console.log(`Kész. Törölt naptár: ${calendarItem.id}`);
 }
 
+/**
+ * A `main` a modul közvetlen futtatási belépési pontja.
+ */
 async function main() {
   const rl = createInterface({input, output});
 

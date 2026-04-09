@@ -1,7 +1,11 @@
-// index.mjs
-// A projekt kanonikus belépési pontja és publikus API-ja.
+/**
+ * index.mjs
+ * A projekt elsődleges belépési pontja és publikus API-ja.
+ */
 
 export {
+  betoltPrimerNelkulMaradoNevekSzerkesztoAdata,
+  kapcsolPrimerNelkuliHelyiKiegeszitest,
   futtatAuditot,
   futtatPipeline,
   generalKimenetet,

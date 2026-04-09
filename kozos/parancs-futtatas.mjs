@@ -1,8 +1,13 @@
-// kozos/parancs-futtatas.mjs
-// Belső folyamatok futtatása a kanonikus CLI mögül.
+/**
+ * kozos/parancs-futtatas.mjs
+ * Belső folyamatok futtatása az elsődleges CLI mögül.
+ */
 
 import { spawn } from "node:child_process";
 
+/**
+ * A `futtatNodeFolyamat` külön Node-folyamatban futtat egy belső worker modult.
+ */
 export function futtatNodeFolyamat(modulUtvonal, argumentumok = [], opciok = {}) {
   return new Promise((resolve, reject) => {
     const folyamat = spawn(process.execPath, [modulUtvonal, ...argumentumok], {
@@ -50,4 +55,3 @@ export function futtatNodeFolyamat(modulUtvonal, argumentumok = [], opciok = {})
     });
   });
 }
-

@@ -1,5 +1,7 @@
-// kozos/utvonalak.mjs
-// A projekt kanonikus bemeneti és kimeneti útvonalai.
+/**
+ * kozos/utvonalak.mjs
+ * A projekt elsődleges bemeneti és kimeneti útvonalai.
+ */
 
 import path from "node:path";
 
@@ -9,6 +11,7 @@ export const kanonikusUtvonalak = {
   kezi: {
     legacyIcs: path.join(gyoker, "data", "nevnapok_tisztitott_regi_nevkeszlet.ics"),
     primerFelulirasok: path.join(gyoker, "data", "primary-registry-overrides.yaml"),
+    primerFelulirasokHelyi: path.join(gyoker, "data", "primary-registry-overrides.local.yaml"),
     hivatalosNevjegyzekKivetelek: path.join(
       gyoker,
       "data",
@@ -25,8 +28,13 @@ export const kanonikusUtvonalak = {
     nevnapok: path.join(gyoker, "output", "adatbazis", "nevnapok.yaml"),
     formalizaltElek: path.join(gyoker, "output", "adatbazis", "formalizalt-elek.yaml"),
   },
+  exportok: {
+    csv: path.join(gyoker, "output", "adatbazis", "nevnapok.csv"),
+    excel: path.join(gyoker, "output", "adatbazis", "nevnapok.xlsx"),
+  },
   naptar: {
     alap: path.join(gyoker, "output", "naptar", "nevnapok.ics"),
+    sajat: path.join(gyoker, "output", "naptar", "nevnapok-sajat.ics"),
     appleKompat: path.join(gyoker, "output", "naptar", "apple-calendar-compat"),
   },
   riportok: {
@@ -39,6 +47,12 @@ export const kanonikusUtvonalak = {
       "primer-normalizalo-osszevetes.yaml"
     ),
     vegsoPrimer: path.join(gyoker, "output", "riportok", "vegso-primer-riport.yaml"),
+    primerNelkulMaradoNevek: path.join(
+      gyoker,
+      "output",
+      "riportok",
+      "primer-nelkul-marado-nevek-riport.yaml"
+    ),
     hivatalosNevjegyzek: path.join(
       gyoker,
       "output",
@@ -51,11 +65,16 @@ export const kanonikusUtvonalak = {
   },
 };
 
+/**
+ * A `gyokerKonyvtar` visszaadja az aktuális projektgyökeret.
+ */
 export function gyokerKonyvtar() {
   return gyoker;
 }
 
+/**
+ * A `feloldProjektUtvonal` a projektgyökérből képez abszolút útvonalat.
+ */
 export function feloldProjektUtvonal(...szakaszok) {
   return path.join(gyoker, ...szakaszok);
 }
-

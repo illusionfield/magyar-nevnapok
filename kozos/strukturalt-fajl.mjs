@@ -1,5 +1,7 @@
-// kozos/strukturalt-fajl.mjs
-// YAML az alapértelmezett, de olvasáskor JSON is támogatott.
+/**
+ * kozos/strukturalt-fajl.mjs
+ * YAML az alapértelmezett, de olvasáskor JSON is támogatott.
+ */
 
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
@@ -7,6 +9,9 @@ import path from "node:path";
 import YAML from "yaml";
 import { letrehozSzuloKonyvtarat } from "./fajlrendszer.mjs";
 
+/**
+ * A `felismerFormatum` a fájlnévből vagy a kényszerített opcióból meghatározza a formátumot.
+ */
 export function felismerFormatum(utvonal, kenyszeritettFormatum = null) {
   if (kenyszeritettFormatum) {
     return normalizalFormatum(kenyszeritettFormatum);
@@ -25,6 +30,9 @@ export function felismerFormatum(utvonal, kenyszeritettFormatum = null) {
   return "yaml";
 }
 
+/**
+ * A `normalizalFormatum` egységes belső formára hozza a kért fájlformátumot.
+ */
 export function normalizalFormatum(ertek) {
   const normalizalt = String(ertek ?? "").trim().toLowerCase();
 
@@ -39,6 +47,9 @@ export function normalizalFormatum(ertek) {
   throw new Error(`Nem támogatott strukturált fájlformátum: ${ertek}`);
 }
 
+/**
+ * A `betoltStrukturaltFajl` YAML vagy JSON fájlból olvas be strukturált adatot.
+ */
 export async function betoltStrukturaltFajl(utvonal) {
   const formatum = felismerFormatum(utvonal);
   const nyers = await fs.readFile(utvonal, "utf8");
@@ -50,6 +61,9 @@ export async function betoltStrukturaltFajl(utvonal) {
   return YAML.parse(nyers);
 }
 
+/**
+ * A `betoltStrukturaltFajlSzinkron` szinkron módon olvas be YAML vagy JSON adatot.
+ */
 export function betoltStrukturaltFajlSzinkron(utvonal) {
   const formatum = felismerFormatum(utvonal);
   const nyers = fsSync.readFileSync(utvonal, "utf8");
@@ -61,6 +75,9 @@ export function betoltStrukturaltFajlSzinkron(utvonal) {
   return YAML.parse(nyers);
 }
 
+/**
+ * A `szerializalStrukturaltAdat` YAML vagy JSON szöveggé alakítja az adatot.
+ */
 export function szerializalStrukturaltAdat(adat, formatum = "yaml") {
   const normalizalt = normalizalFormatum(formatum);
 
@@ -75,6 +92,9 @@ export function szerializalStrukturaltAdat(adat, formatum = "yaml") {
   });
 }
 
+/**
+ * A `mentStrukturaltFajl` a megfelelő formátumban kiírja a strukturált adatot.
+ */
 export async function mentStrukturaltFajl(utvonal, adat, formatum = null) {
   const celFormatum = felismerFormatum(utvonal, formatum);
   const szoveg = szerializalStrukturaltAdat(adat, celFormatum);

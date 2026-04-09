@@ -1,5 +1,7 @@
-// pipeline/artifactumok.mjs
-// A kanonikus artifactok leírása, betöltése, mentése és alapvalidációja.
+/**
+ * pipeline/artifactumok.mjs
+ * Az elsődleges artifactok leírása, betöltése, mentése és alapvalidációja.
+ */
 
 import { letrehozValidator, ervenyesitSchema } from "../kozos/schema.mjs";
 import { betoltStrukturaltFajl, mentStrukturaltFajl } from "../kozos/strukturalt-fajl.mjs";
@@ -10,6 +12,9 @@ const kozosListaSchema = {
   items: { type: "string" },
 };
 
+/**
+ * A `letrehozSpecifikacio` egységes betöltő-mentő-validáló leírást készít egy artifacthoz.
+ */
 function letrehozSpecifikacio({ azonosito, verzio, alapertelmezettUtvonal, schema }) {
   const validator = letrehozValidator(schema);
 
@@ -213,6 +218,12 @@ export const artifactumTar = {
     alapertelmezettUtvonal: kanonikusUtvonalak.riportok.vegsoPrimer,
     schema: riportSchema,
   }),
+  primerNelkulMaradoNevekRiport: letrehozSpecifikacio({
+    azonosito: "primer-nelkul-marado-nevek-riport",
+    verzio: 1,
+    alapertelmezettUtvonal: kanonikusUtvonalak.riportok.primerNelkulMaradoNevek,
+    schema: riportSchema,
+  }),
   hivatalosNevjegyzekRiport: letrehozSpecifikacio({
     azonosito: "hivatalos-nevjegyzek-riport",
     verzio: 1,
@@ -226,4 +237,3 @@ export const artifactumTar = {
     schema: pipelineManifestSchema,
   }),
 };
-

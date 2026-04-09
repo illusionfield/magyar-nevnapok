@@ -6,18 +6,21 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { betoltStrukturaltFajl } from "../kozos/strukturalt-fajl.mjs";
+import { betoltStrukturaltFajl, mentStrukturaltFajl } from "../kozos/strukturalt-fajl.mjs";
 
 const execFileAsync = promisify(execFile);
 const gyoker = process.cwd();
 const binUtvonal = path.join(gyoker, "bin", "nevnapok.mjs");
 
+/**
+ * A `masolMappat` tesztcélra előkészíti a szükséges könyvtárszerkezetet.
+ */
 async function masolMappat(forras, cel) {
   await fs.mkdir(path.dirname(cel), { recursive: true });
   await fs.copyFile(forras, cel);
 }
 
-test("a legacy primer építés létrehozza a kanonikus YAML artifactot és a manifestet", async () => {
+test("a legacy primer építés létrehozza az elsődleges YAML artifactot és a manifestet", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-pipeline-"));
   const legacyIcsForras = path.join(gyoker, "data", "nevnapok_tisztitott_regi_nevkeszlet.ics");
   const overridesForras = path.join(gyoker, "data", "primary-registry-overrides.yaml");
@@ -40,7 +43,7 @@ test("a legacy primer építés létrehozza a kanonikus YAML artifactot és a ma
   assert.equal(manifest.steps.some((lep) => lep.stepId === "legacy-primer-epites"), true);
 });
 
-test("az ICS generálás működik a kanonikus YAML adatbázisból", async () => {
+test("az ICS generálás működik az elsődleges YAML adatbázisból", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-ics-"));
   const adatbazisForras = path.join(gyoker, "test", "fixtures", "nevadatbazis-minta.yaml");
 
@@ -72,4 +75,245 @@ test("a JSON export parancs létrehozza a JSON testvérartifactot", async () => 
 
   assert.equal(json.version, 6);
   assert.equal(Array.isArray(json.names), true);
+});
+
+test("a CSV export parancs létrehozza a táblázatos CSV-t", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-csv-"));
+  const adatbazisForras = path.join(gyoker, "test", "fixtures", "nevadatbazis-minta.yaml");
+
+  await masolMappat(adatbazisForras, path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"));
+
+  await execFileAsync(process.execPath, [binUtvonal, "kimenet", "general", "csv"], {
+    cwd: ideiglenesKonyvtar,
+  });
+
+  const csvUtvonal = path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.csv");
+  const csv = await fs.readFile(csvUtvonal, "utf8");
+
+  assert.match(csv, /^\uFEFFNév;Nem;Hónap;Nap;Dátum;/u);
+  assert.match(csv, /Ábel;male;1;2;01-02;igen;/u);
+  assert.match(csv, /Fruzsina;female;1;1;01-01;igen;/u);
+});
+
+test("az Excel export parancs létrehozza a több munkalapos xlsx fájlt", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-excel-"));
+  const adatbazisForras = path.join(gyoker, "test", "fixtures", "nevadatbazis-minta.yaml");
+
+  await masolMappat(adatbazisForras, path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"));
+
+  await execFileAsync(process.execPath, [binUtvonal, "kimenet", "general", "excel"], {
+    cwd: ideiglenesKonyvtar,
+  });
+
+  const excelUtvonal = path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.xlsx");
+  const excel = await fs.readFile(excelUtvonal);
+  const excelLatin1 = excel.toString("latin1");
+
+  assert.equal(excel.subarray(0, 2).toString("latin1"), "PK");
+  assert.match(excelLatin1, /\[Content_Types\]\.xml/u);
+  assert.match(excelLatin1, /xl\/workbook\.xml/u);
+  assert.match(excelLatin1, /Nevnapok/u);
+  assert.match(excelLatin1, /Meta/u);
+});
+
+test("a primer nélkül maradó nevek audit havi bontású riportot készít", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-primer-nelkul-"));
+  const vegsoPrimer = {
+    version: 1,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    days: [
+      {
+        month: 1,
+        day: 1,
+        monthDay: "01-01",
+        names: ["Álmos"],
+        preferredNames: ["Álmos"],
+      },
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Bori", "Cecil"],
+        preferredNames: ["Bori", "Cecil"],
+      },
+    ],
+  };
+  const normalizaloRiport = {
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    days: [
+      {
+        month: 1,
+        day: 1,
+        monthDay: "01-01",
+        names: ["Álmos", "Aladár", "Béla"],
+        preferredNames: ["Aladár", "Béla"],
+      },
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Bori", "Cecil", "Bella"],
+        preferredNames: ["Bella"],
+      },
+    ],
+  };
+  const nevadatbazis = {
+    version: 6,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    names: [
+      {
+        name: "Álmos",
+        relatedNames: ["Aladár"],
+        nicknames: [],
+        days: [{ month: 1, day: 1, monthDay: "01-01" }],
+      },
+      {
+        name: "Bori",
+        relatedNames: [],
+        nicknames: ["Bella"],
+        days: [{ month: 1, day: 2, monthDay: "01-02" }],
+      },
+      {
+        name: "Cecil",
+        relatedNames: [],
+        nicknames: [],
+        days: [{ month: 1, day: 2, monthDay: "01-02" }],
+      },
+      {
+        name: "Aladár",
+        relatedNames: ["Álmos"],
+        nicknames: [],
+        days: [{ month: 1, day: 1, monthDay: "01-01", primaryRanked: true }],
+      },
+      {
+        name: "Béla",
+        relatedNames: [],
+        nicknames: [],
+        days: [{ month: 1, day: 1, monthDay: "01-01", primaryRanked: true }],
+      },
+      {
+        name: "Bella",
+        relatedNames: [],
+        nicknames: ["Bori"],
+        days: [{ month: 1, day: 2, monthDay: "01-02", primaryRanked: true }],
+      },
+    ],
+  };
+
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
+    vegsoPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "normalizalo-riport.yaml"),
+    normalizaloRiport
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"),
+    nevadatbazis
+  );
+
+  await execFileAsync(
+    process.execPath,
+    [binUtvonal, "audit", "futtat", "primer-nelkul-marado-nevek"],
+    {
+      cwd: ideiglenesKonyvtar,
+    }
+  );
+
+  const riport = await betoltStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "riportok", "primer-nelkul-marado-nevek-riport.yaml")
+  );
+  const januar = riport.months.find((honap) => honap.month === 1);
+  const elsoNap = januar.rows.find((sor) => sor.monthDay === "01-01");
+  const masodikNap = januar.rows.find((sor) => sor.monthDay === "01-02");
+
+  assert.equal(riport.summary.rowCount, 2);
+  assert.equal(riport.summary.combinedMissingCount, 3);
+  assert.equal(riport.summary.uniqueMissingNameCount, 3);
+  assert.deepEqual(elsoNap.finalPrimaryNames, ["Álmos"]);
+  assert.equal(elsoNap.combinedMissing[0].name, "Aladár");
+  assert.deepEqual(elsoNap.combinedMissing[0].sources, ["normalized", "ranking"]);
+  assert.equal(elsoNap.normalizedMissing[0].name, "Aladár");
+  assert.equal(elsoNap.normalizedMissing[0].highlight, true);
+  assert.deepEqual(
+    elsoNap.normalizedMissing[0].similarPrimaries.map((entry) => entry.primaryName),
+    ["Álmos"]
+  );
+  assert.equal(elsoNap.rankingMissing[1].name, "Béla");
+  assert.equal(elsoNap.rankingMissing[1].highlight, false);
+  assert.equal(masodikNap.finalPrimaryCount, 2);
+  assert.equal(masodikNap.combinedMissing[0].localSelected, undefined);
+  assert.equal(masodikNap.normalizedMissing[0].name, "Bella");
+  assert.equal(masodikNap.normalizedMissing[0].highlight, true);
+});
+
+test("a helyi primerkiegészítés saját primeres ICS-t készít külön fájlba", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-helyi-primer-"));
+  const nevadatbazis = {
+    version: 6,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    names: [
+      {
+        name: "Ábel",
+        gender: "male",
+        days: [
+          {
+            month: 1,
+            day: 2,
+            monthDay: "01-02",
+            primary: true,
+            primaryLegacy: true,
+            primaryRanked: true,
+          },
+        ],
+      },
+      {
+        name: "Alpár",
+        gender: "male",
+        days: [
+          {
+            month: 1,
+            day: 2,
+            monthDay: "01-02",
+            primary: false,
+            primaryLegacy: false,
+            primaryRanked: false,
+          },
+        ],
+      },
+    ],
+  };
+  const helyiFelulirasok = {
+    version: 1,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    source: "helyi egyedi primerkiegészítések",
+    days: [
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        addedPreferredNames: ["Alpár"],
+      },
+    ],
+  };
+
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"),
+    nevadatbazis
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.local.yaml"),
+    helyiFelulirasok
+  );
+
+  await execFileAsync(process.execPath, [binUtvonal, "kimenet", "general", "ics"], {
+    cwd: ideiglenesKonyvtar,
+  });
+
+  const sajatIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-sajat.ics");
+  const sajatIcs = await fs.readFile(sajatIcsUtvonal, "utf8");
+
+  assert.match(sajatIcs, /X-WR-CALNAME:Névnapok — saját elsődleges/u);
+  assert.match(sajatIcs, /SUMMARY:Ábel\\, Alpár/u);
 });

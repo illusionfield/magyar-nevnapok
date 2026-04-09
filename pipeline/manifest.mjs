@@ -1,9 +1,14 @@
-// pipeline/manifest.mjs
-// A pipeline futási állapotának olvasása és frissítése.
+/**
+ * pipeline/manifest.mjs
+ * A pipeline futási állapotának olvasása és frissítése.
+ */
 
 import { artifactumTar } from "./artifactumok.mjs";
 import { letezik, sha256Fajl, fajlMeret } from "../kozos/fajlrendszer.mjs";
 
+/**
+ * A `betoltManifest` betölti a pipeline futási állapotát tartalmazó manifestet.
+ */
 export async function betoltManifest() {
   const utvonal = artifactumTar.pipelineManifest.alapertelmezettUtvonal;
 
@@ -18,6 +23,9 @@ export async function betoltManifest() {
   return artifactumTar.pipelineManifest.betolt();
 }
 
+/**
+ * A `rogzitManifestLepes` feljegyzi egy pipeline-lépés legutóbbi futási eredményét.
+ */
 export async function rogzitManifestLepes({ stepId, status, inputs, outputs, durationMs, error }) {
   const manifest = await betoltManifest();
   const generatedAt = new Date().toISOString();

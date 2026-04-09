@@ -1,5 +1,7 @@
-// cli/program.mjs
-// A kanonikus CLI definíciója.
+/**
+ * cli/program.mjs
+ * Az elsődleges CLI definíciója.
+ */
 
 import { Command, Help } from "commander";
 import picocolors from "picocolors";
@@ -16,6 +18,9 @@ import {
 import { printDataTable, printKeyValueTable } from "../kozos/terminal-tabla.mjs";
 import { futtatTui } from "../tui/index.mjs";
 
+/**
+ * Az `osszefoglalPipelineAllapot` számszerű összegzést készít a pipeline-lépések állapotáról.
+ */
 function osszefoglalPipelineAllapot(sorok) {
   const darabok = sorok.reduce((akk, sor) => {
     akk[sor.status] = (akk[sor.status] ?? 0) + 1;
@@ -32,6 +37,9 @@ function osszefoglalPipelineAllapot(sorok) {
   ];
 }
 
+/**
+ * A `formataltStatusz` színezett, emberileg olvasható állapotszöveget ad vissza.
+ */
 function formataltStatusz(status) {
   if (status === "kesz") {
     return picocolors.green(status);
@@ -63,6 +71,9 @@ Command.prototype.createHelp = function createHelpMagyarul() {
   return new MagyarHelp();
 };
 
+/**
+ * A `letrehozCliProgram` összeállítja a teljes parancssori felületet.
+ */
 export function letrehozCliProgram() {
   const program = new Command();
 
@@ -81,13 +92,15 @@ Példák:
   nevnapok pipeline futtat teljes
   nevnapok kimenet general ics
   nevnapok audit futtat hivatalos-nevjegyzek
+  nevnapok audit futtat primer-nelkul-marado-nevek
   nevnapok tui
+  nevnapok tui --nezet primer-szerkeszto
 `
     );
 
   const pipelineParancs = program
     .command("pipeline")
-    .description("A kanonikus pipeline állapotának megtekintése és futtatása.");
+    .description("Az elsődleges pipeline állapotának megtekintése és futtatása.");
 
   pipelineParancs
     .command("allapot")
@@ -143,15 +156,68 @@ Elérhető célok:
   kimenetParancs
     .command("general <formatum>")
     .description("Lefuttatja a kiválasztott kimeneti generátort.")
+    .option(
+      "--input <utvonal>",
+      "Bemeneti útvonal. ICS, CSV és Excel esetén a névadatbázis artifactra mutat."
+    )
+    .option(
+      "--output <utvonal>",
+      "Kimeneti útvonal. ICS esetén célfájl, CSV esetén cél-CSV, Excel esetén cél-XLSX."
+    )
+    .option("--primary-output <utvonal>", "A szétválasztott elsődleges naptár célútvonala.")
+    .option("--rest-output <utvonal>", "A szétválasztott további névnapok naptárának célútvonala.")
+    .option("--split-primary-rest", "Az elsődleges és a további névnapokat külön kimenetbe bontja.")
+    .option(
+      "--mode <mod>",
+      "ICS mód: together, separate, primary-together, primary-together-with-rest, primary-separate, primary-separate-with-rest."
+    )
+    .option(
+      "--primary-source <forras>",
+      "Primerforrás: default, legacy, ranked vagy either."
+    )
+    .option("--primary-calendar-mode <mod>", "Split esetén: grouped/together vagy separate.")
+    .option("--rest-calendar-mode <mod>", "Split esetén: grouped/together vagy separate.")
+    .option("--leap-mode <mod>", "Szökőéves mód: none vagy hungarian-until-2050.")
+    .option("--leap-strategy <strategia>", "Szökőéves stratégia: a, b vagy both.")
+    .option("--from-year <ev>", "Szökőéves tartomány kezdőéve.", Number)
+    .option("--until-year <ev>", "Szökőéves tartomány záróéve.", Number)
+    .option("--base-year <ev>", "A nem szökőéves ismétlődő események báziséve.", Number)
+    .option("--description <mod>", "Leírásmód: none, compact vagy detailed.")
+    .option("--description-format <formatum>", "Leírásformátum: text, html vagy full.")
+    .option("--ordinal-day <mod>", "Az év napja megjelenítése: none, summary vagy description.")
+    .option("--include-other-days", "A leírásban a további névnapok is szerepeljenek.")
+    .option("--calendar-name <nev>", "Az ICS naptár neve.")
+    .option(
+      "--local-primary-overrides [utvonal]",
+      "ICS esetén a helyi primerkiegészítések fájlja; útvonal nélkül az alapértelmezett helyi YAML."
+    )
     .addHelpText(
       "after",
       `
 Elérhető formátumok:
   ${listazKimenetiFormatumokat().join(", ")}
+
+Megjegyzés:
+  Ha létezik helyi primerkiegészítés a data/primary-registry-overrides.local.yaml fájlban,
+  az ICS generálás a közös nevnapok.ics mellett egy saját primeres nevnapok-sajat.ics fájlt is előállít.
+
+Táblázatos exportok:
+  A csv export UTF-8 BOM-mal és pontosvesszős tagolással készül, hogy Excelben is jól nyíljon meg.
+  Az excel export egy több munkalapos .xlsx fájlt készít Nevnapok, Napok és Meta lapokkal.
+
+Példa régi, részletes ICS-vezérlésre:
+  nevnapok kimenet general ics \\
+    --split-primary-rest --primary-source default --primary-calendar-mode separate --rest-calendar-mode grouped \\
+    --leap-mode hungarian-until-2050 --from-year 2025 --until-year 2040 \\
+    --description detailed --description-format text --ordinal-day description --include-other-days
+
+Példák táblázatos exportokra:
+  nevnapok kimenet general csv
+  nevnapok kimenet general excel
 `
     )
-    .action(async (formatum) => {
-      const eredmeny = await generalKimenetet(formatum);
+    .action(async (formatum, opciok) => {
+      const eredmeny = await generalKimenetet(formatum, opciok);
       if (Array.isArray(eredmeny) && eredmeny.length > 0) {
         printDataTable(
           "Létrehozott kimenetek",
@@ -185,7 +251,7 @@ Elérhető auditok:
     .command("google-naptar")
     .description("Google Naptárhoz kapcsolódó integrációs parancsok.")
     .command("torol")
-    .description("A meglévő Google Naptár törlő munkafolyamat kanonikus meghívója.")
+    .description("A meglévő Google Naptár törlő munkafolyamat elsődleges meghívója.")
     .allowUnknownOption(true)
     .argument("[tovabbiArgumentumok...]", "Minden további argumentum változatlanul továbbadásra kerül.")
     .action(async (tovabbiArgumentumok = []) => {
@@ -195,13 +261,21 @@ Elérhető auditok:
   program
     .command("tui")
     .description("Interaktív Ink-alapú varázsló és áttekintő.")
-    .action(async () => {
-      await futtatTui();
+    .option(
+      "--nezet <azonosito>",
+      "Kezdő nézet: menu vagy primer-szerkeszto",
+      "menu"
+    )
+    .action(async (opciok) => {
+      await futtatTui({ kezdoNezet: opciok.nezet });
     });
 
   return program;
 }
 
+/**
+ * A `futtatCli` elindítja a parancssori felületet a megadott argumentumokkal.
+ */
 export async function futtatCli(argv = process.argv) {
   const program = letrehozCliProgram();
   await program.parseAsync(argv);

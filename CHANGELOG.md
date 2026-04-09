@@ -1,0 +1,82 @@
+# Változásnapló
+
+Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható változásait követi.
+
+## [Unreleased]
+
+### Kimenetek
+
+- Elkészült a `nevnapok kimenet general csv` export.
+- Elkészült a `nevnapok kimenet general excel` export.
+- A CSV-export UTF-8 BOM-mal és pontosvesszős elválasztással készül, hogy magyar Excelben is kényelmesen megnyíljon.
+- Az Excel-export több munkalapos `.xlsx` fájlt készít `Nevnapok`, `Napok` és `Meta` lapokkal.
+
+## [0.6.1] - 2026-04-09
+
+### Új auditok
+
+- Elkészült a `primer-nelkul-marado-nevek` audit.
+- Az új audit havi bontásban mutatja a végső primerkészletből teljesen kimaradó, de a normalizált vagy rangsorolt forrásban szereplő neveket.
+- A terminálos nézet dátumszínezést kapott a végső primerdarabszám alapján, és külön kiemeli azokat a hiányzó neveket, amelyek az adott napi végső primerhez kapcsolódnak.
+- Az új audit külön menüpontként megjelent a TUI-ban is.
+- A riport új közös oszlopot kapott, amely a normalizált és a rangsorolt hiányok unióját mutatja.
+
+### Személyes naptár és helyi felülírás
+
+- Elkészült a helyi, nem követett primerkiegészítési fájl: `data/primary-registry-overrides.local.yaml`.
+- A TUI új, kurzoros primer szerkesztőt kapott, ahol a közös hiányzó oszlopból `Space` billentyűvel lehet neveket hozzáadni a személyes primerlistához.
+- Az `ics` generálás a közös naptár mellett opcionálisan egy saját primeres naptárat is előállít `output/naptar/nevnapok-sajat.ics` néven.
+- A `nevnapok kimenet general ics --help` most ismét kilistázza a régi, részletes ICS-kapcsolókat is.
+- A TUI `ICS generálás` menüpontja külön beállításnézetet kapott a fontosabb ICS-opciók kurzoros vezérléséhez.
+
+### Karbantarthatóság
+
+- A primerrokonsági auditlogika közös helpermodulba került, hogy a végső primer riport és a külön hiányzóneves audit ugyanazt a kapcsolati feloldást használja.
+
+### Függőségek, biztonság és scrape stabilitás
+
+- A `puppeteer` frissült a `24.x` vonalra, így az `npm audit` ismét zöld.
+- A HUN-REN scraper közös Puppeteer-indítási kompatibilitási kapcsolókat kapott, hogy a fej nélküli Chromium ne blokkolja a HTTP-s portált `ERR_BLOCKED_BY_CLIENT` hibával.
+- Külön `npm run audit` parancs került a repo scriptjei közé az audit állapot gyors ellenőrzéséhez.
+
+## [0.6.0] - 2026-04-09
+
+### Fő átalakítások
+
+- A projekt elsődleges belépési pontja mostantól az `index.mjs`.
+- A futtatható parancssori wrapper külön fájlba került: `bin/nevnapok.mjs`.
+- A korábbi szétszórt scriptvilág helyét egységes CLI, TUI és deklarált pipeline vette át.
+- A strukturált artifactok elsődleges formátuma YAML lett.
+
+### Új felületek
+
+- Elkészült a magyar nyelvű `nevnapok` CLI:
+  - `pipeline allapot`
+  - `pipeline futtat <cel>`
+  - `kimenet general <formatum>`
+  - `audit futtat <ellenorzes>`
+  - `integracio google-naptar torol`
+  - `tui`
+- Elkészült az Ink-alapú interaktív terminálfelület.
+
+### Pipeline és artifactok
+
+- Bevezetésre került az elsődleges pipeline-manifest: `output/pipeline/manifest.yaml`.
+- A fő generált kimenetek egységes helyre kerültek:
+  - `output/primer/`
+  - `output/adatbazis/`
+  - `output/naptar/`
+  - `output/riportok/`
+- A kézi primerfelülírás JSON-ról YAML-ra váltott.
+
+### Auditok és dokumentált eltérések
+
+- A hivatalos névjegyzék-ellenőrzés dokumentált kivétellistával működik.
+- A kivétellista a **2025. július 31-i** anyakönyvezhető névjegyzék és a **2025-08-12-i** ELTE/HUN-REN adatbázisállapot ismert eltéréseit rögzíti.
+
+### Minőség és karbantarthatóság
+
+- A kódbázis végigment egy teljes user-facing sweepen.
+- A fontos működési pontokra JSDoc-kommentek és célzott magyarázó kommentek kerültek.
+- Bevezetésre került a repo-szintű lintelés az `npm run lint` paranccsal.
+- Az összetett helyi ellenőrzés parancsa: `npm run ellenorzes`.
