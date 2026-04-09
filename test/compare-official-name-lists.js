@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { printDataTable, printKeyValueTable, printValueGrid } from "./report-table.js";
 
 const DEFAULT_INPUT_PATH = path.join(process.cwd(), "output", "nevnapok.json");
 const OFFICIAL_SOURCES = {
@@ -122,52 +123,86 @@ function hasDifferences(comparison) {
 }
 
 function printComparison(comparison) {
-  console.log(`Összehasonlított fájl: ${comparison.input}`);
+  printKeyValueTable("Források", [
+    ["Összehasonlított fájl", comparison.input],
+    ["JSON generálva", comparison.generatedAt ?? "—"],
+    ["JSON verzió", comparison.jsonVersion ?? "—"],
+  ], {
+    keyWidth: 24,
+    valueWidth: 92,
+  });
 
-  if (comparison.generatedAt) {
-    console.log(`JSON generálva: ${comparison.generatedAt}`);
-  }
-
-  if (comparison.jsonVersion != null) {
-    console.log(`JSON verzió: ${comparison.jsonVersion}`);
-  }
+  printDataTable(
+    "Hivatalos névjegyzék-összevetés",
+    [
+      { key: "labelHu", title: "Nem", width: 8 },
+      { key: "officialCount", title: "Hivatalos", width: 10, align: "right" },
+      { key: "jsonCount", title: "JSON", width: 8, align: "right" },
+      { key: "missingCount", title: "Hiányzik", width: 10, align: "right" },
+      { key: "extraCount", title: "Többlet", width: 8, align: "right" },
+      { key: "crossCount", title: "Másik listában", width: 15, align: "right" },
+    ],
+    ["male", "female"].map((genderKey) => {
+      const entry = comparison.genders[genderKey];
+      return {
+        labelHu: entry.labelHu,
+        officialCount: entry.official.count,
+        jsonCount: entry.json.count,
+        missingCount: entry.differences.missingFromJson.length,
+        extraCount: entry.differences.extraInJson.length,
+        crossCount: entry.differences.extraAlsoInOtherOfficial.length,
+      };
+    })
+  );
 
   for (const genderKey of ["male", "female"]) {
     const entry = comparison.genders[genderKey];
 
-    console.log("");
-    console.log(`=== ${entry.labelHu.toUpperCase()} NEVEK ===`);
-    console.log(`Hivatalos forrás: ${entry.official.url}`);
-    console.log(`Hivatalos fejléc: ${entry.official.header}`);
-    console.log(`Hivatalos darabszám: ${entry.official.count}`);
-    console.log(`JSON darabszám: ${entry.json.count}`);
+    printKeyValueTable(`${entry.labelHu.toUpperCase()} NEVEK`, [
+      ["Hivatalos forrás", entry.official.url],
+      ["Hivatalos fejléc", entry.official.header],
+      ["Hivatalos darabszám", entry.official.count],
+      ["JSON darabszám", entry.json.count],
+      ["Hiányzó nevek", entry.differences.missingFromJson.length],
+      ["Többletnevek", entry.differences.extraInJson.length],
+      [
+        "A többletből a másik listában",
+        entry.differences.extraAlsoInOtherOfficial.length,
+      ],
+    ], {
+      keyWidth: 24,
+      valueWidth: 88,
+    });
 
-    printDifferenceBlock("Hiányzik a JSON-ból", entry.differences.missingFromJson);
-    printDifferenceBlock("Többlet a JSON-ban", entry.differences.extraInJson);
+    printValueGrid(
+      `${entry.labelHu.toUpperCase()} — hiányzik a JSON-ból`,
+      entry.differences.missingFromJson,
+      { columns: 4, cellWidth: 22, emptyMessage: "nincs" }
+    );
+    printValueGrid(
+      `${entry.labelHu.toUpperCase()} — többlet a JSON-ban`,
+      entry.differences.extraInJson,
+      { columns: 4, cellWidth: 22, emptyMessage: "nincs" }
+    );
 
     if (entry.differences.extraAlsoInOtherOfficial.length > 0) {
-      printDifferenceBlock(
-        "A többletből a másik hivatalos listában megtalálható",
-        entry.differences.extraAlsoInOtherOfficial
+      printValueGrid(
+        `${entry.labelHu.toUpperCase()} — a többletből a másik hivatalos listában`,
+        entry.differences.extraAlsoInOtherOfficial,
+        { columns: 4, cellWidth: 22, emptyMessage: "nincs" }
       );
     }
   }
 
-  console.log("");
-  console.log(
+  printKeyValueTable("Eredmény", [[
+    "Állapot",
     hasDifferences(comparison)
       ? "Eltérés található a JSON és a hivatalos forrás között."
-      : "Nincs eltérés a JSON és a hivatalos forrás között."
-  );
-}
-
-function printDifferenceBlock(title, values) {
-  if (values.length === 0) {
-    console.log(`${title}: nincs`);
-    return;
-  }
-
-  console.log(`${title} (${values.length}): ${values.join(", ")}`);
+      : "Nincs eltérés a JSON és a hivatalos forrás között.",
+  ]], {
+    keyWidth: 12,
+    valueWidth: 100,
+  });
 }
 
 function parseArgs(argv) {

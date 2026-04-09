@@ -6,10 +6,11 @@ import {
   loadPrimaryRegistry,
   normalizeNameForMatch,
 } from "../lib/primary-registry.js";
+import { formatDiffNote, formatNameList, printDataTable, printKeyValueTable } from "./report-table.js";
 
 const DEFAULT_INPUT_PATH = path.join(process.cwd(), "output", "nevnapok.json");
 const DEFAULT_REPORT_PATH = path.join(process.cwd(), "output", "primary-registry-diff.json");
-const TOP_MISMATCH_LIMIT = 15;
+//const TOP_MISMATCH_LIMIT = 15;
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 const args = parseArgs(process.argv.slice(2));
 
@@ -388,27 +389,24 @@ function formatPrimaryMismatchType(type) {
 }
 
 function buildTopMismatchDays(mismatchDays) {
-  return mismatchDays
-    .slice()
-    .sort((left, right) => {
-      const typeDifference =
-        getPrimaryMismatchPriority(left.type) - getPrimaryMismatchPriority(right.type);
+  return mismatchDays.slice().sort((left, right) => {
+    const typeDifference =
+      getPrimaryMismatchPriority(left.type) - getPrimaryMismatchPriority(right.type);
 
-      if (typeDifference !== 0) {
-        return typeDifference;
-      }
+    if (typeDifference !== 0) {
+      return typeDifference;
+    }
 
-      if (right.mismatchCount !== left.mismatchCount) {
-        return right.mismatchCount - left.mismatchCount;
-      }
+    if (right.mismatchCount !== left.mismatchCount) {
+      return right.mismatchCount - left.mismatchCount;
+    }
 
-      if (left.sharedCount !== right.sharedCount) {
-        return left.sharedCount - right.sharedCount;
-      }
+    if (left.sharedCount !== right.sharedCount) {
+      return left.sharedCount - right.sharedCount;
+    }
 
-      return left.monthDay.localeCompare(right.monthDay);
-    })
-    .slice(0, TOP_MISMATCH_LIMIT);
+    return left.monthDay.localeCompare(right.monthDay);
+  });
 }
 
 function getPrimaryMismatchPriority(type) {
@@ -429,83 +427,122 @@ function getPrimaryMismatchPriority(type) {
 
 
 function printComparison(comparison) {
-  console.log(`Összehasonlított JSON: ${comparison.inputPath}`);
-  console.log(`Primer registry: ${comparison.registryPath}`);
-  console.log(`Riport: ${comparison.reportPath}`);
+  printKeyValueTable("Források", [
+    ["Összehasonlított JSON", comparison.inputPath],
+    ["Primer registry", comparison.registryPath],
+    ["Riport", comparison.reportPath],
+    ["JSON generálva", comparison.generatedAt ?? "—"],
+    ["JSON verzió", comparison.jsonVersion ?? "—"],
+  ], {
+    keyWidth: 22,
+    valueWidth: 90,
+  });
 
-  if (comparison.generatedAt) {
-    console.log(`JSON generálva: ${comparison.generatedAt}`);
-  }
+  printKeyValueTable("LEGACY REGISTRY VS. JSON", [
+    ["Registry napok", comparison.registryComparison.summary.registryDayCount],
+    ["Aktuális JSON napok", comparison.registryComparison.summary.currentDayCount],
+    ["Teljes részhalmaz-egyezés", comparison.registryComparison.summary.subsetCount],
+    ["Ebből pontos napi egyezés", comparison.registryComparison.summary.exactSubsetCount],
+    ["Részleges egyezés", comparison.registryComparison.summary.partialCount],
+    ["Nincs egyezés", comparison.registryComparison.summary.noneCount],
+    [
+      "Legacy névegyezés",
+      `${comparison.registryComparison.summary.registryMatchedNameCount}/${comparison.registryComparison.summary.registryNameCount} (${comparison.registryComparison.summary.nameMatchRate})`,
+    ],
+    [
+      "Legacy primer egyezés",
+      `${comparison.registryComparison.summary.preferredMatchedCount}/${comparison.registryComparison.summary.preferredNameCount} (${comparison.registryComparison.summary.preferredMatchRate})`,
+    ],
+    ["Hiányzó legacy nevek", comparison.registryComparison.summary.registryMissingNameCount],
+    [
+      "Legacy primer hiányos napok",
+      comparison.registryComparison.differences.preferredShortfallDays.length,
+    ],
+  ], {
+    keyWidth: 42,
+    valueWidth: 64,
+  });
 
-  if (comparison.jsonVersion != null) {
-    console.log(`JSON verzió: ${comparison.jsonVersion}`);
-  }
-
-  console.log("");
-  console.log("=== LEGACY REGISTRY VS. JSON ===");
-  console.log(`Registry napok: ${comparison.registryComparison.summary.registryDayCount}`);
-  console.log(`Aktuális JSON napok: ${comparison.registryComparison.summary.currentDayCount}`);
-  console.log(`Teljes részhalmaz-egyezés: ${comparison.registryComparison.summary.subsetCount}`);
-  console.log(
-    `Ebből pontos napi egyezés: ${comparison.registryComparison.summary.exactSubsetCount}`
+  printDataTable(
+    "Legacy primerhiányos napok",
+    [
+      { key: "monthDay", title: "Nap", width: 7 },
+      {
+        key: "registryPreferredNames",
+        title: "Legacy primer",
+        width: 26,
+        value: (row) => formatNameList(row.registryPreferredNames, { maxItems: 4, maxLength: 26 }),
+      },
+      {
+        key: "currentPrimaryLegacy",
+        title: "JSON legacy",
+        width: 26,
+        value: (row) => formatNameList(row.currentPrimaryLegacy, { maxItems: 4, maxLength: 26 }),
+      },
+      {
+        key: "preferredMissing",
+        title: "Hiányzik",
+        width: 26,
+        value: (row) => formatNameList(row.preferredMissing, { maxItems: 4, maxLength: 26 }),
+      },
+    ],
+    comparison.registryComparison.differences.preferredShortfallDays
   );
-  console.log(`Részleges egyezés: ${comparison.registryComparison.summary.partialCount}`);
-  console.log(`Nincs egyezés: ${comparison.registryComparison.summary.noneCount}`);
-  console.log(
-    `Legacy névegyezés: ${comparison.registryComparison.summary.registryMatchedNameCount}/${comparison.registryComparison.summary.registryNameCount} (${comparison.registryComparison.summary.nameMatchRate})`
-  );
-  console.log(
-    `Legacy primer egyezés: ${comparison.registryComparison.summary.preferredMatchedCount}/${comparison.registryComparison.summary.preferredNameCount} (${comparison.registryComparison.summary.preferredMatchRate})`
-  );
-  console.log(
-    `Hiányzó legacy nevek: ${comparison.registryComparison.summary.registryMissingNameCount}`
-  );
-  console.log(
-    `Legacy primer hiányos napok: ${comparison.registryComparison.differences.preferredShortfallDays.length}`
-  );
 
-  console.log("");
-  console.log("=== LEGACY PRIMARY VS. SZÁMÍTOTT PRIMARY (RANKING) ===");
-  console.log(`Összehasonlított napok: ${comparison.primaryComparison.summary.dayCount}`);
-  console.log(`Pontos egyezés: ${comparison.primaryComparison.summary.exactDayCount}`);
-  console.log(`Részleges átfedés: ${comparison.primaryComparison.summary.overlapDayCount}`);
-  console.log(`Teljes eltérés: ${comparison.primaryComparison.summary.disjointDayCount}`);
-  console.log(`Csak legacy van: ${comparison.primaryComparison.summary.legacyOnlyDayCount}`);
-  console.log(`Csak számított ranking van: ${comparison.primaryComparison.summary.rankedOnlyDayCount}`);
-  console.log(
-    `Közös primary nevek legacyhoz képest: ${comparison.primaryComparison.summary.sharedPrimaryCount}/${comparison.primaryComparison.summary.legacyPrimaryCount} (${comparison.primaryComparison.summary.legacyCoverageRate})`
+  printKeyValueTable("LEGACY PRIMARY VS. SZÁMÍTOTT PRIMARY (RANKING)", [
+    ["Összehasonlított napok", comparison.primaryComparison.summary.dayCount],
+    ["Pontos egyezés", comparison.primaryComparison.summary.exactDayCount],
+    ["Részleges átfedés", comparison.primaryComparison.summary.overlapDayCount],
+    ["Teljes eltérés", comparison.primaryComparison.summary.disjointDayCount],
+    ["Csak legacy van", comparison.primaryComparison.summary.legacyOnlyDayCount],
+    ["Csak számított ranking van", comparison.primaryComparison.summary.rankedOnlyDayCount],
+    [
+      "Közös primary nevek legacyhoz képest",
+      `${comparison.primaryComparison.summary.sharedPrimaryCount}/${comparison.primaryComparison.summary.legacyPrimaryCount} (${comparison.primaryComparison.summary.legacyCoverageRate})`,
+    ],
+    [
+      "Közös primary nevek rankinghez képest",
+      `${comparison.primaryComparison.summary.sharedPrimaryCount}/${comparison.primaryComparison.summary.rankedPrimaryCount} (${comparison.primaryComparison.summary.rankedCoverageRate})`,
+    ],
+    ["Eltérő napok", comparison.primaryComparison.differences.mismatchDays.length],
+  ], {
+    keyWidth: 42,
+    valueWidth: 64,
+  });
+
+  printDataTable(
+    "Legacy primary vs. ranking — eltérő napok",
+    [
+      { key: "monthDay", title: "Nap", width: 7 },
+      { key: "typeLabel", title: "Eltérés", width: 18 },
+      {
+        key: "legacyPrimary",
+        title: "Legacy",
+        width: 26,
+        value: (row) => formatNameList(row.legacyPrimary, { maxItems: 4, maxLength: 26 }),
+      },
+      {
+        key: "rankedPrimary",
+        title: "Ranking",
+        width: 26,
+        value: (row) => formatNameList(row.rankedPrimary, { maxItems: 4, maxLength: 26 }),
+      },
+      {
+        key: "note",
+        title: "Részletek",
+        width: 48,
+        value: (row) =>
+          formatDiffNote({
+            shared: row.sharedPrimary,
+            onlyLeft: row.onlyLegacyPrimary,
+            onlyRight: row.onlyRankedPrimary,
+            leftLabel: "legacy",
+            rightLabel: "ranking",
+          }),
+      },
+    ],
+    comparison.primaryComparison.differences.topMismatchDays
   );
-  console.log(
-    `Közös primary nevek rankinghez képest: ${comparison.primaryComparison.summary.sharedPrimaryCount}/${comparison.primaryComparison.summary.rankedPrimaryCount} (${comparison.primaryComparison.summary.rankedCoverageRate})`
-  );
-  console.log(
-    `Eltérő napok: ${comparison.primaryComparison.differences.mismatchDays.length}`
-  );
-
-  if (comparison.primaryComparison.differences.topMismatchDays.length > 0) {
-    console.log("");
-    console.log(
-      `Legnagyobb eltérésű napok (top ${comparison.primaryComparison.differences.topMismatchDays.length}):`
-    );
-
-    for (const mismatch of comparison.primaryComparison.differences.topMismatchDays) {
-      console.log(`- ${mismatch.monthDay} — ${mismatch.typeLabel}`);
-      console.log(`  Legacy : ${joinNamesForConsole(mismatch.legacyPrimary)}`);
-      console.log(`  Ranking: ${joinNamesForConsole(mismatch.rankedPrimary)}`);
-
-      if (mismatch.sharedPrimary.length > 0) {
-        console.log(`  Közös  : ${joinNamesForConsole(mismatch.sharedPrimary)}`);
-      }
-
-      if (mismatch.onlyLegacyPrimary.length > 0) {
-        console.log(`  Csak legacy : ${joinNamesForConsole(mismatch.onlyLegacyPrimary)}`);
-      }
-
-      if (mismatch.onlyRankedPrimary.length > 0) {
-        console.log(`  Csak ranking: ${joinNamesForConsole(mismatch.onlyRankedPrimary)}`);
-      }
-    }
-  }
 }
 
 function ratio(part, whole) {

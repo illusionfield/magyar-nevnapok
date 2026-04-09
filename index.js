@@ -3,6 +3,8 @@ import path from "node:path";
 import puppeteer from "puppeteer";
 import {
   buildPrimaryRegistryLookup,
+  DEFAULT_FINAL_PRIMARY_REGISTRY_PATH,
+  DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH,
   loadPrimaryRegistry,
   normalizeNameForMatch,
 } from "./lib/primary-registry.js";
@@ -12,7 +14,8 @@ const MALE_INDEX_URL = "http://corpus.nytud.hu/utonevportal/html/nem_f%C3%A9rfi.
 const DEFAULT_OUTPUT_PATH = path.join(process.cwd(), "output", "nevnapok.json");
 const DEFAULT_CONCURRENCY = 8;
 const DEFAULT_TIMEOUT_MS = 60_000;
-const DEFAULT_PRIMARY_REGISTRY = path.join(process.cwd(), "data", "legacy-primary-registry.json");
+const DEFAULT_PRIMARY_REGISTRY = DEFAULT_FINAL_PRIMARY_REGISTRY_PATH;
+const DEFAULT_LEGACY_PRIMARY_REGISTRY = DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH;
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 const FREQUENCY_SCALE = [
   { labelHu: "néhány előfordulás", rank: 1, tag: "1-few" },
@@ -34,14 +37,22 @@ const primaryRegistryPath = path.resolve(
   process.cwd(),
   args.primaryRegistry ?? DEFAULT_PRIMARY_REGISTRY
 );
+const legacyPrimaryRegistryPath = path.resolve(
+  process.cwd(),
+  args.legacyPrimaryRegistry ?? DEFAULT_LEGACY_PRIMARY_REGISTRY
+);
 const concurrency = args.concurrency ?? DEFAULT_CONCURRENCY;
 const limit = args.limit ?? null;
 
 async function main() {
   console.log("Starting scrape from gender index pages.");
 
-  const primaryRegistry = await loadPrimaryRegistryOrThrow(primaryRegistryPath);
+  const [primaryRegistry, legacyPrimaryRegistry] = await Promise.all([
+    loadPrimaryRegistryOrThrow(primaryRegistryPath, "npm run build:primary-registry"),
+    loadPrimaryRegistryOrThrow(legacyPrimaryRegistryPath, "npm run build-primary-registry"),
+  ]);
   const primaryRegistryLookup = buildPrimaryRegistryLookup(primaryRegistry.payload.days);
+  const legacyPrimaryRegistryLookup = buildPrimaryRegistryLookup(legacyPrimaryRegistry.payload.days);
   const browser = await puppeteer.launch({
     headless: args.headful ? false : true,
   });
@@ -64,12 +75,15 @@ async function main() {
     );
 
     const scrapedNames = await scrapeNames(browser, selectedNames, concurrency);
-    const names = applyPrimaryAssignments(scrapedNames, primaryRegistryLookup);
+    const names = applyPrimaryAssignments(scrapedNames, {
+      primaryRegistryLookup,
+      legacyPrimaryRegistryLookup,
+    });
     const namedayAssignmentCount = names.reduce((sum, entry) => sum + entry.days.length, 0);
     const primaryAssignmentStats = collectPrimaryAssignmentStats(names);
 
     const payload = {
-      version: 5,
+      version: 6,
       generatedAt: new Date().toISOString(),
       source: {
         provider: "HUN-REN Nyelvtudományi Kutatóközpont Utónévportál",
@@ -82,6 +96,12 @@ async function main() {
           sourceFile: primaryRegistry.payload.sourceFile ?? null,
           generatedAt: primaryRegistry.payload.generatedAt ?? null,
           version: primaryRegistry.payload.version ?? null,
+        },
+        legacyPrimaryRegistry: {
+          path: path.relative(process.cwd(), legacyPrimaryRegistry.path),
+          sourceFile: legacyPrimaryRegistry.payload.sourceFile ?? null,
+          generatedAt: legacyPrimaryRegistry.payload.generatedAt ?? null,
+          version: legacyPrimaryRegistry.payload.version ?? null,
         },
       },
       stats: {
@@ -382,21 +402,20 @@ function normalizeNamedays(values) {
   return normalized;
 }
 
-async function loadPrimaryRegistryOrThrow(filePath) {
+async function loadPrimaryRegistryOrThrow(filePath, buildCommand) {
   try {
     return await loadPrimaryRegistry(filePath);
   } catch (error) {
     if (error?.code === "ENOENT") {
-      throw new Error(
-        `Primary registry not found at ${filePath}. Run: npm run build-primary-registry`
-      );
+      throw new Error(`Primary registry not found at ${filePath}. Run: ${buildCommand}`);
     }
 
     throw error;
   }
 }
 
-function applyPrimaryAssignments(names, primaryRegistryLookup) {
+function applyPrimaryAssignments(names, registryLookups) {
+  const { primaryRegistryLookup, legacyPrimaryRegistryLookup } = registryLookups;
   const decoratedNames = names.map((entry) => ({
     ...entry,
     days: Array.isArray(entry.days) ? entry.days.map((day) => ({ ...day })) : [],
@@ -404,19 +423,25 @@ function applyPrimaryAssignments(names, primaryRegistryLookup) {
   const dayBuckets = buildDayBuckets(decoratedNames);
 
   for (const [monthDay, bucket] of dayBuckets.entries()) {
-    const legacyEntry = primaryRegistryLookup.get(monthDay) ?? null;
+    const primaryRegistryEntry = primaryRegistryLookup.get(monthDay) ?? null;
+    const legacyEntry = legacyPrimaryRegistryLookup.get(monthDay) ?? null;
     const rankingData = buildDayRankingData(bucket, legacyEntry);
+
     for (const bucketEntry of bucket) {
       const ranking = rankingData.byKey.get(bucketEntry.key);
-      const legacyOrder = rankingData.legacyOrderByKey.get(bucketEntry.key) ?? null;
+      const registryOrder = primaryRegistryEntry?.preferredNameOrder.get(bucketEntry.matchName) ?? null;
+      const legacyOrder = legacyEntry?.preferredNameOrder.get(bucketEntry.matchName) ?? null;
+      const primaryRegistry = Number.isInteger(registryOrder);
       const primaryLegacy = Number.isInteger(legacyOrder);
       const primaryRanked = rankingData.primaryRankedKeys.has(bucketEntry.key);
 
       bucketEntry.nameEntry.days[bucketEntry.dayIndex] = {
         ...bucketEntry.nameEntry.days[bucketEntry.dayIndex],
-        primary: primaryLegacy || primaryRanked,
+        primary: primaryRegistry,
+        primaryRegistry,
         primaryLegacy,
         primaryRanked,
+        registryOrder,
         legacyOrder,
         ranking,
       };
@@ -452,7 +477,6 @@ function buildDayBuckets(names) {
 
 function buildDayRankingData(dayEntries, legacyEntry) {
   const byKey = new Map();
-  const legacyOrderByKey = new Map();
   const overallSorted = [...dayEntries].sort(compareByOverallRanking);
   const newbornSorted = [...dayEntries].sort(compareByNewbornRanking);
   const combinedSorted = [...dayEntries].sort(compareByCombinedRanking);
@@ -505,16 +529,6 @@ function buildDayRankingData(dayEntries, legacyEntry) {
     byKey.set(entry.key, current);
   }
 
-  if (legacyEntry?.preferredNameOrder instanceof Map) {
-    for (const entry of dayEntries) {
-      const legacyOrder = legacyEntry.preferredNameOrder.get(entry.matchName);
-
-      if (Number.isInteger(legacyOrder)) {
-        legacyOrderByKey.set(entry.key, legacyOrder);
-      }
-    }
-  }
-
   const rankedPrimaryCount = legacyEntry?.preferredNames?.length >= 2 ? 2 : 1;
   const primaryRankedKeys = new Set(
     combinedSorted.slice(0, Math.min(rankedPrimaryCount, combinedSorted.length)).map((entry) => entry.key)
@@ -522,7 +536,6 @@ function buildDayRankingData(dayEntries, legacyEntry) {
 
   return {
     byKey,
-    legacyOrderByKey,
     primaryRankedKeys,
   };
 }
@@ -530,13 +543,16 @@ function buildDayRankingData(dayEntries, legacyEntry) {
 function collectPrimaryAssignmentStats(names) {
   const stats = {
     primaryAssignmentCount: 0,
+    primaryRegistryAssignmentCount: 0,
     primaryLegacyAssignmentCount: 0,
     primaryRankedAssignmentCount: 0,
     primaryDayCount: 0,
+    primaryRegistryDayCount: 0,
     primaryLegacyDayCount: 0,
     primaryRankedDayCount: 0,
   };
   const primaryDays = new Set();
+  const primaryRegistryDays = new Set();
   const legacyDays = new Set();
   const rankedDays = new Set();
 
@@ -545,6 +561,11 @@ function collectPrimaryAssignmentStats(names) {
       if (dayEntry.primary) {
         stats.primaryAssignmentCount += 1;
         primaryDays.add(dayEntry.monthDay);
+      }
+
+      if (dayEntry.primaryRegistry) {
+        stats.primaryRegistryAssignmentCount += 1;
+        primaryRegistryDays.add(dayEntry.monthDay);
       }
 
       if (dayEntry.primaryLegacy) {
@@ -560,6 +581,7 @@ function collectPrimaryAssignmentStats(names) {
   }
 
   stats.primaryDayCount = primaryDays.size;
+  stats.primaryRegistryDayCount = primaryRegistryDays.size;
   stats.primaryLegacyDayCount = legacyDays.size;
   stats.primaryRankedDayCount = rankedDays.size;
 
@@ -1331,6 +1353,17 @@ function parseArgs(argv) {
 
     if (arg.startsWith("--primary-registry=")) {
       options.primaryRegistry = arg.slice("--primary-registry=".length);
+      continue;
+    }
+
+    if (arg === "--legacy-primary-registry" && argv[index + 1]) {
+      options.legacyPrimaryRegistry = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--legacy-primary-registry=")) {
+      options.legacyPrimaryRegistry = arg.slice("--legacy-primary-registry=".length);
       continue;
     }
 

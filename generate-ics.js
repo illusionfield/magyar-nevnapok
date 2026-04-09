@@ -21,67 +21,133 @@ async function main() {
     ? normalizeSourceDays(payload.days)
     : buildDaysFromNames(payload.names);
   const sourceNameMap = buildNameMapFromSourceDays(sourceDays);
+  const jobs = buildCalendarJobs(sourceDays, outputPath, options);
+
+  for (const job of jobs) {
+    const result = buildCalendarArtifact(job.sourceDays, sourceNameMap, payload, job.options);
+    await writeCalendarFile(job.outputPath, result.calendarText);
+
+    console.log(`Saved ${result.events.length} event(s) to ${job.outputPath}`);
+
+    if (job.skippedEmptyPrimaryDays > 0) {
+      console.log(
+        `Skipped ${job.skippedEmptyPrimaryDays} day(s) from ${calendarPartitionLogLabel(job.options.calendarPartition)} because the selected primary source did not produce any primary names.`
+      );
+    }
+  }
+}
+
+function buildCalendarJobs(sourceDays, outputPath, options) {
+  const leapStrategies =
+    options.leapMode === "hungarian-until-2050" && options.leapStrategy === "both"
+      ? ["a", "b"]
+      : [options.leapStrategy];
+  const baseJobs = [];
 
   if (options.splitPrimaryRest) {
     const splitDays = splitSourceDaysByPrimary(sourceDays, options.primarySource);
-    const primaryOutputPath = path.resolve(
-      process.cwd(),
-      options.primaryOutput ?? deriveSplitOutputPath(outputPath, "primary")
-    );
-    const restOutputPath = path.resolve(
-      process.cwd(),
-      options.restOutput ?? deriveSplitOutputPath(outputPath, "rest")
-    );
-    const primaryOptions = createCalendarVariantOptions(options, {
-      output: primaryOutputPath,
-      mode: options.primaryCalendarMode,
-      calendarName: `${options.calendarName} — elsődleges`,
-      calendarPartition: "primary",
+    baseJobs.push({
+      sourceDays: splitDays.primaryDays,
+      outputPath: path.resolve(
+        process.cwd(),
+        options.primaryOutput ?? deriveSplitOutputPath(outputPath, "primary")
+      ),
+      skippedEmptyPrimaryDays: splitDays.skippedPrimaryDays,
+      optionOverrides: {
+        mode: options.primaryCalendarMode,
+        calendarName: `${options.calendarName} — elsődleges`,
+        calendarPartition: "primary",
+      },
     });
-    const restOptions = createCalendarVariantOptions(options, {
-      output: restOutputPath,
-      mode: options.restCalendarMode,
-      calendarName: `${options.calendarName} — további`,
-      calendarPartition: "rest",
+    baseJobs.push({
+      sourceDays: splitDays.restDays,
+      outputPath: path.resolve(
+        process.cwd(),
+        options.restOutput ?? deriveSplitOutputPath(outputPath, "rest")
+      ),
+      skippedEmptyPrimaryDays: 0,
+      optionOverrides: {
+        mode: options.restCalendarMode,
+        calendarName: `${options.calendarName} — további`,
+        calendarPartition: "rest",
+      },
     });
+  } else {
+    baseJobs.push({
+      sourceDays,
+      outputPath: path.resolve(process.cwd(), outputPath),
+      skippedEmptyPrimaryDays: 0,
+      optionOverrides: {
+        calendarPartition: null,
+      },
+    });
+  }
 
-    const primaryResult = buildCalendarArtifact(splitDays.primaryDays, sourceNameMap, payload, primaryOptions);
-    const restResult = buildCalendarArtifact(splitDays.restDays, sourceNameMap, payload, restOptions);
+  const multipleLeapStrategies = leapStrategies.length > 1;
+  const jobs = [];
 
-    await Promise.all([
-      writeCalendarFile(primaryOutputPath, primaryResult.calendarText),
-      writeCalendarFile(restOutputPath, restResult.calendarText),
-    ]);
+  for (const baseJob of baseJobs) {
+    for (const leapStrategy of leapStrategies) {
+      const variantOutputPath = multipleLeapStrategies
+        ? deriveLeapStrategyOutputPath(baseJob.outputPath, leapStrategy)
+        : baseJob.outputPath;
+      const variantOptions = createCalendarVariantOptions(options, {
+        ...baseJob.optionOverrides,
+        output: variantOutputPath,
+        leapStrategy,
+        calendarName: buildCalendarNameForJob(
+          baseJob.optionOverrides.calendarName ?? options.calendarName,
+          leapStrategy,
+          multipleLeapStrategies
+        ),
+      });
 
-    console.log(`Saved ${primaryResult.events.length} event(s) to ${primaryOutputPath}`);
-    console.log(`Saved ${restResult.events.length} event(s) to ${restOutputPath}`);
-
-    if (splitDays.skippedPrimaryDays > 0) {
-      console.log(
-        `Skipped ${splitDays.skippedPrimaryDays} day(s) from the primary calendar because the selected primary source did not produce any primary names.`
-      );
+      jobs.push({
+        sourceDays: baseJob.sourceDays,
+        outputPath: variantOutputPath,
+        skippedEmptyPrimaryDays: baseJob.skippedEmptyPrimaryDays,
+        options: variantOptions,
+      });
     }
-
-    return;
   }
 
-  const calendarResult = buildCalendarArtifact(sourceDays, sourceNameMap, payload, options);
+  return jobs;
+}
 
-  await writeCalendarFile(outputPath, calendarResult.calendarText);
-
-  console.log(`Saved ${calendarResult.events.length} event(s) to ${outputPath}`);
-
-  if (calendarResult.skippedEmptyPrimaryDays > 0) {
-    console.log(
-      `Skipped ${calendarResult.skippedEmptyPrimaryDays} day(s) because the selected primary source did not produce any primary names.`
-    );
+function buildCalendarNameForJob(calendarName, leapStrategy, includeLeapStrategySuffix) {
+  if (!includeLeapStrategySuffix) {
+    return calendarName;
   }
+
+  return `${calendarName} — ${leapStrategyFileSuffix(leapStrategy)}`;
+}
+
+function deriveLeapStrategyOutputPath(outputPath, leapStrategy) {
+  return deriveOutputPathWithSuffix(outputPath, leapStrategyFileSuffix(leapStrategy));
+}
+
+function deriveOutputPathWithSuffix(outputPath, suffix) {
+  const parsed = path.parse(outputPath);
+  const extension = parsed.ext || ".ics";
+  return path.join(parsed.dir, `${parsed.name}-${suffix}${extension}`);
+}
+
+function calendarPartitionLogLabel(value) {
+  if (value === "primary") {
+    return "the primary calendar";
+  }
+
+  if (value === "rest") {
+    return "the rest calendar";
+  }
+
+  return "the calendar";
 }
 
 function buildCalendarArtifact(sourceDays, referenceNameMap, payload, options) {
   const eventBuildResult =
     options.leapMode === "hungarian-until-2050"
-      ? buildLeapAwareRecurringEvents(sourceDays, referenceNameMap, options)
+      ? buildLeapAwareEvents(sourceDays, referenceNameMap, options)
       : buildRecurringEvents(sourceDays, referenceNameMap, options);
   const events = eventBuildResult.events;
 
@@ -105,9 +171,7 @@ function createCalendarVariantOptions(options, overrides) {
 }
 
 function deriveSplitOutputPath(outputPath, suffix) {
-  const parsed = path.parse(outputPath);
-  const extension = parsed.ext || ".ics";
-  return path.join(parsed.dir, `${parsed.name}-${suffix}${extension}`);
+  return deriveOutputPathWithSuffix(outputPath, suffix);
 }
 
 function splitSourceDaysByPrimary(sourceDays, primarySource) {
@@ -227,6 +291,120 @@ function buildNameMapFromSourceDays(sourceDays) {
   }
 
   return nameMap;
+}
+
+function buildLeapAwareEvents(sourceDays, referenceNameMap, options) {
+  if (options.leapStrategy === "b") {
+    return buildLeapAwareRecurringEventsRecurrenceId(sourceDays, referenceNameMap, options);
+  }
+
+  return buildLeapAwareRecurringEvents(sourceDays, referenceNameMap, options);
+}
+
+function buildLeapAwareRecurringEventsRecurrenceId(sourceDays, referenceNameMap, options) {
+  const events = [];
+  let skippedEmptyPrimaryDays = 0;
+  const leapYears = buildLeapYearsInRange(options.fromYear, options.untilYear);
+  const leapYearNameMaps = buildLeapYearNameMaps(sourceDays, leapYears, options.leapMode);
+
+  for (const sourceDay of sourceDays) {
+    const masterActualDate = {
+      year: options.fromYear,
+      month: sourceDay.month,
+      day: sourceDay.day,
+      monthDay: sourceDay.monthDay,
+      sourceMonthDay: sourceDay.monthDay,
+      shifted: false,
+      leapRule: buildLeapRuleForSourceDay(sourceDay),
+    };
+    const masterResult = buildEventsForContext({
+      sourceDay,
+      actualDate: masterActualDate,
+      sourceNameMap: referenceNameMap,
+      actualNameMap: referenceNameMap,
+      options,
+      year: null,
+    });
+
+    for (const event of masterResult.events) {
+      event.rrule = buildYearlyRRule(sourceDay.month, sourceDay.day, options);
+      event.sequence = 0;
+      events.push(event);
+    }
+
+    skippedEmptyPrimaryDays += masterResult.skippedEmptyPrimaryDays;
+
+    if (!masterActualDate.leapRule || leapYears.length === 0 || masterResult.events.length === 0) {
+      continue;
+    }
+
+    for (const year of leapYears) {
+      const actualDate = {
+        ...resolveActualDate(year, sourceDay, options.leapMode),
+        leapRule: masterActualDate.leapRule,
+      };
+      const overrideResult = buildEventsForContext({
+        sourceDay,
+        actualDate,
+        sourceNameMap: referenceNameMap,
+        actualNameMap: leapYearNameMaps.get(year) ?? referenceNameMap,
+        options,
+        year,
+      });
+
+      if (overrideResult.events.length !== masterResult.events.length) {
+        throw new Error(
+          `Leap override event count mismatch on ${sourceDay.monthDay}: expected ${masterResult.events.length}, got ${overrideResult.events.length}.`
+        );
+      }
+
+      for (const [index, overrideEvent] of overrideResult.events.entries()) {
+        const masterEvent = masterResult.events[index];
+        events.push({
+          ...overrideEvent,
+          uid: masterEvent.uid,
+          recurrenceId: formatDateValue(year, sourceDay.month, sourceDay.day),
+          rrule: null,
+          rdates: [],
+          exdates: [],
+          sequence: 1,
+        });
+      }
+    }
+  }
+
+  return {
+    events,
+    skippedEmptyPrimaryDays,
+  };
+}
+
+function buildLeapYearsInRange(fromYear, untilYear) {
+  const years = [];
+
+  for (let year = fromYear; year <= untilYear; year += 1) {
+    if (isLeapYear(year)) {
+      years.push(year);
+    }
+  }
+
+  return years;
+}
+
+function buildLeapYearNameMaps(sourceDays, leapYears, leapMode) {
+  const maps = new Map();
+
+  for (const year of leapYears) {
+    const actualDays = sourceDays
+      .map((sourceDay) => ({
+        sourceDay,
+        actualDate: resolveActualDate(year, sourceDay, leapMode),
+      }))
+      .sort((left, right) => left.actualDate.monthDay.localeCompare(right.actualDate.monthDay));
+    maps.set(year, buildYearNameMap(actualDays));
+  }
+
+  return maps;
 }
 
 function buildExplicitEvents(sourceDays, referenceNameMap, options) {
@@ -649,7 +827,7 @@ function buildGroupedEvent(context) {
   return {
     uid: buildUid({
       type: "grouped",
-      key: `${sourceDay.monthDay}|${year ?? "rrule"}|${actualDate.monthDay}|${summaryBase}`,
+      key: buildGroupedEventUidKey(sourceDay, eventNames, options),
     }),
     summary: ordinalText ? `${summaryBase} (${ordinalText})` : summaryBase,
     startDate: formatDateValue(actualDate.year, actualDate.month, actualDate.day),
@@ -671,7 +849,7 @@ function buildSingleNameEvent(context) {
   return {
     uid: buildUid({
       type: "single",
-      key: `${nameEntry.name}|${sourceDay.monthDay}|${year ?? "rrule"}|${actualDate.monthDay}`,
+      key: buildSingleNameEventUidKey(nameEntry, sourceDay, options),
     }),
     summary: ordinalText ? `${nameEntry.name} (${ordinalText})` : nameEntry.name,
     startDate: formatDateValue(actualDate.year, actualDate.month, actualDate.day),
@@ -1706,6 +1884,25 @@ function buildOrdinalTextForEvent(actualDate, year) {
   return `${regular}. nap (szökőévben: ${leap}.)`;
 }
 
+function buildGroupedEventUidKey(sourceDay, eventNames, options) {
+  const summaryBase = eventNames.map((entry) => entry.name).join(", ");
+  return [
+    options.calendarPartition ?? "all",
+    options.leapStrategy ?? "a",
+    sourceDay.monthDay,
+    summaryBase,
+  ].join("|");
+}
+
+function buildSingleNameEventUidKey(nameEntry, sourceDay, options) {
+  return [
+    options.calendarPartition ?? "all",
+    options.leapStrategy ?? "a",
+    nameEntry.name,
+    sourceDay.monthDay,
+  ].join("|");
+}
+
 function buildUid(parts) {
   const hash = crypto.createHash("sha1").update(`${parts.type}|${parts.key}`).digest("hex");
   return `nevnap-${hash.slice(0, 24)}@nevnapok.local`;
@@ -1785,12 +1982,20 @@ function serializeCalendar(events, payload, options) {
       lines.push(`RRULE:${event.rrule}`);
     }
 
+    if (event.recurrenceId) {
+      lines.push(`RECURRENCE-ID;VALUE=DATE:${event.recurrenceId}`);
+    }
+
     if (Array.isArray(event.exdates) && event.exdates.length > 0) {
       lines.push(`EXDATE;VALUE=DATE:${event.exdates.join(",")}`);
     }
 
     if (Array.isArray(event.rdates) && event.rdates.length > 0) {
       lines.push(`RDATE;VALUE=DATE:${event.rdates.join(",")}`);
+    }
+
+    if (Number.isInteger(event.sequence)) {
+      lines.push(`SEQUENCE:${event.sequence}`);
     }
 
     lines.push(formatTextProperty("SUMMARY", event.summary));
@@ -1845,6 +2050,7 @@ function buildCalendarDescription(payload, options, eventCount) {
 
   if (options.leapMode === "hungarian-until-2050") {
     parts.push(`Szökőéves mód: magyar február 24–29. eltolás ${options.untilYear}-ig`);
+    parts.push(`Szökőéves stratégia: ${leapStrategyLabelHu(options.leapStrategy)}`);
   } else {
     parts.push("Szökőéves mód: kikapcsolva");
   }
@@ -1860,6 +2066,7 @@ function normalizeOptions(options) {
     restOutput: options.restOutput ?? null,
     mode: options.mode ?? "together",
     primarySource: options.primarySource ?? "default",
+    leapStrategy: options.leapStrategy ?? "a",
     splitPrimaryRest: options.splitPrimaryRest ?? false,
     primaryCalendarMode: options.primaryCalendarMode ?? null,
     restCalendarMode: options.restCalendarMode ?? null,
@@ -1907,6 +2114,8 @@ function normalizeOptions(options) {
   if (!validDescriptionFormats.has(normalized.descriptionFormat)) {
     throw new Error("--description-format must be one of: text, html, full.");
   }
+
+  normalized.leapStrategy = normalizeLeapStrategyOption(normalized.leapStrategy);
 
   if (normalized.descriptionFormat === "both") {
     normalized.descriptionFormat = "full";
@@ -2038,6 +2247,17 @@ function parseArgs(argv) {
 
     if (arg.startsWith("--primary-source=")) {
       options.primarySource = arg.slice("--primary-source=".length);
+      continue;
+    }
+
+    if (arg === "--leap-strategy" && argv[index + 1]) {
+      options.leapStrategy = argv[index + 1];
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith("--leap-strategy=")) {
+      options.leapStrategy = arg.slice("--leap-strategy=".length);
       continue;
     }
 
@@ -2173,6 +2393,48 @@ function capitalizeFirst(value) {
   }
 
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function normalizeLeapStrategyOption(value) {
+  const candidate = String(value ?? "a").trim().toLowerCase();
+
+  if (candidate === "a" || candidate === "rrule-exdate-rdate") {
+    return "a";
+  }
+
+  if (candidate === "b" || candidate === "rrule-recurrence-id" || candidate === "recurrence-id") {
+    return "b";
+  }
+
+  if (candidate === "both" || candidate === "ab" || candidate === "a+b") {
+    return "both";
+  }
+
+  throw new Error("--leap-strategy must be one of: a, b, both.");
+}
+
+function leapStrategyFileSuffix(value) {
+  if (value === "b") {
+    return "B";
+  }
+
+  return "A";
+}
+
+function leapStrategyLabelHu(value) {
+  if (value === "a") {
+    return "A (RRULE + EXDATE + RDATE)";
+  }
+
+  if (value === "b") {
+    return "B (RRULE + RECURRENCE-ID)";
+  }
+
+  if (value === "both") {
+    return "A és B";
+  }
+
+  return value;
 }
 
 function normalizeSplitCalendarMode(value, fallback, optionName) {
