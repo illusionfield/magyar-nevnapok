@@ -15,6 +15,14 @@ A `magyar-nevnapok` célja, hogy a magyar névnapokkal kapcsolatos forrásadatok
 Az elsődleges névadatbázisból nemcsak ICS és strukturált YAML/JSON artifact készülhet,
 hanem közvetlen CSV- és Excel-export is.
 
+## Alap parancsok
+
+- `npm run build` — a teljes elsődleges pipeline futtatása,
+- `npm run lint` — repo-szintű lintellenőrzés,
+- `npm run typecheck` — Node-alapú statikus szintaxis- és entrypoint-ellenőrzés,
+- `npm test` — automatizált tesztek,
+- `npm run ellenorzes` — a gyors helyi minőségellenőrzési kör.
+
 ## Fő folyamat
 
 1. legacy primerjegyzék építése a régi ICS-ből,

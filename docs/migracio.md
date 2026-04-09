@@ -28,7 +28,8 @@ Most:
 ## Ajánlott új munkafolyamat
 
 ```bash
+  npm run build
   npm run cli -- pipeline allapot
-  npm run cli -- pipeline futtat teljes
   npm run cli -- audit futtat mind
+  npm run ellenorzes
 ```

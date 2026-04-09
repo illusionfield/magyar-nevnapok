@@ -10,16 +10,22 @@
 
 ```bash
   npm run lint
+  npm run typecheck
   npm run audit
   npm run ellenorzes
+  npm run build
 ```
 
 Megjegyzés: az `npm run audit` hálózati ellenőrzés, ezért külön marad a gyors helyi
-lint- és tesztkörtől.
+lint- / typecheck- / tesztkörtől.
+
+Az `npm run build` a teljes, elsődleges pipeline-t futtatja végig, tehát ez a projekt
+valódi adatépítési buildparancsa.
 
 ## Pipeline
 
 ```bash
+  npm run build
   npm run cli -- pipeline allapot
   npm run cli -- pipeline futtat teljes
   npm run cli -- pipeline futtat legacy-primer-epites

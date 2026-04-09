@@ -1,6 +1,6 @@
 {
   "name": "magyar-nevnapok",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Magyar hivatalos névnap adatbázis és iCalendar fájl generátor",
   "type": "module",
   "main": "./index.mjs",
@@ -11,11 +11,13 @@
   "scripts": {
     "cli": "node ./bin/nevnapok.mjs",
     "tui": "node ./bin/nevnapok.mjs tui",
+    "build": "node ./bin/nevnapok.mjs pipeline futtat teljes",
     "pipeline": "node ./bin/nevnapok.mjs pipeline futtat teljes",
     "allapot": "node ./bin/nevnapok.mjs pipeline allapot",
     "lint": "eslint . --max-warnings 0",
+    "typecheck": "node ./scripts/typecheck.mjs",
     "test": "node --test",
-    "ellenorzes": "npm run lint && npm test",
+    "ellenorzes": "npm run lint && npm run typecheck && npm test",
     "google-naptar:auth:reset": "rm -f .google-calendar-oauth.local.json token.json credentials.json",
     "audit": "npm audit"
   },

@@ -4,6 +4,8 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-04-09
+
 ### Kimenetek
 
 - Elkészült a `nevnapok kimenet general csv` export.
@@ -20,6 +22,13 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 - Elkészült a `Végső primer audit inspector` és a `Primer nélkül maradó nevek inspector` böngészhető TUI-nézet.
 - A végső primer és a primer nélküli audit közös alapmodulba került, így a napi térképezési és időrendi segédlogika már nem párhuzamosan él.
 - A terminálos auditnézetek finomabb színezést kaptak: színezett forráscímkék, finomított dátum- és rejtettnév-hangsúlyok.
+
+### Minőségellenőrzés és workflow
+
+- Elkészült a szabványos `npm run build` parancs, amely a teljes elsődleges pipeline-t futtatja.
+- Elkészült a `npm run typecheck` parancs, amely a teljes saját JS/MJS kódfelületet és a package entrypointokat ellenőrzi `node --check` alapon.
+- Az `npm run ellenorzes` most már a lint és a tesztek mellett a typecheck kört is tartalmazza.
+- A dokumentáció minden fontos helyen külön nevezi a build, a typecheck, a lint, a teszt és az audit szerepét.
 
 ## [0.6.1] - 2026-04-09
 
