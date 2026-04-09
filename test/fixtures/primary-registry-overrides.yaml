@@ -1,0 +1,8 @@
+version: 1
+source: "teszt"
+days:
+  - month: 1
+    day: 1
+    monthDay: "01-01"
+    preferredNames:
+      - "Fruzsina"

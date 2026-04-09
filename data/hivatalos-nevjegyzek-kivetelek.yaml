@@ -1,0 +1,33 @@
+version: 1
+forrasok:
+  hivatalosNevjegyzekDatum: 2025-07-31
+  elteAdatbazisDatum: 2025-08-12
+megjegyzes: A HUN-REN/ELTE adatbázis és a letölthető hivatalos névjegyzék dátumeltéréseiből származó, dokumentált különbségek.
+genders:
+  male:
+    extraInJson:
+      - name: Emmet
+        indoklas: Az ELTE/HUN-REN adatbázis későbbi állapotában szerepel.
+        forrasDatum: 2025-08-12
+      - name: Nóha
+        indoklas: Az ELTE/HUN-REN adatbázis későbbi állapotában szerepel.
+        forrasDatum: 2025-08-12
+      - name: Omer
+        indoklas: Az ELTE/HUN-REN adatbázis későbbi állapotában szerepel.
+        forrasDatum: 2025-08-12
+      - name: Topoly
+        indoklas: Az ELTE/HUN-REN adatbázis későbbi állapotában szerepel.
+        forrasDatum: 2025-08-12
+      - name: Zaki
+        indoklas: Az ELTE/HUN-REN adatbázis későbbi állapotában szerepel.
+        forrasDatum: 2025-08-12
+    missingFromJson: []
+  female:
+    extraInJson:
+      - name: Ámája
+        indoklas: Az ELTE/HUN-REN adatbázis későbbi állapotában szerepel.
+        forrasDatum: 2025-08-12
+      - name: Szohélia
+        indoklas: Az ELTE/HUN-REN adatbázis későbbi állapotában szerepel.
+        forrasDatum: 2025-08-12
+    missingFromJson: []

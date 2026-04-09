@@ -1,0 +1,25 @@
+version: 6
+generatedAt: "2026-04-09T00:00:00.000Z"
+source:
+  provider: "Teszt adatbázis"
+stats:
+  nameCount: 2
+names:
+  - name: "Ábel"
+    gender: "male"
+    days:
+      - month: 1
+        day: 2
+        monthDay: "01-02"
+        primary: true
+        primaryLegacy: true
+        primaryRanked: true
+  - name: "Fruzsina"
+    gender: "female"
+    days:
+      - month: 1
+        day: 1
+        monthDay: "01-01"
+        primary: true
+        primaryLegacy: true
+        primaryRanked: true

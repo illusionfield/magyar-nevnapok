@@ -3,30 +3,33 @@
   "version": "0.5.0",
   "description": "Magyar hivatalos névnap adatbázis és iCalendar fájl generátor",
   "type": "module",
-  "main": "index.js",
+  "main": "./index.mjs",
+  "exports": "./index.mjs",
+  "bin": {
+    "nevnapok": "./bin/nevnapok.mjs"
+  },
   "scripts": {
-    "start": "npm run build-primary-registry && npm run wiki && npm run build:primary-registry && npm run scrape",
-    "scrape": "node index.js",
-    "wiki": "node get-wiki.js",
-    "build-primary-registry": "node build-primary-registry.js",
-    "ics": "node generate-ics.js",
-    "edges": "node generate-formalized-edges.js",
-    "test": "node test/compare-official-name-lists.js",
-    "test:primary-registry": "node test/compare-primary-registry.js",
-    "test:apple-compat": "node build-apple-calendar-compat-fixtures.js",
-    "delete:calendar": "node delete-calendar.mjs",
-    "delete:calendar:auth:reset": "rm -f .google-calendar-oauth.local.json token.json credentials.json",
-    "test:wiki-primary-registry": "node test/compare-legacy-wiki-primary-registry.js",
-    "normalize:primary": "node primary-normalizer.js",
-    "test:primary-normalizer": "node test/compare-primary-normalizer.js",
-    "build:primary-registry": "node build-final-primary-registry.js",
-    "test:final-primary-registry": "node test/compare-final-primary-registry.js"
+    "cli": "node ./bin/nevnapok.mjs",
+    "tui": "node ./bin/nevnapok.mjs tui",
+    "pipeline": "node ./bin/nevnapok.mjs pipeline futtat teljes",
+    "allapot": "node ./bin/nevnapok.mjs pipeline allapot",
+    "test": "node --test",
+    "ellenorzes": "node --test",
+    "google-naptar:auth:reset": "rm -f .google-calendar-oauth.local.json token.json credentials.json"
   },
   "author": "illusionfield <illusionfield@gmail.com>",
   "license": "MIT License",
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
+    "@inkjs/ui": "^2.0.0",
+    "ajv": "^8.18.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.3",
     "googleapis": "^171.4.0",
-    "puppeteer": "^23.11.1"
+    "ink": "^7.0.0",
+    "picocolors": "^1.1.1",
+    "puppeteer": "^23.11.1",
+    "react": "^19.2.5",
+    "yaml": "^2.8.3"
   }
 }
