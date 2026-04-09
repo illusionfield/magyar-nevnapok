@@ -11,6 +11,8 @@ import { futtatNodeFolyamat } from "../kozos/parancs-futtatas.mjs";
 import { kanonikusUtvonalak } from "../kozos/utvonalak.mjs";
 import { letezik } from "../kozos/fajlrendszer.mjs";
 import {
+  allitHelyiPrimerForrast,
+  betoltHelyiPrimerBeallitasokat,
   betoltHelyiPrimerFelulirasokat,
   buildHelyiPrimerFelulirasMap,
   kapcsolHelyiPrimerKiegeszitest,
@@ -289,6 +291,7 @@ export async function generalKimenetet(formatum, opciok = {}) {
       (opciok.output
         ? szarmaztatottKimenetiUtvonal(opciok.output, "sajat")
         : kanonikusUtvonalak.naptar.sajat);
+    const helyiPrimerBeallitasok = await betoltHelyiPrimerBeallitasokat();
 
     await futtatNodeFolyamat(
       modulUtvonal("domainek/naptar/ics-generalas.mjs"),
@@ -309,7 +312,7 @@ export async function generalKimenetet(formatum, opciok = {}) {
           ...opciok,
           output: sajatOutput,
           mode: "primary-together",
-          primarySource: opciok.primarySource ?? "default",
+          primarySource: opciok.primarySource ?? helyiPrimerBeallitasok.settings.primarySource,
           calendarName: `${opciok.calendarName ?? "Névnapok"} — saját elsődleges`,
           localPrimaryOverrides: kanonikusUtvonalak.kezi.primerFelulirasokHelyi,
         }),
@@ -411,6 +414,72 @@ export async function futtatAuditot(ellenorzes, opciok = {}) {
 }
 
 /**
+ * A `betoltVegsoPrimerAuditInspectorAdata` a végső primer riportot TUI-böngészhető formában tölti be.
+ */
+export async function betoltVegsoPrimerAuditInspectorAdata(opciok = {}) {
+  if (opciok.frissitRiport !== false) {
+    await futtatAuditot("vegso-primer", {
+      tukrozzStdout: false,
+      tukrozzStderr: false,
+    });
+  }
+
+  const riport = await betoltStrukturaltFajl(kanonikusUtvonalak.riportok.vegsoPrimer);
+  const rows = (riport.months ?? []).reduce((sum, month) => sum + (month.rows?.length ?? 0), 0);
+
+  return {
+    audit: "vegso-primer",
+    generatedAt: riport.generatedAt ?? null,
+    reportPath: path.relative(process.cwd(), kanonikusUtvonalak.riportok.vegsoPrimer),
+    summary: {
+      rowCount: rows,
+      hardFailureCount: riport.validations?.hardFailureCount ?? 0,
+      mismatchDayCount: riport.validations?.mismatchMonthDays?.length ?? 0,
+      overrideDayCount: riport.validations?.overrideDayCount ?? 0,
+      neverPrimaryCount: riport.summary?.neverPrimaryCount ?? 0,
+      neverPrimaryWithSimilarPrimaryCount:
+        riport.summary?.neverPrimaryWithSimilarPrimaryCount ?? 0,
+      neverPrimaryWithoutSimilarPrimaryCount:
+        riport.summary?.neverPrimaryWithoutSimilarPrimaryCount ?? 0,
+    },
+    validations: riport.validations ?? {},
+    months: riport.months ?? [],
+    leapWindow: riport.leapWindow ?? [],
+    neverPrimaryByMonth: riport.neverPrimaryByMonth ?? [],
+    neverPrimarySimilarPrimary: riport.neverPrimarySimilarPrimary ?? {},
+  };
+}
+
+/**
+ * A `betoltPrimerNelkulAuditInspectorAdata` a primer nélkül maradó nevek riportját TUI-böngészhető formában tölti be.
+ */
+export async function betoltPrimerNelkulAuditInspectorAdata(opciok = {}) {
+  const adat = await betoltPrimerNelkulMaradoNevekSzerkesztoAdata(opciok);
+  const helyiBeallitasok = await betoltHelyiPrimerBeallitasokat();
+
+  return {
+    audit: "primer-nelkul-marado-nevek",
+    ...adat,
+    localSettings: helyiBeallitasok.settings,
+  };
+}
+
+/**
+ * A `betoltAuditInspectorAdata` a kiválasztott auditot egységes TUI-inspector formában tölti be.
+ */
+export async function betoltAuditInspectorAdata(ellenorzes, opciok = {}) {
+  if (ellenorzes === "vegso-primer") {
+    return betoltVegsoPrimerAuditInspectorAdata(opciok);
+  }
+
+  if (ellenorzes === "primer-nelkul-marado-nevek") {
+    return betoltPrimerNelkulAuditInspectorAdata(opciok);
+  }
+
+  throw new Error(`Ehhez az audit-azonosítóhoz még nincs inspector nézet: ${ellenorzes}`);
+}
+
+/**
  * A `betoltPrimerNelkulMaradoNevekSzerkesztoAdata` a TUI szerkesztőhöz készít egyesített nézetet.
  *
  * A riportot alapértelmezés szerint frissítjük, hogy a szerkesztő ne egy elavult snapshotot mutasson.
@@ -425,6 +494,7 @@ export async function betoltPrimerNelkulMaradoNevekSzerkesztoAdata(opciok = {}) 
 
   const riport = await betoltStrukturaltFajl(kanonikusUtvonalak.riportok.primerNelkulMaradoNevek);
   const helyiFelulirasok = await betoltHelyiPrimerFelulirasokat();
+  const helyiBeallitasok = await betoltHelyiPrimerBeallitasokat();
   const helyiMap = buildHelyiPrimerFelulirasMap(helyiFelulirasok.payload);
   let helyiKijelolesDarab = 0;
 
@@ -466,7 +536,20 @@ export async function betoltPrimerNelkulMaradoNevekSzerkesztoAdata(opciok = {}) 
       ...(riport.summary ?? {}),
       localSelectedCount: helyiKijelolesDarab,
     },
+    localSettings: helyiBeallitasok.settings,
     months,
+  };
+}
+
+/**
+ * Az `allitSajatPrimerForrast` a személyes naptár primerforrási profilját módosítja.
+ */
+export async function allitSajatPrimerForrast(primarySource) {
+  const eredmeny = await allitHelyiPrimerForrast({ primarySource });
+
+  return {
+    primarySource: eredmeny.primarySource,
+    localOverridesPath: path.relative(process.cwd(), eredmeny.path),
   };
 }
 

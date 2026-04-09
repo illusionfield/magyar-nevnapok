@@ -32,6 +32,20 @@ test("a kimenet súgó tartalmazza a csv és excel formátumokat", async () => {
   assert.match(stdout, /excel/i);
 });
 
+test("az ICS súgó már nem listázza kiemelt opcióként a primerforrást, csak kompatibilitási megjegyzésként", async () => {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [binUtvonal, "kimenet", "general", "ics", "--help"],
+    {
+      cwd: gyoker,
+    }
+  );
+
+  assert.doesNotMatch(stdout, /Primerforrás: default, legacy, ranked vagy either/);
+  assert.match(stdout, /--primary-source kapcsoló kompatibilitási okból/);
+  assert.match(stdout, /Saját primer szerkesztő/);
+});
+
 test("az audit súgó tartalmazza a primer nélkül maradó nevek auditot", async () => {
   const { stdout } = await execFileAsync(
     process.execPath,
@@ -50,4 +64,6 @@ test("a TUI súgó tartalmazza a primer szerkesztő kezdőnézetét", async () =
   });
 
   assert.match(stdout, /primer-szerkeszto/);
+  assert.match(stdout, /audit-vegso-primer-inspector/);
+  assert.match(stdout, /audit-primer-nelkul-inspector/);
 });

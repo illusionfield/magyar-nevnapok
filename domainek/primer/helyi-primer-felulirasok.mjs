@@ -16,6 +16,16 @@ import { dedupeKeepOrder, normalizeNameForMatch, parseMonthDay } from "./alap.mj
 
 export const DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH =
   kanonikusUtvonalak.kezi.primerFelulirasokHelyi;
+const ERVENYES_HELYI_PRIMER_FORRASOK = new Set(["default", "legacy", "ranked", "either"]);
+
+/**
+ * Az `alapertelmezettHelyiPrimerBeallitasok` a helyi, személyes primerbeállítások alapértékeit adja.
+ */
+export function alapertelmezettHelyiPrimerBeallitasok() {
+  return {
+    primarySource: "default",
+  };
+}
 
 /**
  * Az `uresHelyiPrimerFelulirasPayload` létrehozza az üres, de érvényes helyi felülírási payloadot.
@@ -25,6 +35,7 @@ export function uresHelyiPrimerFelulirasPayload(generatedAt = new Date().toISOSt
     version: 1,
     generatedAt,
     source: "helyi egyedi primerkiegészítések",
+    settings: alapertelmezettHelyiPrimerBeallitasok(),
     days: [],
   };
 }
@@ -55,6 +66,69 @@ export async function betoltHelyiPrimerFelulirasokat(
   return {
     path: resolvedPath,
     payload,
+  };
+}
+
+/**
+ * A `normalizalHelyiPrimerBeallitasokat` beolvasható, stabil szerkezetet ad a helyi beállításokhoz.
+ */
+function normalizalHelyiPrimerBeallitasokat(settings) {
+  const alap = alapertelmezettHelyiPrimerBeallitasok();
+  const primarySource = String(settings?.primarySource ?? alap.primarySource).trim();
+
+  return {
+    primarySource: ERVENYES_HELYI_PRIMER_FORRASOK.has(primarySource)
+      ? primarySource
+      : alap.primarySource,
+  };
+}
+
+/**
+ * A `betoltHelyiPrimerBeallitasokat` a helyi primerfájl beállítási részét tölti be.
+ */
+export async function betoltHelyiPrimerBeallitasokat(
+  filePath = DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH
+) {
+  const { path: resolvedPath, payload } = await betoltHelyiPrimerFelulirasokat(filePath);
+
+  return {
+    path: resolvedPath,
+    settings: normalizalHelyiPrimerBeallitasokat(payload?.settings),
+    payload,
+  };
+}
+
+/**
+ * Az `allitHelyiPrimerForrast` a személyes naptár primerforrási profilját menti.
+ */
+export async function allitHelyiPrimerForrast({
+  primarySource,
+  filePath = DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH,
+}) {
+  const normalizedPrimarySource = String(primarySource ?? "").trim();
+
+  if (!ERVENYES_HELYI_PRIMER_FORRASOK.has(normalizedPrimarySource)) {
+    throw new Error("A helyi primerforrás ezek egyike lehet: default, legacy, ranked, either.");
+  }
+
+  const { path: resolvedPath, payload } = await betoltHelyiPrimerFelulirasokat(filePath);
+  const nextPayload = {
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    source: payload?.source ?? "helyi egyedi primerkiegészítések",
+    settings: {
+      ...normalizalHelyiPrimerBeallitasokat(payload?.settings),
+      primarySource: normalizedPrimarySource,
+    },
+    days: Array.isArray(payload?.days) ? payload.days : [],
+  };
+
+  await mentStrukturaltFajl(resolvedPath, nextPayload);
+
+  return {
+    path: resolvedPath,
+    payload: nextPayload,
+    primarySource: normalizedPrimarySource,
   };
 }
 
@@ -181,6 +255,7 @@ export async function kapcsolHelyiPrimerKiegeszitest({
     version: 1,
     generatedAt: new Date().toISOString(),
     source: payload?.source ?? "helyi egyedi primerkiegészítések",
+    settings: normalizalHelyiPrimerBeallitasokat(payload?.settings),
     days: Array.from(overrideMap.values()).sort((left, right) =>
       left.monthDay.localeCompare(right.monthDay, "hu")
     ),

@@ -8,6 +8,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { render, Box, Text, useApp, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
 import {
+  allitSajatPrimerForrast,
+  betoltAuditInspectorAdata,
   betoltPrimerNelkulMaradoNevekSzerkesztoAdata,
   kapcsolPrimerNelkuliHelyiKiegeszitest,
   futtatAuditot,
@@ -21,10 +23,10 @@ const KOZOS_FORRAS_CIMKEK = {
   normalized: "N",
   ranking: "R",
 };
+const SAJAT_PRIMER_FORRAS_PROFILOK = ["default", "legacy", "ranked", "either"];
 const ALAPERTELMEZETT_ICS_BEALLITASOK = {
   splitPrimaryRest: false,
   mode: "together",
-  primarySource: "default",
   primaryCalendarMode: "together",
   restCalendarMode: "together",
   leapMode: "none",
@@ -42,6 +44,14 @@ const ICS_BEALLITAS_DEFINICIOK = [
     kulcs: "splitPrimaryRest",
     cimke: "Primer / további szétválasztás",
     tipus: "boolean",
+    rovidLeiras:
+      "Külön fájlba bontja az elsődleges és a további névnapokat. Hasznos, ha két külön naptárt szeretnél szinkronizálni.",
+    ertekLeirasok: {
+      true:
+        "Két külön ICS készül: egy elsődleges és egy további névnapos. A szétválasztott naptárak külön-külön is importálhatók.",
+      false:
+        "Minden névnap egyetlen kimeneti naptárba kerül. Ez a legegyszerűbb, egyfájlos használat.",
+    },
   },
   {
     kulcs: "mode",
@@ -55,36 +65,77 @@ const ICS_BEALLITAS_DEFINICIOK = [
       "primary-separate",
       "primary-separate-with-rest",
     ],
-  },
-  {
-    kulcs: "primarySource",
-    cimke: "Primerforrás",
-    tipus: "enum",
-    ertekek: ["default", "legacy", "ranked", "either"],
+    rovidLeiras:
+      "Meghatározza, hogy naponta egy esemény készüljön, vagy névenként külön események, illetve hogy csak primernevek vagy minden névnap jelenjen meg.",
+    ertekLeirasok: {
+      together:
+        "Naponta egyetlen esemény készül, amelyen az aznapi nevek együtt jelennek meg. Ez a legletisztultabb általános naptárnézet.",
+      separate:
+        "Minden név külön eseményt kap. Akkor hasznos, ha szűrni vagy finomabban feldolgozni akarod az eseményeket.",
+      "primary-together":
+        "Csak az elsődleges nevek kerülnek be, naponta egy eseményben összefogva. Jó választás tiszta primernaptárhoz.",
+      "primary-together-with-rest":
+        "Az elsődleges nevek a fő eseményben maradnak, a további nevek pedig a leírásban szerepelnek. Kiegyensúlyozott, informatív mód.",
+      "primary-separate":
+        "Csak az elsődleges nevek maradnak bent, és azok is külön eseményenként. Részletes, de még mindig primerfókuszú nézet.",
+      "primary-separate-with-rest":
+        "Az elsődleges nevek külön eseményeket kapnak, a további névnapok pedig kiegészítő információként megmaradnak. Haladó, részletes beállítás.",
+    },
   },
   {
     kulcs: "primaryCalendarMode",
     cimke: "Elsődleges naptár módja",
     tipus: "enum",
     ertekek: ["grouped", "separate"],
+    rovidLeiras:
+      "Szétválasztott exportnál ez dönti el, hogy az elsődleges naptár naponta egyetlen eseményt vagy névenként külön eseményeket kapjon.",
+    ertekLeirasok: {
+      grouped: "Az elsődleges nevek naponta együtt maradnak, így rövidebb és nyugodtabb naptárképet adnak.",
+      separate:
+        "Az elsődleges nevek külön események lesznek. Akkor jó, ha névenként akarsz szűrni vagy külön emlékeztetőket kezelni.",
+    },
   },
   {
     kulcs: "restCalendarMode",
     cimke: "További naptár módja",
     tipus: "enum",
     ertekek: ["grouped", "separate"],
+    rovidLeiras:
+      "Szétválasztott exportnál ez szabályozza a nem elsődleges névnapok csoportosítását.",
+    ertekLeirasok: {
+      grouped:
+        "A további névnapok naponta csoportosítva jelennek meg. Ez a kevésbé zajos, áttekinthetőbb beállítás.",
+      separate:
+        "A további névnapok külön eseményekké válnak. Akkor hasznos, ha a teljes névnapkészletet részletesen akarod látni.",
+    },
   },
   {
     kulcs: "leapMode",
     cimke: "Szökőéves mód",
     tipus: "enum",
     ertekek: ["none", "hungarian-until-2050"],
+    rovidLeiras:
+      "A február végi mozgó névnapok kezelését szabályozza. A magyar gyakorlat 2050-ig külön stratégiával modellezhető.",
+    ertekLeirasok: {
+      none:
+        "Nincs külön szökőéves eltolás. Az események egyszerű, ismétlődő mintában készülnek el.",
+      "hungarian-until-2050":
+        "A magyar február 24–29. napokra vonatkozó eltolási szabályt alkalmazza 2050-ig. Ez a történeti és gyakorlati kompatibilitási mód.",
+    },
   },
   {
     kulcs: "leapStrategy",
     cimke: "Szökőéves stratégia",
     tipus: "enum",
     ertekek: ["a", "b", "both"],
+    rovidLeiras:
+      "A magyar szökőéves névnapeltolás több értelmezési változata közül választ. Csak akkor számít, ha a szökőéves mód be van kapcsolva.",
+    ertekLeirasok: {
+      a: "Az A stratégia szerint generál. Ezt használd, ha a korábbi kompatibilitási variánsod erre épült.",
+      b: "A B stratégia szerint generál. Akkor célszerű, ha a másik történeti eltolási mintát követed.",
+      both:
+        "Mindkét változat külön fájlban elkészül. Összehasonlításhoz és ellenőrzéshez a leghasznosabb opció.",
+    },
   },
   {
     kulcs: "fromYear",
@@ -93,6 +144,8 @@ const ICS_BEALLITAS_DEFINICIOK = [
     min: 1900,
     max: 2050,
     step: 1,
+    rovidLeiras:
+      "A szökőéves, konkrét évre szóló események kezdőéve. Csak a magyar szökőéves mód mellett lényeges.",
   },
   {
     kulcs: "untilYear",
@@ -101,6 +154,8 @@ const ICS_BEALLITAS_DEFINICIOK = [
     min: 1900,
     max: 2050,
     step: 1,
+    rovidLeiras:
+      "A szökőéves, konkrét évre szóló események utolsó éve. Ha növeled, hosszabb időhorizontra készülnek el az eltolt februári napok.",
   },
   {
     kulcs: "baseYear",
@@ -109,29 +164,63 @@ const ICS_BEALLITAS_DEFINICIOK = [
     min: 1900,
     max: 2100,
     step: 1,
+    rovidLeiras:
+      "A nem szökőéves ismétlődő események technikai báziséve. Naptárimport-kompatibilitási célra szolgál, ritkán kell módosítani.",
   },
   {
     kulcs: "descriptionMode",
     cimke: "Leírásmód",
     tipus: "enum",
     ertekek: ["none", "compact", "detailed"],
+    rovidLeiras:
+      "Megadja, mennyi kiegészítő szöveg kerüljön az eseményleírásba.",
+    ertekLeirasok: {
+      none: "Nem kerül külön leírás az eseményekbe. A legminimalistább naptárkimenet.",
+      compact:
+        "Rövid, tömör leírás készül a legfontosabb adatokkal. Áttekinthető marad, de ad kontextust.",
+      detailed:
+        "Részletes eseményleírás készül. Akkor hasznos, ha a naptár legyen önmagában is informatív referencia.",
+    },
   },
   {
     kulcs: "descriptionFormat",
     cimke: "Leírásformátum",
     tipus: "enum",
     ertekek: ["text", "html", "full"],
+    rovidLeiras:
+      "A leírás technikai formátumát szabályozza, hogy a cél naptáralkalmazás milyen gazdag tartalmat tud megjeleníteni.",
+    ertekLeirasok: {
+      text: "Csak egyszerű szöveges leírás készül. Ez a legszélesebb körben kompatibilis forma.",
+      html: "HTML-leírás készül, gazdagabb megjelenítéshez. Olyan klienseknél hasznos, amelyek ezt ténylegesen kirajzolják.",
+      full:
+        "A szöveges és a gazdagabb leírás együtt készül el. Akkor jó, ha vegyes klienskörnyezetre exportálsz.",
+    },
   },
   {
     kulcs: "ordinalDay",
     cimke: "Év napja",
     tipus: "enum",
     ertekek: ["none", "summary", "description"],
+    rovidLeiras:
+      "Az év sorszámozott napjának megjelenítését szabályozza. Ez inkább információs extra, mint kötelező névnapadat.",
+    ertekLeirasok: {
+      none: "Az év napja egyáltalán nem jelenik meg.",
+      summary: "Az év napja rövid, kiemelt formában kerül be az esemény összefoglaló részébe.",
+      description: "Az év napja a leírás részeként jelenik meg, így kevésbé hangsúlyos, de visszakereshető.",
+    },
   },
   {
     kulcs: "includeOtherDays",
     cimke: "További névnapok a leírásban",
     tipus: "boolean",
+    rovidLeiras:
+      "Az elsődleges fókuszú események leírásába beemeli a nem elsődleges, ugyanarra a napra eső neveket is.",
+    ertekLeirasok: {
+      true:
+        "A leírásban megjelennek a további névnapok is. Ettől informatívabb lesz a naptár, de hosszabb leírásokat kapsz.",
+      false:
+        "Csak a kiválasztott eseménylogika szerinti fő nevek látszanak. Rövidebb és tisztább marad a kimenet.",
+    },
   },
 ];
 
@@ -164,12 +253,21 @@ const menuPontok = [
     vegrehajt: async () => ({ tipus: "audit", adat: await futtatAuditot("mind") }),
   },
   {
-    azonosito: "audit-primer-nelkul",
-    cim: "Primer nélkül maradó nevek audit",
-    leiras: "Havi bontásban mutatja a végső primerkészletből kimaradó normalizált és rangsorolt neveket.",
+    azonosito: "audit-vegso-primer-inspector",
+    cim: "Végső primer audit inspector",
+    leiras: "Böngészhető, napi nézet a végső primerjegyzék forrásairól, eltéréseiről és rejtett neveiről.",
     vegrehajt: async () => ({
-      tipus: "audit",
-      adat: await futtatAuditot("primer-nelkul-marado-nevek"),
+      tipus: "audit-inspector",
+      adat: await betoltAuditInspectorAdata("vegso-primer"),
+    }),
+  },
+  {
+    azonosito: "audit-primer-nelkul-inspector",
+    cim: "Primer nélkül maradó nevek inspector",
+    leiras: "Havi bontásban böngészhető, színezett nézet a végső primerkészletből kimaradó nevekre.",
+    vegrehajt: async () => ({
+      tipus: "audit-inspector",
+      adat: await betoltAuditInspectorAdata("primer-nelkul-marado-nevek"),
     }),
   },
   {
@@ -295,6 +393,80 @@ function szamolHelyiKijeloleseket(months) {
       sum + (row.combinedMissing ?? []).filter((entry) => entry.localSelected === true).length,
     0
   );
+}
+
+/**
+ * A `lapitottAuditSorok` az audit-inspector havi sorait egyetlen navigálható listává alakítja.
+ */
+function lapitottAuditSorok(months) {
+  return (Array.isArray(months) ? months : []).flatMap((month) =>
+    (month.rows ?? []).map((row) => ({
+      ...row,
+      monthName: month.monthName,
+    }))
+  );
+}
+
+/**
+ * A `vegsoPrimerForrasCimke` rövid, olvasható címkét ad a végső primer napi forrásához.
+ */
+function vegsoPrimerForrasCimke(value) {
+  const cimkek = {
+    "manual-override": "kézi felülírás",
+    "legacy-wiki-exact": "legacy = wiki",
+    "warning-union": "figyelmeztetéses unió",
+  };
+
+  return cimkek[value] ?? (value || "ismeretlen");
+}
+
+/**
+ * A `vegsoPrimerForrasSzine` színt rendel a végső primer napi forrásához.
+ */
+function vegsoPrimerForrasSzine(row) {
+  if (row?.warning) {
+    return "red";
+  }
+
+  if (row?.source === "manual-override") {
+    return "yellow";
+  }
+
+  if (row?.source === "legacy-wiki-exact") {
+    return "green";
+  }
+
+  return "cyan";
+}
+
+/**
+ * A `primerNapSzine` a végső primerdarab alapján színt választ.
+ */
+function primerNapSzine(finalPrimaryCount) {
+  if (finalPrimaryCount === 1) {
+    return "green";
+  }
+
+  if (finalPrimaryCount === 2) {
+    return "yellow";
+  }
+
+  if (finalPrimaryCount >= 3) {
+    return "red";
+  }
+
+  return undefined;
+}
+
+/**
+ * A `formataltKapcsolodoPrimerek` rövid, olvasható hasonlóprimer-listát készít.
+ */
+function formataltKapcsolodoPrimerek(entries, maxItems = 6) {
+  const normalized = (Array.isArray(entries) ? entries : []).map(
+    (entry) => `${entry.primaryName} (${entry.relation})`
+  );
+
+  return formataltNevek(normalized, maxItems);
 }
 
 /**
@@ -443,12 +615,6 @@ function icsErtekCimke(kulcs, ertek) {
       "primary-separate": "csak primerek, külön eseményenként",
       "primary-separate-with-rest": "primerek külön, többi külön gyűjtve",
     },
-    primarySource: {
-      default: "alapértelmezett (legacy + ranking)",
-      legacy: "legacy",
-      ranked: "rangsorolt",
-      either: "legacy vagy rangsorolt (legfeljebb 2)",
-    },
     primaryCalendarMode: {
       grouped: "egyben",
       together: "egyben",
@@ -500,6 +666,88 @@ function icsErtekCimke(kulcs, ertek) {
   }
 
   return String(ertek);
+}
+
+/**
+ * Az `icsBeallitasLeiras` részletes magyarázatot ad az aktuálisan kijelölt ICS-kapcsolóhoz.
+ */
+function icsBeallitasLeiras(definicio, beallitasok) {
+  if (!definicio) {
+    return [];
+  }
+
+  const aktualisErtek = beallitasok[definicio.kulcs];
+  const ertekKulcs = String(aktualisErtek);
+  const aktualisLeiras =
+    definicio.ertekLeirasok?.[aktualisErtek] ??
+    definicio.ertekLeirasok?.[ertekKulcs] ??
+    null;
+  const sorok = [
+    `Mit vezérel: ${definicio.rovidLeiras ?? "—"}`,
+    `Aktuális érték: ${icsErtekCimke(definicio.kulcs, aktualisErtek)}`,
+  ];
+
+  if (aktualisLeiras) {
+    sorok.push(`Mit csinál most: ${aktualisLeiras}`);
+  }
+
+  if (definicio.tipus === "number") {
+    sorok.push(
+      `Értéktartomány: ${definicio.min ?? "—"} – ${definicio.max ?? "—"}${
+        definicio.step ? `, lépésköz: ${definicio.step}` : ""
+      }`
+    );
+  }
+
+  return sorok;
+}
+
+/**
+ * A `icsBeallitasValtozasUzenet` rövid infósáv-szöveget készít egy állítás után.
+ */
+function icsBeallitasValtozasUzenet(definicio, beallitasok) {
+  const sorok = icsBeallitasLeiras(definicio, beallitasok);
+
+  if (sorok.length === 0) {
+    return null;
+  }
+
+  return `${definicio.cimke} → ${icsErtekCimke(
+    definicio.kulcs,
+    beallitasok[definicio.kulcs]
+  )}. ${sorok.slice(2).join(" ")}`.trim();
+}
+
+/**
+ * A `sajatPrimerForrasCimke` emberi olvasatú címkét ad a személyes primerforrás-profilhoz.
+ */
+function sajatPrimerForrasCimke(ertek) {
+  const cimkek = {
+    default: "alapértelmezett (legacy + ranking kiegészítés)",
+    legacy: "legacy elsődlegesek",
+    ranked: "rangsorolt elsődlegesek",
+    either: "legacy vagy ranking uniója",
+  };
+
+  return cimkek[ertek] ?? String(ertek);
+}
+
+/**
+ * A `sajatPrimerForrasLeiras` részletes magyarázatot ad a személyes primerforrás-profilhoz.
+ */
+function sajatPrimerForrasLeiras(ertek) {
+  const leirasok = {
+    default:
+      "A saját naptárban az alapértelmezett primerlogika marad érvényben: a legacy elsődlegesek és a rangsorolt kiegészítések együtt határozzák meg a primerneveket.",
+    legacy:
+      "A saját naptár primeres része csak a legacy elsődleges kijelölésre támaszkodik. Akkor hasznos, ha a régi, hagyományos névnaprendhez akarsz közelebb maradni.",
+    ranked:
+      "A saját naptár primeres része a rangsorolt névjelölésekre épül. Ez modernebb, gyakorisági alapú fókuszt adhat a naptárnak.",
+    either:
+      "A saját naptárban a legacy és a rangsorolt primerjelölés uniója használható. Ez bővebb primerlistát eredményezhet, de zajosabb is lehet.",
+  };
+
+  return leirasok[ertek] ?? String(ertek);
 }
 
 /**
@@ -563,7 +811,6 @@ function buildIcsParancsElozetet(beallitasok) {
   }
 
   reszek.push(`--mode ${beallitasok.mode}`);
-  reszek.push(`--primary-source ${beallitasok.primarySource}`);
   reszek.push(`--primary-calendar-mode ${beallitasok.primaryCalendarMode}`);
   reszek.push(`--rest-calendar-mode ${beallitasok.restCalendarMode}`);
   reszek.push(`--leap-mode ${beallitasok.leapMode}`);
@@ -596,9 +843,12 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
   useEffect(() => {
     setBeallitasok(adat);
     setKijeloltIndex(0);
-    setUzenet(null);
+    setUzenet(icsBeallitasValtozasUzenet(ICS_BEALLITAS_DEFINICIOK[0], adat));
     setUzenetTipus("info");
   }, [adat]);
+
+  const aktualisDefinicio = ICS_BEALLITAS_DEFINICIOK[kijeloltIndex] ?? null;
+  const helpSorok = icsBeallitasLeiras(aktualisDefinicio, beallitasok);
 
   useInput(async (input, key) => {
     if (input === "q") {
@@ -616,38 +866,62 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
     }
 
     if (key.upArrow) {
-      setKijeloltIndex(
-        (elozo) => (elozo - 1 + ICS_BEALLITAS_DEFINICIOK.length) % ICS_BEALLITAS_DEFINICIOK.length
-      );
+      setKijeloltIndex((elozo) => {
+        const kovetkezo =
+          (elozo - 1 + ICS_BEALLITAS_DEFINICIOK.length) % ICS_BEALLITAS_DEFINICIOK.length;
+        setUzenet(icsBeallitasValtozasUzenet(ICS_BEALLITAS_DEFINICIOK[kovetkezo], beallitasok));
+        setUzenetTipus("info");
+        return kovetkezo;
+      });
       return;
     }
 
     if (key.downArrow) {
-      setKijeloltIndex((elozo) => (elozo + 1) % ICS_BEALLITAS_DEFINICIOK.length);
+      setKijeloltIndex((elozo) => {
+        const kovetkezo = (elozo + 1) % ICS_BEALLITAS_DEFINICIOK.length;
+        setUzenet(icsBeallitasValtozasUzenet(ICS_BEALLITAS_DEFINICIOK[kovetkezo], beallitasok));
+        setUzenetTipus("info");
+        return kovetkezo;
+      });
       return;
     }
 
-    const aktualisDefinicio = ICS_BEALLITAS_DEFINICIOK[kijeloltIndex];
-
     if (key.leftArrow) {
-      setBeallitasok((elozo) => frissitIcsBeallitast(elozo, aktualisDefinicio, -1));
+      setBeallitasok((elozo) => {
+        const kovetkezo = frissitIcsBeallitast(elozo, aktualisDefinicio, -1);
+        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, kovetkezo));
+        setUzenetTipus("info");
+        return kovetkezo;
+      });
       return;
     }
 
     if (key.rightArrow) {
-      setBeallitasok((elozo) => frissitIcsBeallitast(elozo, aktualisDefinicio, 1));
+      setBeallitasok((elozo) => {
+        const kovetkezo = frissitIcsBeallitast(elozo, aktualisDefinicio, 1);
+        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, kovetkezo));
+        setUzenetTipus("info");
+        return kovetkezo;
+      });
       return;
     }
 
     if (input === " ") {
-      setBeallitasok((elozo) => frissitIcsBeallitast(elozo, aktualisDefinicio, 1));
+      setBeallitasok((elozo) => {
+        const kovetkezo = frissitIcsBeallitast(elozo, aktualisDefinicio, 1);
+        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, kovetkezo));
+        setUzenetTipus("info");
+        return kovetkezo;
+      });
       return;
     }
 
     if (input === "r") {
       setBeallitasok({ ...ALAPERTELMEZETT_ICS_BEALLITASOK });
       setUzenetTipus("info");
-      setUzenet("Az ICS-beállítások visszaálltak az alapértékekre.");
+      setUzenet(
+        "Az ICS-beállítások visszaálltak az alapértékekre. A személyes primerforrás a Saját primer szerkesztőben állítható."
+      );
       return;
     }
 
@@ -727,11 +1001,16 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
         e(Text, { bold: true }, "Parancselőnézet"),
         e(Text, null, buildIcsParancsElozetet(beallitasok)),
         e(Text, { bold: true }, ""),
+        e(Text, { bold: true }, "Kapcsoló részletes leírása"),
+        ...(helpSorok.length > 0
+          ? helpSorok.map((sor, index) => e(Text, { key: `ics-help-${index}` }, sor))
+          : [e(Text, { key: "ics-help-ures", dimColor: true }, "Nincs kijelölt kapcsoló.")]),
+        e(Text, { bold: true }, ""),
         e(Text, { bold: true }, "Megjegyzés"),
         e(
           Text,
           null,
-          "Ha létezik helyi primerkiegészítés, a generálás a közös naptár mellett egy saját primeres ICS-t is készíthet."
+          "A primerforrás választó innen kikerült. A saját naptár primerlogikáját a Saját primer szerkesztő kezeli, mert ott együtt látszik a helyi kijelölésekkel és az egyéni naptárgenerálással."
         )
       )
     )
@@ -746,6 +1025,7 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
   const [szerkesztoAdat, setSzerkesztoAdat] = useState(adat);
   const [kijeloltSorIndex, setKijeloltSorIndex] = useState(0);
   const [kijeloltNevIndex, setKijeloltNevIndex] = useState(0);
+  const [aktivPanel, setAktivPanel] = useState("nevek");
   const [folyamatban, setFolyamatban] = useState(false);
   const [uzenet, setUzenet] = useState(null);
   const [uzenetTipus, setUzenetTipus] = useState("info");
@@ -754,7 +1034,12 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
     setSzerkesztoAdat(adat);
     setKijeloltSorIndex(0);
     setKijeloltNevIndex(0);
-    setUzenet(null);
+    setAktivPanel("nevek");
+    setUzenet(
+      `Személyes primerforrás: ${sajatPrimerForrasCimke(
+        adat?.localSettings?.primarySource ?? "default"
+      )}`
+    );
     setUzenetTipus("info");
   }, [adat]);
 
@@ -801,6 +1086,11 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       return;
     }
 
+    if (key.tab || input === "p") {
+      setAktivPanel((elozo) => (elozo === "nevek" ? "primerforras" : "nevek"));
+      return;
+    }
+
     if (sorok.length === 0) {
       return;
     }
@@ -815,14 +1105,48 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       return;
     }
 
-    if (key.leftArrow && aktualisNevek.length > 0) {
+    if (aktivPanel === "primerforras" && (key.leftArrow || key.rightArrow || input === " ")) {
+      const aktualisForras = szerkesztoAdat?.localSettings?.primarySource ?? "default";
+      const irany = key.leftArrow ? -1 : 1;
+      const kovetkezoForras = leptetEnumErteket(
+        SAJAT_PRIMER_FORRAS_PROFILOK,
+        aktualisForras,
+        irany
+      );
+
+      setFolyamatban(true);
+      try {
+        const eredmeny = await allitSajatPrimerForrast(kovetkezoForras);
+        setSzerkesztoAdat((elozo) => ({
+          ...elozo,
+          localSettings: {
+            ...(elozo.localSettings ?? {}),
+            primarySource: eredmeny.primarySource,
+          },
+        }));
+        setUzenetTipus("siker");
+        setUzenet(
+          `Személyes primerforrás mentve: ${sajatPrimerForrasCimke(
+            eredmeny.primarySource
+          )}`
+        );
+      } catch (error) {
+        setUzenetTipus("hiba");
+        setUzenet(error?.message ?? String(error));
+      } finally {
+        setFolyamatban(false);
+      }
+      return;
+    }
+
+    if (key.leftArrow && aktivPanel === "nevek" && aktualisNevek.length > 0) {
       setKijeloltNevIndex(
         (elozo) => (elozo - 1 + aktualisNevek.length) % aktualisNevek.length
       );
       return;
     }
 
-    if (key.rightArrow && aktualisNevek.length > 0) {
+    if (key.rightArrow && aktivPanel === "nevek" && aktualisNevek.length > 0) {
       setKijeloltNevIndex((elozo) => (elozo + 1) % aktualisNevek.length);
       return;
     }
@@ -860,7 +1184,7 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       return;
     }
 
-    if (input === " " && aktualisSor && aktualisNev) {
+    if (input === " " && aktivPanel === "nevek" && aktualisSor && aktualisNev) {
       setFolyamatban(true);
       try {
         const eredmeny = await kapcsolPrimerNelkuliHelyiKiegeszitest({
@@ -905,7 +1229,7 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
     e(
       Text,
       { dimColor: true },
-      "↑/↓: nap • ←/→: név • Space: helyi primer hozzáadása/eltávolítása • g: saját naptár generálása • r: frissítés • Esc vagy v: vissza • q: kilépés"
+      "↑/↓: nap • Tab vagy p: panelváltás • ←/→: név vagy primerforrás • Space: kapcsolás • g: saját naptár generálása • r: frissítés • Esc vagy v: vissza • q: kilépés"
     ),
     e(
       Text,
@@ -915,7 +1239,9 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
     e(
       Text,
       { dimColor: true },
-      `Érintett napok: ${szerkesztoAdat.summary?.rowCount ?? 0} • Helyben kijelölt nevek: ${szerkesztoAdat.summary?.localSelectedCount ?? 0}`
+      `Érintett napok: ${szerkesztoAdat.summary?.rowCount ?? 0} • Helyben kijelölt nevek: ${szerkesztoAdat.summary?.localSelectedCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
+        szerkesztoAdat.localSettings?.primarySource ?? "default"
+      )}`
     ),
     folyamatban
       ? e(Box, { marginTop: 1 }, e(Spinner, { label: "Művelet folyamatban..." }))
@@ -958,14 +1284,7 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
               Text,
               {
                 bold: true,
-                color:
-                  row.finalPrimaryCount === 1
-                    ? "green"
-                    : row.finalPrimaryCount === 2
-                      ? "yellow"
-                      : row.finalPrimaryCount >= 3
-                        ? "red"
-                        : undefined,
+                color: primerNapSzine(row.finalPrimaryCount),
               },
               row.monthDay
             ),
@@ -980,10 +1299,29 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       e(
         Box,
         { flexDirection: "column", flexGrow: 1 },
+        e(
+          Text,
+          { bold: true },
+          `Aktív panel: ${aktivPanel === "nevek" ? "helyi névkijelölés" : "személyes primerforrás"}`
+        ),
         e(Text, { bold: true }, `${aktualisSor.monthName} • ${aktualisSor.monthDay}`),
         e(Text, null, `Végső primerek: ${formataltNevek(aktualisSor.finalPrimaryNames, 6)}`),
-        e(Text, { dimColor: true }, `Normalizált hiányok: ${formataltNevek((aktualisSor.normalizedMissing ?? []).map((entry) => entry.name), 6)}`),
-        e(Text, { dimColor: true }, `Rangsorolt hiányok: ${formataltNevek((aktualisSor.rankingMissing ?? []).map((entry) => entry.name), 6)}`),
+        e(
+          Text,
+          { dimColor: true },
+          `Normalizált hiányok: ${formataltNevek(
+            (aktualisSor.normalizedMissing ?? []).map((entry) => entry.name),
+            6
+          )}`
+        ),
+        e(
+          Text,
+          { dimColor: true },
+          `Rangsorolt hiányok: ${formataltNevek(
+            (aktualisSor.rankingMissing ?? []).map((entry) => entry.name),
+            6
+          )}`
+        ),
         e(Text, { bold: true }, ""),
         e(Text, { bold: true }, "Közös jelöltek"),
         ...(aktualisNevek.length > 0
@@ -994,17 +1332,44 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
                 ? "green"
                 : entry.highlight
                   ? "blue"
-                  : index === kijeloltNevIndex
+                  : index === kijeloltNevIndex && aktivPanel === "nevek"
                     ? "cyan"
                     : undefined;
 
               return e(
                 Text,
                 { key: `${aktualisSor.monthDay}-${entry.name}`, color },
-                `${prefix} ${checkbox} ${entry.name} ${formatForrasJelzo(entry.sources)}`
+                `${prefix} ${checkbox} ${entry.name} ${formatForrasJelzo(entry.sources)}${
+                  aktivPanel === "nevek" && index === kijeloltNevIndex ? "  ←" : ""
+                }`
               );
             })
           : [e(Text, { key: "ures-nevek", dimColor: true }, "Nincs szerkeszthető jelölt.")]),
+        e(Text, { bold: true }, ""),
+        e(Text, { bold: true }, "Személyes primerforrás"),
+        ...SAJAT_PRIMER_FORRAS_PROFILOK.map((forras) =>
+          e(
+            Text,
+            {
+              key: `forras-${forras}`,
+              color:
+                szerkesztoAdat.localSettings?.primarySource === forras
+                  ? "green"
+                  : undefined,
+            },
+            `${aktivPanel === "primerforras" &&
+            szerkesztoAdat.localSettings?.primarySource === forras
+              ? "❯ "
+              : "  "}${sajatPrimerForrasCimke(forras)}${
+              szerkesztoAdat.localSettings?.primarySource === forras ? " [aktív]" : ""
+            }`
+          )
+        ),
+        e(
+          Text,
+          { dimColor: true },
+          sajatPrimerForrasLeiras(szerkesztoAdat.localSettings?.primarySource ?? "default")
+        ),
         e(Text, { bold: true }, ""),
         aktualisNev
           ? e(
@@ -1033,6 +1398,345 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
           : null
       )
     )
+  );
+}
+
+/**
+ * Az `AuditInspectorNezet` böngészhető, napi részletező nézetet ad a kiemelt auditokhoz.
+ */
+function AuditInspectorNezet({ adat, visszaMenu }) {
+  const { exit } = useApp();
+  const [inspectorAdat, setInspectorAdat] = useState(adat);
+  const [kijeloltSorIndex, setKijeloltSorIndex] = useState(0);
+  const [kijeloltReszletIndex, setKijeloltReszletIndex] = useState(0);
+  const [folyamatban, setFolyamatban] = useState(false);
+  const [uzenet, setUzenet] = useState(null);
+  const [uzenetTipus, setUzenetTipus] = useState("info");
+
+  useEffect(() => {
+    setInspectorAdat(adat);
+    setKijeloltSorIndex(0);
+    setKijeloltReszletIndex(0);
+    setUzenet(null);
+    setUzenetTipus("info");
+  }, [adat]);
+
+  const sorok = useMemo(() => lapitottAuditSorok(inspectorAdat?.months), [inspectorAdat]);
+  const aktualisSor = sorok[kijeloltSorIndex] ?? null;
+  const lathatoSorok = kijeloltAblak(sorok, kijeloltSorIndex, 12);
+  const reszletLista =
+    inspectorAdat?.audit === "primer-nelkul-marado-nevek"
+      ? aktualisSor?.combinedMissing ?? []
+      : aktualisSor?.hidden ?? [];
+  const aktualisReszlet = reszletLista[kijeloltReszletIndex] ?? null;
+
+  useEffect(() => {
+    if (sorok.length === 0) {
+      setKijeloltSorIndex(0);
+      return;
+    }
+
+    if (kijeloltSorIndex >= sorok.length) {
+      setKijeloltSorIndex(sorok.length - 1);
+    }
+  }, [kijeloltSorIndex, sorok.length]);
+
+  useEffect(() => {
+    if (reszletLista.length === 0) {
+      setKijeloltReszletIndex(0);
+      return;
+    }
+
+    if (kijeloltReszletIndex >= reszletLista.length) {
+      setKijeloltReszletIndex(reszletLista.length - 1);
+    }
+  }, [kijeloltReszletIndex, reszletLista.length]);
+
+  useInput(async (input, key) => {
+    if (input === "q") {
+      exit();
+      return;
+    }
+
+    if (folyamatban) {
+      return;
+    }
+
+    if (key.escape || input === "v") {
+      visszaMenu();
+      return;
+    }
+
+    if (sorok.length === 0) {
+      return;
+    }
+
+    if (key.upArrow) {
+      setKijeloltSorIndex((elozo) => (elozo - 1 + sorok.length) % sorok.length);
+      return;
+    }
+
+    if (key.downArrow) {
+      setKijeloltSorIndex((elozo) => (elozo + 1) % sorok.length);
+      return;
+    }
+
+    if (reszletLista.length > 0 && key.leftArrow) {
+      setKijeloltReszletIndex((elozo) => (elozo - 1 + reszletLista.length) % reszletLista.length);
+      return;
+    }
+
+    if (reszletLista.length > 0 && key.rightArrow) {
+      setKijeloltReszletIndex((elozo) => (elozo + 1) % reszletLista.length);
+      return;
+    }
+
+    if (input === "r") {
+      setFolyamatban(true);
+
+      try {
+        const friss = await betoltAuditInspectorAdata(inspectorAdat.audit);
+        setInspectorAdat(friss);
+        setUzenetTipus("info");
+        setUzenet("Az audit-inspector friss riporttal újratöltve.");
+      } catch (error) {
+        setUzenetTipus("hiba");
+        setUzenet(error?.message ?? String(error));
+      } finally {
+        setFolyamatban(false);
+      }
+    }
+  });
+
+  if (sorok.length === 0) {
+    return e(
+      Box,
+      { flexDirection: "column" },
+      e(Text, { bold: true }, "Audit inspector"),
+      e(Text, { dimColor: true }, "Esc vagy v: vissza a menübe • q: kilépés"),
+      e(Text, { marginTop: 1 }, "Az audit jelenleg nem tartalmaz böngészhető napi sorokat.")
+    );
+  }
+
+  return e(
+    Box,
+    { flexDirection: "column" },
+    e(
+      Text,
+      { bold: true },
+      inspectorAdat.audit === "vegso-primer"
+        ? "Végső primer audit inspector"
+        : "Primer nélkül maradó nevek inspector"
+    ),
+    e(
+      Text,
+      { dimColor: true },
+      "↑/↓: nap • ←/→: részlet • r: riportfrissítés • Esc vagy v: vissza • q: kilépés"
+    ),
+    e(
+      Text,
+      { dimColor: true },
+      `Riport: ${relativUtvonal(inspectorAdat.reportPath)} • Generálva: ${inspectorAdat.generatedAt ?? "—"}`
+    ),
+    ...auditInspectorOsszegzesSorok(inspectorAdat).map((sor, index) =>
+      e(Text, { key: `audit-summary-${index}`, dimColor: true }, sor)
+    ),
+    folyamatban
+      ? e(Box, { marginTop: 1 }, e(Spinner, { label: "Riport frissítése..." }))
+      : null,
+    uzenet
+      ? e(
+          Text,
+          {
+            color:
+              uzenetTipus === "hiba"
+                ? "red"
+                : uzenetTipus === "siker"
+                  ? "green"
+                  : "cyan",
+          },
+          uzenet
+        )
+      : null,
+    e(
+      Box,
+      { marginTop: 1 },
+      e(
+        Box,
+        { flexDirection: "column", width: 52, marginRight: 2 },
+        e(Text, { bold: true }, "Böngészhető napok"),
+        ...lathatoSorok.map((row) =>
+          e(
+            Box,
+            { key: `${inspectorAdat.audit}-${row.monthDay}-${row.globalIndex}` },
+            e(
+              Text,
+              { color: row.globalIndex === kijeloltSorIndex ? "cyan" : undefined },
+              row.globalIndex === kijeloltSorIndex ? "❯ " : "  "
+            ),
+            renderAuditInspectorBalOldaliSor(inspectorAdat.audit, row)
+          )
+        )
+      ),
+      e(
+        Box,
+        { flexDirection: "column", flexGrow: 1 },
+        renderAuditInspectorReszletek(inspectorAdat, aktualisSor, aktualisReszlet, kijeloltReszletIndex)
+      )
+    )
+  );
+}
+
+/**
+ * Az `auditInspectorOsszegzesSorok` rövid státuszsort készít az inspector fejléce alá.
+ */
+function auditInspectorOsszegzesSorok(adat) {
+  if (adat?.audit === "vegso-primer") {
+    return [
+      `Napok: ${adat.summary?.rowCount ?? 0} • Kemény hibák: ${adat.summary?.hardFailureCount ?? 0} • Felülírt napok: ${adat.summary?.overrideDayCount ?? 0}`,
+      `Primer nélkül maradó nevek: ${adat.summary?.neverPrimaryCount ?? 0} • Ebből hasonló primerrel: ${adat.summary?.neverPrimaryWithSimilarPrimaryCount ?? 0}`,
+    ];
+  }
+
+  return [
+    `Érintett napok: ${adat.summary?.rowCount ?? 0} • Közös hiányzó nevek: ${adat.summary?.combinedMissingCount ?? 0} • Egyedi nevek: ${adat.summary?.uniqueMissingNameCount ?? 0}`,
+    `Helyben kijelölt nevek: ${adat.summary?.localSelectedCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
+      adat.localSettings?.primarySource ?? "default"
+    )}`,
+  ];
+}
+
+/**
+ * A `renderAuditInspectorBalOldaliSor` a bal oldali napi lista egyetlen sorát rajzolja ki.
+ */
+function renderAuditInspectorBalOldaliSor(auditAzonosito, row) {
+  if (auditAzonosito === "vegso-primer") {
+    return e(
+      Text,
+      null,
+      e(Text, { bold: true, color: vegsoPrimerForrasSzine(row) }, row.monthDay),
+      e(
+        Text,
+        null,
+        ` • ${vegsoPrimerForrasCimke(row.source)} • primerek: ${formataltNevek(
+          row.preferredNames,
+          3
+        )} • rejtett: ${(row.hidden ?? []).length}${row.warning ? " • figyelmeztetés" : ""}`
+      )
+    );
+  }
+
+  return e(
+    Text,
+    null,
+    e(Text, { bold: true, color: primerNapSzine(row.finalPrimaryCount) }, row.monthDay),
+    e(
+      Text,
+      null,
+      ` • ${formataltNevek(row.finalPrimaryNames, 3)} • közös: ${(row.combinedMissing ?? []).length}`
+    )
+  );
+}
+
+/**
+ * A `renderAuditInspectorReszletek` a kiválasztott napi sor jobb oldali, részletes paneljét rajzolja ki.
+ */
+function renderAuditInspectorReszletek(adat, row, aktualisReszlet, kijeloltReszletIndex) {
+  if (!row) {
+    return e(Text, null, "Nincs kijelölt sor.");
+  }
+
+  if (adat.audit === "vegso-primer") {
+    return e(
+      Box,
+      { flexDirection: "column" },
+      e(Text, { bold: true }, `${row.monthName} • ${row.monthDay}`),
+      e(
+        Text,
+        { color: vegsoPrimerForrasSzine(row) },
+        `Forrás: ${vegsoPrimerForrasCimke(row.source)}${row.warning ? " • figyelmeztetéses nap" : ""}`
+      ),
+      e(Text, null, `Végső primerek: ${formataltNevek(row.preferredNames, 8)}`),
+      e(Text, { dimColor: true }, `Legacy: ${formataltNevek(row.legacy, 8)}`),
+      e(Text, { dimColor: true }, `Wiki: ${formataltNevek(row.wiki, 8)}`),
+      e(Text, { dimColor: true }, `Normalizált: ${formataltNevek(row.normalized, 8)}`),
+      e(Text, { dimColor: true }, `Rangsorolt: ${formataltNevek(row.ranking, 8)}`),
+      e(
+        Text,
+        { color: (row.hidden ?? []).length > 0 ? "red" : undefined },
+        `Rejtett: ${formataltNevek(row.hidden, 8)}`
+      ),
+      e(
+        Text,
+        { dimColor: true },
+        `Összes aznapi név: ${formataltNevek(row.names, 8)}`
+      ),
+      e(Text, { bold: true }, ""),
+      e(Text, { bold: true }, "Rejtett nevek ezen a napon"),
+      ...((row.hidden ?? []).length > 0
+        ? row.hidden.map((name, index) =>
+            e(
+              Text,
+              {
+                key: `vegso-hidden-${row.monthDay}-${name}`,
+                color: index === kijeloltReszletIndex ? "cyan" : "red",
+              },
+              `${index === kijeloltReszletIndex ? "❯ " : "  "}${name}`
+            )
+          )
+        : [e(Text, { key: "vegso-hidden-ures", dimColor: true }, "Nincs rejtett név ezen a napon.")])
+    );
+  }
+
+  return e(
+    Box,
+    { flexDirection: "column" },
+    e(Text, { bold: true }, `${row.monthName} • ${row.monthDay}`),
+    e(Text, { color: primerNapSzine(row.finalPrimaryCount) }, `Végső primerek: ${formataltNevek(row.finalPrimaryNames, 8)}`),
+    e(Text, { dimColor: true }, `Közös hiányok: ${formataltNevek((row.combinedMissing ?? []).map((entry) => `${entry.name} ${formatForrasJelzo(entry.sources)}`), 8)}`),
+    e(Text, { dimColor: true }, `Normalizált hiányok: ${formataltNevek((row.normalizedMissing ?? []).map((entry) => entry.name), 8)}`),
+    e(Text, { dimColor: true }, `Rangsorolt hiányok: ${formataltNevek((row.rankingMissing ?? []).map((entry) => entry.name), 8)}`),
+    e(Text, { bold: true }, ""),
+    e(Text, { bold: true }, "Közös hiányzó nevek"),
+    ...((row.combinedMissing ?? []).length > 0
+      ? row.combinedMissing.map((entry, index) =>
+          e(
+            Text,
+            {
+              key: `primer-nelkul-combined-${row.monthDay}-${entry.name}`,
+              color: entry.localSelected ? "green" : entry.highlight ? "blue" : index === kijeloltReszletIndex ? "cyan" : undefined,
+            },
+            `${index === kijeloltReszletIndex ? "❯ " : "  "}${entry.name} ${formatForrasJelzo(entry.sources)}${
+              entry.localSelected ? " [helyi]" : ""
+            }`
+          )
+        )
+      : [e(Text, { key: "primer-nelkul-combined-ures", dimColor: true }, "Nincs közös hiányzó név.")]),
+    e(Text, { bold: true }, ""),
+    aktualisReszlet
+      ? e(
+          Box,
+          { flexDirection: "column" },
+          e(Text, { bold: true }, `Kiválasztott név: ${aktualisReszlet.name}`),
+          e(Text, null, `Forrásjelölés: ${formatForrasJelzo(aktualisReszlet.sources)}`),
+          e(Text, null, `Kapcsolódik aznapi primerhez: ${aktualisReszlet.highlight ? "igen" : "nem"}`),
+          e(
+            Text,
+            { dimColor: !aktualisReszlet.highlight },
+            aktualisReszlet.highlight
+              ? `Hasonló primerek: ${formataltKapcsolodoPrimerek(
+                  aktualisReszlet.similarPrimaries,
+                  6
+                )}`
+              : "Nincs közvetlen névkapcsolati jelölés az aznapi végső primerhez."
+          ),
+          e(
+            Text,
+            { dimColor: true },
+            `Személyes primerben: ${aktualisReszlet.localSelected ? "igen" : "nem"}`
+          )
+        )
+      : null
   );
 }
 
@@ -1111,7 +1815,10 @@ function formataltErtek(ertek) {
 function TuiAlkalmazas({ kezdoNezet = "menu" }) {
   const { exit } = useApp();
   const kezdoAzonosito =
-    kezdoNezet === "primer-szerkeszto" || kezdoNezet === "ics"
+    kezdoNezet === "primer-szerkeszto" ||
+    kezdoNezet === "ics" ||
+    kezdoNezet === "audit-vegso-primer-inspector" ||
+    kezdoNezet === "audit-primer-nelkul-inspector"
       ? kezdoNezet
       : kezdoNezet === "ics-beallitasok"
         ? "ics"
@@ -1149,6 +1856,8 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
             ? "primer-szerkeszto"
             : valasz.tipus === "ics-beallitasok"
               ? "ics-beallitasok"
+              : valasz.tipus === "audit-inspector"
+                ? "audit-inspector"
               : "eredmeny"
         );
       } catch (error) {
@@ -1167,7 +1876,11 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
   }, [exit, kezdoIndex, kezdoNezet]);
 
   useInput(async (input, key) => {
-    if (allapot === "primer-szerkeszto" || allapot === "ics-beallitasok") {
+    if (
+      allapot === "primer-szerkeszto" ||
+      allapot === "ics-beallitasok" ||
+      allapot === "audit-inspector"
+    ) {
       return;
     }
 
@@ -1200,6 +1913,8 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
               ? "primer-szerkeszto"
               : valasz.tipus === "ics-beallitasok"
                 ? "ics-beallitasok"
+                : valasz.tipus === "audit-inspector"
+                  ? "audit-inspector"
                 : "eredmeny"
           );
         } catch (error) {
@@ -1249,6 +1964,17 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
 
     if (allapot === "ics-beallitasok") {
       return e(ICSBeallitasNezet, {
+        adat: eredmeny?.adat ?? eredmeny,
+        visszaMenu: () => {
+          setAllapot("menu");
+          setEredmeny(null);
+          setHiba(null);
+        },
+      });
+    }
+
+    if (allapot === "audit-inspector") {
+      return e(AuditInspectorNezet, {
         adat: eredmeny?.adat ?? eredmeny,
         visszaMenu: () => {
           setAllapot("menu");

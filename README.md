@@ -80,6 +80,18 @@ Közvetlen indítás a saját primer szerkesztő nézettel:
   npm run cli -- tui --nezet primer-szerkeszto
 ```
 
+Közvetlen indítás a végső primer audit inspector nézettel:
+
+```bash
+  npm run cli -- tui --nezet audit-vegso-primer-inspector
+```
+
+Közvetlen indítás a primer nélkül maradó nevek inspector nézettel:
+
+```bash
+  npm run cli -- tui --nezet audit-primer-nelkul-inspector
+```
+
 Lint:
 
 ```bash
@@ -145,6 +157,9 @@ Helyi, nem követett személyes bemenet:
 - A hivatalos névjegyzék eltérései dokumentált kivétellistában vannak kezelve.
 - A saját primerkiegészítések külön, nem követett helyi YAML-fájlba kerülnek.
 - A scraper réteg Puppeteer 24-gyel is stabilan fut; a HUN-REN HTTP-forráshoz a projekt központi kompatibilitási launch-opciókat használ.
+- Az ICS TUI-beállításnézet részletes, kapcsolónkénti magyarázatot ad.
+- A személyes primerforrás a saját primer szerkesztőben állítható, nem az általános ICS-nézetben.
+- A régi `--primary-source` CLI-kapcsoló kompatibilitási okból még működik, de szándékosan nem része a kiemelt, ajánlott workflow-nak.
 
 ## Dokumentáció
 

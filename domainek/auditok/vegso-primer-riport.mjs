@@ -27,6 +27,19 @@ import {
   gyujtKapcsolodoPrimereket,
 } from "./kozos/primer-kapcsolatok.mjs";
 import {
+  AUDIT_HONAPNEVEK,
+  auditCollator as collator,
+  buildFinalPrimaryUniverse,
+  buildRawDayMap,
+  buildRegistryMap,
+  compareMonthDays,
+  createEmptyDayEntry,
+  createRawEmptyDayEntry,
+  epitHonapVazat,
+  uniqueKeepOrder,
+  uniqueSorted,
+} from "./kozos/primer-riport-alap.mjs";
+import {
   betoltStrukturaltFajl,
   mentStrukturaltFajl,
 } from "../../kozos/strukturalt-fajl.mjs";
@@ -35,20 +48,6 @@ import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
 const DEFAULT_NORMALIZED_REGISTRY_PATH = kanonikusUtvonalak.primer.normalizaloRiport;
 const DEFAULT_INPUT_PATH = kanonikusUtvonalak.adatbazis.nevnapok;
 const DEFAULT_REPORT_PATH = kanonikusUtvonalak.riportok.vegsoPrimer;
-const MONTH_NAMES = [
-  "Január",
-  "Február",
-  "Március",
-  "Április",
-  "Május",
-  "Június",
-  "Július",
-  "Augusztus",
-  "Szeptember",
-  "Október",
-  "November",
-  "December",
-];
 const EXPECTED_OVERRIDE_MONTH_DAYS = [
   "01-01",
   "01-02",
@@ -83,7 +82,6 @@ const SAMPLE_EXPECTATIONS = new Map([
   ["10-23", ["Gyöngyvér", "Gyöngyi"]],
   ["11-02", ["Achillesz"]],
 ]);
-const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 const args = parseArgs(process.argv.slice(2));
 
 /**
@@ -177,25 +175,15 @@ function buildFinalPrimaryRegistryReport({
   const allMonthDays = Array.from(new Set([...finalMap.keys(), ...legacyMap.keys(), ...wikiMap.keys()])).sort(
     compareMonthDays
   );
-  const finalPrimaryUniverse = new Set();
-
-  for (const day of finalMap.values()) {
-    for (const name of day.preferredNames) {
-      finalPrimaryUniverse.add(normalizeNameForMatch(name));
-    }
-  }
-
-  const months = MONTH_NAMES.map((monthName, index) => ({
-    month: index + 1,
-    monthName,
-    rows: [],
-  }));
+  const finalPrimaryUniverse = buildFinalPrimaryUniverse(finalMap);
+  const months = epitHonapVazat();
 
   for (const monthDay of allMonthDays) {
-    const finalDay = finalMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
+    const finalDay = finalMap.get(monthDay) ?? createEmptyDayEntry(monthDay, { includeMetadata: true });
     const legacyDay = legacyMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
     const wikiDay = wikiMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
-    const normalizedDay = normalizedMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
+    const normalizedDay =
+      normalizedMap.get(monthDay) ?? createEmptyDayEntry(monthDay, { includeMetadata: true });
     const rawDay = rawDayMap.get(monthDay) ?? createRawEmptyDayEntry(monthDay);
     const overrideDay = overrideMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
     const hidden = rawDay.names.filter(
@@ -592,42 +580,6 @@ function buildSummary({
 }
 
 /**
- * A `buildRegistryMap` felépíti a szükséges adatszerkezetet.
- */
-function buildRegistryMap(payload, options = {}) {
-  if (!Array.isArray(payload?.days)) {
-    throw new Error("A primerjegyzék payload nem tartalmaz érvényes days tömböt.");
-  }
-
-  const map = new Map();
-
-  for (const day of payload.days) {
-    if (!day || typeof day !== "object" || typeof day.monthDay !== "string") {
-      throw new Error("Érvénytelen napi primerjegyzék-bejegyzés.");
-    }
-
-    if (map.has(day.monthDay)) {
-      throw new Error(`Duplikált primerjegyzék-nap: ${day.monthDay}`);
-    }
-
-    map.set(day.monthDay, {
-      month: Number(day.month),
-      day: Number(day.day),
-      monthDay: day.monthDay,
-      names: uniqueKeepOrder(day.names ?? []),
-      preferredNames: uniqueKeepOrder(day.preferredNames ?? []),
-      source: options.includeMetadata ? day.source ?? null : null,
-      warning: options.includeMetadata ? Boolean(day.warning) : false,
-      legacyNames: options.includeMetadata ? uniqueKeepOrder(day.legacyNames ?? []) : [],
-      wikiNames: options.includeMetadata ? uniqueKeepOrder(day.wikiNames ?? []) : [],
-      overrideNames: options.includeMetadata ? uniqueKeepOrder(day.overrideNames ?? []) : [],
-    });
-  }
-
-  return map;
-}
-
-/**
  * A `buildOverrideMap` felépíti a szükséges adatszerkezetet.
  */
 function buildOverrideMap(payload) {
@@ -648,57 +600,6 @@ function buildOverrideMap(payload) {
 
   return map;
 }
-
-/**
- * A `buildRawDayMap` felépíti a szükséges adatszerkezetet.
- */
-function buildRawDayMap(payload) {
-  if (!Array.isArray(payload?.names)) {
-    throw new Error("A névadatbázis nem tartalmaz érvényes names tömböt.");
-  }
-
-  const map = new Map();
-
-  for (const nameEntry of payload.names) {
-    const name = String(nameEntry?.name ?? "").trim();
-
-    if (!name || !Array.isArray(nameEntry?.days)) {
-      continue;
-    }
-
-    for (const dayEntry of nameEntry.days) {
-      const monthDay = String(dayEntry?.monthDay ?? "").trim();
-
-      if (!monthDay) {
-        continue;
-      }
-
-      const bucket = map.get(monthDay) ?? {
-        month: Number(dayEntry.month),
-        day: Number(dayEntry.day),
-        monthDay,
-        names: [],
-        primaryRanked: [],
-      };
-
-      bucket.names.push(name);
-
-      if (dayEntry.primaryRanked) {
-        bucket.primaryRanked.push(name);
-      }
-
-      map.set(monthDay, bucket);
-    }
-  }
-
-  for (const bucket of map.values()) {
-    bucket.names = uniqueSorted(bucket.names);
-    bucket.primaryRanked = uniqueSorted(bucket.primaryRanked);
-  }
-
-  return map;
-}
-
 /**
  * A `buildNeverPrimaryList` felépíti a szükséges adatszerkezetet.
  */
@@ -741,7 +642,7 @@ function buildNeverPrimaryList({ inputPayload, finalPrimaryUniverse }) {
  * A `buildNeverPrimaryByMonth` felépíti a szükséges adatszerkezetet.
  */
 function buildNeverPrimaryByMonth(neverPrimary) {
-  return MONTH_NAMES.map((monthName, index) => {
+  return AUDIT_HONAPNEVEK.map((monthName, index) => {
     const month = index + 1;
     const monthPrefix = `${String(month).padStart(2, "0")}-`;
     const entries = neverPrimary
@@ -853,76 +754,6 @@ function buildDailyDistribution(lengths) {
       dayCount,
     }))
     .sort((left, right) => left.size - right.size);
-}
-
-/**
- * A `createEmptyDayEntry` üres napi primerbejegyzést hoz létre a hiányzó napokhoz.
- */
-function createEmptyDayEntry(monthDay) {
-  const [month, day] = monthDay.split("-").map(Number);
-
-  return {
-    month,
-    day,
-    monthDay,
-    names: [],
-    preferredNames: [],
-    source: null,
-    warning: false,
-    legacyNames: [],
-    wikiNames: [],
-    overrideNames: [],
-  };
-}
-
-/**
- * A `createRawEmptyDayEntry` üres nyers napi bejegyzést hoz létre a hiányzó napokhoz.
- */
-function createRawEmptyDayEntry(monthDay) {
-  const [month, day] = monthDay.split("-").map(Number);
-
-  return {
-    month,
-    day,
-    monthDay,
-    names: [],
-    primaryRanked: [],
-  };
-}
-
-/**
- * A `compareMonthDays` hónap-nap azonosítókat rendez időrendi sorrendbe.
- */
-function compareMonthDays(left, right) {
-  return left.localeCompare(right, "hu");
-}
-
-/**
- * A `uniqueKeepOrder` duplikátummentes tömböt ad vissza az első előfordulások sorrendjében.
- */
-function uniqueKeepOrder(values) {
-  const seen = new Set();
-  const result = [];
-
-  for (const value of values) {
-    const normalized = normalizeNameForMatch(value);
-
-    if (!normalized || seen.has(normalized)) {
-      continue;
-    }
-
-    seen.add(normalized);
-    result.push(String(value));
-  }
-
-  return result;
-}
-
-/**
- * A `uniqueSorted` duplikátummentes, rendezett tömböt ad vissza.
- */
-function uniqueSorted(values) {
-  return uniqueKeepOrder(values).sort((left, right) => collator.compare(left, right));
 }
 
 /**
@@ -1047,6 +878,7 @@ function printMonthTable(month, options = {}) {
       : `${month.monthName} (${String(month.month).padStart(2, "0")})`,
     [
       { key: "date", title: "Dátum", width: 7 },
+      { key: "source", title: "Forrás", width: 18 },
       { key: "names", title: "Nevek", width: 24 },
       { key: "legacy", title: "Legacy", width: 18 },
       { key: "wiki", title: "Wiki", width: 18 },
@@ -1055,13 +887,17 @@ function printMonthTable(month, options = {}) {
       { key: "hidden", title: "Rejtett", width: 24 },
     ],
     month.rows.map((row) => ({
-      date: row.monthDay,
+      date: styleFinalDateCell(row),
+      source: styleFinalSourceCell(row),
       names: formatNameList(row.names, { maxItems: 5, maxLength: 24 }),
       legacy: formatNameList(row.legacy, { maxItems: 4, maxLength: 18 }),
       wiki: formatNameList(row.wiki, { maxItems: 4, maxLength: 18 }),
       normalized: formatNameList(row.normalized, { maxItems: 4, maxLength: 18 }),
       ranking: formatNameList(row.ranking, { maxItems: 4, maxLength: 18 }),
-      hidden: formatNameList(row.hidden, { maxItems: 5, maxLength: 24 }),
+      hidden:
+        row.hidden.length > 0
+          ? styleText(formatNameList(row.hidden, { maxItems: 5, maxLength: 24 }), ["red"])
+          : "—",
       _row: row,
     })),
     {
@@ -1069,6 +905,53 @@ function printMonthTable(month, options = {}) {
       rowStyle: (row) => getMonthRowStyle(row._row),
     }
   );
+}
+
+/**
+ * A `styleFinalDateCell` a napi státusz alapján színezi a dátumot.
+ */
+function styleFinalDateCell(row) {
+  if (row.warning) {
+    return styleText(row.monthDay, ["bold", "red"]);
+  }
+
+  if (row.source === "manual-override") {
+    return styleText(row.monthDay, ["bold", "yellow"]);
+  }
+
+  if (row.source === "legacy-wiki-exact") {
+    return styleText(row.monthDay, ["bold", "green"]);
+  }
+
+  return row.monthDay;
+}
+
+/**
+ * A `styleFinalSourceCell` rövid, színezett forráscímkét ad.
+ */
+function styleFinalSourceCell(row) {
+  const sourceLabel =
+    row.source === "manual-override"
+      ? "kézi felülírás"
+      : row.source === "legacy-wiki-exact"
+        ? "legacy = wiki"
+        : row.source === "warning-union"
+          ? "figyelmeztetéses unió"
+          : row.source ?? "ismeretlen";
+
+  if (row.warning) {
+    return styleText(sourceLabel, ["red", "bold"]);
+  }
+
+  if (row.source === "manual-override") {
+    return styleText(sourceLabel, ["yellow"]);
+  }
+
+  if (row.source === "legacy-wiki-exact") {
+    return styleText(sourceLabel, ["green"]);
+  }
+
+  return sourceLabel;
 }
 
 /**

@@ -3,7 +3,7 @@
  * Az elsődleges CLI definíciója.
  */
 
-import { Command, Help } from "commander";
+import { Command, Help, Option } from "commander";
 import picocolors from "picocolors";
 import {
   futtatAuditot,
@@ -171,9 +171,11 @@ Elérhető célok:
       "--mode <mod>",
       "ICS mód: together, separate, primary-together, primary-together-with-rest, primary-separate, primary-separate-with-rest."
     )
-    .option(
-      "--primary-source <forras>",
-      "Primerforrás: default, legacy, ranked vagy either."
+    .addOption(
+      new Option(
+        "--primary-source <forras>",
+        "Kompatibilitási kapcsoló a személyes primerforrás egyszeri felülírására."
+      ).hideHelp()
     )
     .option("--primary-calendar-mode <mod>", "Split esetén: grouped/together vagy separate.")
     .option("--rest-calendar-mode <mod>", "Split esetén: grouped/together vagy separate.")
@@ -200,6 +202,8 @@ Elérhető formátumok:
 Megjegyzés:
   Ha létezik helyi primerkiegészítés a data/primary-registry-overrides.local.yaml fájlban,
   az ICS generálás a közös nevnapok.ics mellett egy saját primeres nevnapok-sajat.ics fájlt is előállít.
+  A személyes primerforrás alapértelmezett kezelése a TUI Saját primer szerkesztő nézetében történik.
+  A régi --primary-source kapcsoló kompatibilitási okból továbbra is működik, de nem ez az ajánlott workflow.
 
 Táblázatos exportok:
   A csv export UTF-8 BOM-mal és pontosvesszős tagolással készül, hogy Excelben is jól nyíljon meg.
@@ -207,7 +211,7 @@ Táblázatos exportok:
 
 Példa régi, részletes ICS-vezérlésre:
   nevnapok kimenet general ics \\
-    --split-primary-rest --primary-source default --primary-calendar-mode separate --rest-calendar-mode grouped \\
+    --split-primary-rest --primary-calendar-mode separate --rest-calendar-mode grouped \\
     --leap-mode hungarian-until-2050 --from-year 2025 --until-year 2040 \\
     --description detailed --description-format text --ordinal-day description --include-other-days
 
@@ -263,7 +267,7 @@ Elérhető auditok:
     .description("Interaktív Ink-alapú varázsló és áttekintő.")
     .option(
       "--nezet <azonosito>",
-      "Kezdő nézet: menu vagy primer-szerkeszto",
+      "Kezdő nézet: menu, primer-szerkeszto, ics, audit-vegso-primer-inspector vagy audit-primer-nelkul-inspector",
       "menu"
     )
     .action(async (opciok) => {

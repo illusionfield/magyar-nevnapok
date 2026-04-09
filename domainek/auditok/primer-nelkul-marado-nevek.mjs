@@ -26,25 +26,22 @@ import {
   buildReverseLinkMap,
   gyujtKapcsolodoPrimereket,
 } from "./kozos/primer-kapcsolatok.mjs";
+import {
+  auditCollator as collator,
+  buildFinalPrimaryUniverse,
+  buildRawDayMap,
+  buildRegistryMap,
+  compareMonthDays,
+  createEmptyDayEntry,
+  createRawEmptyDayEntry,
+  epitHonapVazat,
+  uniqueKeepOrder,
+  uniqueSorted,
+} from "./kozos/primer-riport-alap.mjs";
 
 const DEFAULT_NORMALIZED_REGISTRY_PATH = kanonikusUtvonalak.primer.normalizaloRiport;
 const DEFAULT_INPUT_PATH = kanonikusUtvonalak.adatbazis.nevnapok;
 const DEFAULT_REPORT_PATH = kanonikusUtvonalak.riportok.primerNelkulMaradoNevek;
-const MONTH_NAMES = [
-  "Január",
-  "Február",
-  "Március",
-  "Április",
-  "Május",
-  "Június",
-  "Július",
-  "Augusztus",
-  "Szeptember",
-  "Október",
-  "November",
-  "December",
-];
-const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 const args = parseArgs(process.argv.slice(2));
 
 /**
@@ -103,11 +100,7 @@ export function buildPrimaryNelkulMaradoNevekRiport({
   const allMonthDays = Array.from(
     new Set([...finalMap.keys(), ...normalizedMap.keys(), ...rawDayMap.keys()])
   ).sort(compareMonthDays);
-  const months = MONTH_NAMES.map((monthName, index) => ({
-    month: index + 1,
-    monthName,
-    rows: [],
-  }));
+  const months = epitHonapVazat();
   const uniqueMissingNames = new Set();
   const summary = {
     monthCount: 0,
@@ -367,158 +360,6 @@ function collectDaySimilarPrimaries({ hiddenName, dayPrimaryNames, nameRecords, 
 }
 
 /**
- * A `buildRegistryMap` egyszerű napi névnézetté alakítja a primerjellegű YAML-artifactot.
- */
-function buildRegistryMap(payload) {
-  if (!Array.isArray(payload?.days)) {
-    throw new Error("A primerjegyzék payload nem tartalmaz érvényes days tömböt.");
-  }
-
-  const map = new Map();
-
-  for (const day of payload.days) {
-    if (!day || typeof day !== "object" || typeof day.monthDay !== "string") {
-      throw new Error("Érvénytelen napi primerjegyzék-bejegyzés.");
-    }
-
-    map.set(day.monthDay, {
-      month: Number(day.month),
-      day: Number(day.day),
-      monthDay: day.monthDay,
-      names: uniqueKeepOrder(day.names ?? []),
-      preferredNames: uniqueKeepOrder(day.preferredNames ?? []),
-    });
-  }
-
-  return map;
-}
-
-/**
- * A `buildRawDayMap` a teljes névadatbázisból napra lebontott rangsorolt névlistát állít elő.
- */
-function buildRawDayMap(payload) {
-  if (!Array.isArray(payload?.names)) {
-    throw new Error("A névadatbázis nem tartalmaz érvényes names tömböt.");
-  }
-
-  const map = new Map();
-
-  for (const nameEntry of payload.names) {
-    const name = String(nameEntry?.name ?? "").trim();
-
-    if (!name || !Array.isArray(nameEntry?.days)) {
-      continue;
-    }
-
-    for (const dayEntry of nameEntry.days) {
-      const monthDay = String(dayEntry?.monthDay ?? "").trim();
-
-      if (!monthDay) {
-        continue;
-      }
-
-      const bucket = map.get(monthDay) ?? {
-        month: Number(dayEntry.month),
-        day: Number(dayEntry.day),
-        monthDay,
-        primaryRanked: [],
-      };
-
-      if (dayEntry.primaryRanked) {
-        bucket.primaryRanked.push(name);
-      }
-
-      map.set(monthDay, bucket);
-    }
-  }
-
-  for (const bucket of map.values()) {
-    bucket.primaryRanked = uniqueSorted(bucket.primaryRanked);
-  }
-
-  return map;
-}
-
-/**
- * A `buildFinalPrimaryUniverse` felépíti a végső primerként valaha megjelenő nevek halmazát.
- */
-function buildFinalPrimaryUniverse(finalMap) {
-  const universe = new Set();
-
-  for (const day of finalMap.values()) {
-    for (const name of day.preferredNames) {
-      universe.add(normalizeNameForMatch(name));
-    }
-  }
-
-  return universe;
-}
-
-/**
- * A `createEmptyDayEntry` üres napi primerbejegyzést ad a hiányzó napokhoz.
- */
-function createEmptyDayEntry(monthDay) {
-  const [month, day] = monthDay.split("-").map(Number);
-
-  return {
-    month,
-    day,
-    monthDay,
-    names: [],
-    preferredNames: [],
-  };
-}
-
-/**
- * A `createRawEmptyDayEntry` üres napi rangsorolt névlistát ad a hiányzó napokhoz.
- */
-function createRawEmptyDayEntry(monthDay) {
-  const [month, day] = monthDay.split("-").map(Number);
-
-  return {
-    month,
-    day,
-    monthDay,
-    primaryRanked: [],
-  };
-}
-
-/**
- * A `compareMonthDays` a hónap-nap azonosítókat időrendben rendezi.
- */
-function compareMonthDays(left, right) {
-  return left.localeCompare(right, "hu");
-}
-
-/**
- * A `uniqueKeepOrder` duplikátummentes listát ad vissza az első előfordulási sorrendben.
- */
-function uniqueKeepOrder(values) {
-  const seen = new Set();
-  const result = [];
-
-  for (const value of values) {
-    const normalized = normalizeNameForMatch(value);
-
-    if (!normalized || seen.has(normalized)) {
-      continue;
-    }
-
-    seen.add(normalized);
-    result.push(String(value));
-  }
-
-  return result;
-}
-
-/**
- * A `uniqueSorted` duplikátummentes, alfabetikus listát készít.
- */
-function uniqueSorted(values) {
-  return uniqueKeepOrder(values).sort((left, right) => collator.compare(left, right));
-}
-
-/**
  * A `printReport` terminálra írja az audit emberileg olvasható nézetét.
  */
 function printReport(report) {
@@ -602,7 +443,7 @@ function printMonthTable(month) {
     ],
     month.rows.map((row) => ({
       date: styleDateCell(row.monthDay, row.finalPrimaryCount),
-      names: formatPlainNameEntries(row.finalPrimaryNames, 5),
+      names: formatFinalPrimaryEntries(row.finalPrimaryNames, row.finalPrimaryCount, 5),
       combined: formatCombinedMissingEntries(row.combinedMissing),
       normalized: formatMissingNameEntries(row.normalizedMissing, ["bold", "cyan"]),
       ranking: formatMissingNameEntries(row.rankingMissing, ["bold", "magenta"]),
@@ -648,6 +489,31 @@ function formatPlainNameEntries(names, maxItems = 4) {
 }
 
 /**
+ * A `formatFinalPrimaryEntries` a végső primerlistát a napi primerdarabhoz igazított hangsúllyal írja ki.
+ */
+function formatFinalPrimaryEntries(names, finalPrimaryCount, maxItems = 4) {
+  const alap = formatPlainNameEntries(names, maxItems);
+
+  if (alap === "—") {
+    return alap;
+  }
+
+  if (finalPrimaryCount === 1) {
+    return styleText(alap, ["green"]);
+  }
+
+  if (finalPrimaryCount === 2) {
+    return styleText(alap, ["yellow"]);
+  }
+
+  if (finalPrimaryCount >= 3) {
+    return styleText(alap, ["red"]);
+  }
+
+  return alap;
+}
+
+/**
  * A `formatMissingNameEntries` a hiányzó névlistát részleges színezéssel jeleníti meg.
  */
 function formatMissingNameEntries(entries, highlightStyles) {
@@ -690,15 +556,15 @@ function formatCombinedSourceBadge(sources) {
     normalizedSources.includes("normalized") &&
     normalizedSources.includes("ranking")
   ) {
-    return "[N+R]";
+    return styleText("[N+R]", ["bold", "blue"]);
   }
 
   if (normalizedSources.includes("normalized")) {
-    return "[N]";
+    return styleText("[N]", ["bold", "cyan"]);
   }
 
   if (normalizedSources.includes("ranking")) {
-    return "[R]";
+    return styleText("[R]", ["bold", "magenta"]);
   }
 
   return "";

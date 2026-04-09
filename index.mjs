@@ -4,7 +4,11 @@
  */
 
 export {
+  allitSajatPrimerForrast,
+  betoltAuditInspectorAdata,
+  betoltPrimerNelkulAuditInspectorAdata,
   betoltPrimerNelkulMaradoNevekSzerkesztoAdata,
+  betoltVegsoPrimerAuditInspectorAdata,
   kapcsolPrimerNelkuliHelyiKiegeszitest,
   futtatAuditot,
   futtatPipeline,

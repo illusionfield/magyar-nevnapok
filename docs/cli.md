@@ -49,6 +49,10 @@ Ha létezik helyi primerkiegészítés a `data/primary-registry-overrides.local.
 akkor az `ics` generálás a közös `output/naptar/nevnapok.ics` mellett a
 `output/naptar/nevnapok-sajat.ics` fájlt is elkészíti.
 
+A személyes primerforrás elsődleges kezelése már a TUI `Saját primer szerkesztő`
+nézetében történik. A régi `--primary-source` kapcsoló kompatibilitási okból
+továbbra is értelmezett, de nem része a kiemelt, dokumentált alapworkflow-nak.
+
 ## Auditok
 
 ```bash
@@ -62,6 +66,8 @@ akkor az `ics` generálás a közös `output/naptar/nevnapok.ics` mellett a
 
 ```bash
   npm run cli -- tui --nezet primer-szerkeszto
+  npm run cli -- tui --nezet audit-vegso-primer-inspector
+  npm run cli -- tui --nezet audit-primer-nelkul-inspector
 ```
 
 ## Integráció

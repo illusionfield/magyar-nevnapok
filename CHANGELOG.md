@@ -11,6 +11,16 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 - A CSV-export UTF-8 BOM-mal és pontosvesszős elválasztással készül, hogy magyar Excelben is kényelmesen megnyíljon.
 - Az Excel-export több munkalapos `.xlsx` fájlt készít `Nevnapok`, `Napok` és `Meta` lapokkal.
 
+### TUI és auditok
+
+- A TUI `ICS generálás – beállítások` nézete kapcsolónkénti, részletes magyarázó panelt kapott.
+- A kijelölt ICS-kapcsoló felső infósora most azonnal leírja, hogy az adott érték milyen gyakorlati kimenetet eredményez.
+- A primerforrás-választó kikerült az általános ICS-beállításnézetből, és a személyes `Saját primer szerkesztő` alá került.
+- A `nevnapok kimenet general ics --help` már nem emeli ki elsődleges workflowként a régi `--primary-source` kapcsolót; ez kompatibilitási opcióként megmaradt, de a személyes primerforrás ajánlott kezelési helye a TUI szerkesztő.
+- Elkészült a `Végső primer audit inspector` és a `Primer nélkül maradó nevek inspector` böngészhető TUI-nézet.
+- A végső primer és a primer nélküli audit közös alapmodulba került, így a napi térképezési és időrendi segédlogika már nem párhuzamosan él.
+- A terminálos auditnézetek finomabb színezést kaptak: színezett forráscímkék, finomított dátum- és rejtettnév-hangsúlyok.
+
 ## [0.6.1] - 2026-04-09
 
 ### Új auditok
