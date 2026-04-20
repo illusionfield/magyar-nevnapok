@@ -2353,7 +2353,7 @@ function normalizeOptions(options) {
     restOutput: options.restOutput ?? null,
     mode: options.mode ?? "together",
     primarySource: options.primarySource ?? "default",
-    leapStrategy: options.leapStrategy ?? "a",
+    leapStrategy: options.leapStrategy ?? "b",
     splitPrimaryRest: options.splitPrimaryRest ?? false,
     primaryCalendarMode: options.primaryCalendarMode ?? null,
     restCalendarMode: options.restCalendarMode ?? null,
@@ -2365,9 +2365,9 @@ function normalizeOptions(options) {
     calendarName: options.calendarName ?? DEFAULT_CALENDAR_NAME,
     localPrimaryOverrides: options.localPrimaryOverrides ?? null,
     calendarPartition: options.calendarPartition ?? null,
-    baseYear: options.baseYear ?? 2000,
+    baseYear: options.baseYear ?? 2024,
     fromYear: options.fromYear ?? CURRENT_YEAR,
-    untilYear: options.untilYear ?? 2050,
+    untilYear: options.untilYear ?? 2040,
     rruleUntil: null,
   };
 

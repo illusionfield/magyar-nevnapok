@@ -30,13 +30,13 @@
     "cli-table3": "^0.6.5",
     "commander": "^14.0.3",
     "googleapis": "^171.4.0",
-    "ink": "^7.0.0",
+    "ink": "^7.0.1",
     "picocolors": "^1.1.1",
-    "puppeteer": "^24.40.0",
+    "puppeteer": "^24.41.0",
     "react": "^19.2.5",
     "yaml": "^2.8.3"
   },
   "devDependencies": {
-    "eslint": "^10.2.0"
+    "eslint": "^10.2.1"
   }
 }
