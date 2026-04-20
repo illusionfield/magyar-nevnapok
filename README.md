@@ -163,7 +163,7 @@ Helyi, nem követett személyes bemenet:
 - Az `ics.outputMode` egyszerre pontosan egy aktív ICS-kimenetet jelöl ki: közös, primer+további külön vagy személyes.
 - A scraper réteg Puppeteer 24-gyel is stabilan fut; a HUN-REN HTTP-forráshoz a projekt központi kompatibilitási launch-opciókat használ.
 - Az `ics` generálás publikus CLI-felülete már nem részletes kapcsolókkal dolgozik, hanem a mentett helyi YAML-profilt használja.
-- A TUI ICS nézete és a Primer audit `Személyes` füle ugyanazt a helyi YAML-fájlt frissíti.
+- A TUI ICS nézete és a Primer audit személyes beállítási drawerje ugyanazt a helyi YAML-fájlt frissíti.
 
 ## Dokumentáció
 

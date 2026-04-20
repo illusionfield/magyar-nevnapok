@@ -42,39 +42,72 @@ A generálás csak az aktív kimenet módhoz tartozó ICS-fájlokat hagyja meg.
 
 ## Primer audit
 
-Az egységes `Primer audit` nézet egyetlen workspace-ben adja össze
+Az új `Primer audit` nézet audit-központú, többnézetes workspace:
 
-- a végső primer forrásnézetet,
-- a közös hiányzó neveket,
-- és a személyes primer kezelést.
+- `Áttekintés` — éves KPI-k, havi bontás és gyors queue-kártyák,
+- `Napok` — szűrhető napi auditlista és egyetlen részletes napi panel,
+- `Nevek` — teljes, kereshető névindex az összes forrásból.
 
-A nézet bal oldalán a napi lista látható rövid auditstátusszal.
-A jobb oldalon négy fül váltogatható:
+### Áttekintés
 
-- `Összkép`
-- `Források`
-- `Hiányzók`
-- `Személyes`
+Az áttekintő mód azonnal megmutatja:
 
-A `Személyes` fülön:
+- az éves összesítő számokat,
+- a havi bontást,
+- valamint az akciózható queue-kat:
+  - hiányzós napok,
+  - kézi override napok,
+  - helyi kijelölések,
+  - eltéréses napok,
+  - összes nap.
 
-- a napi helyi kijelölések `Space` billentyűvel kapcsolhatók,
-- a mentés a nem követett `.local/nevnapok.local.yaml` `personalPrimary` blokkjába történik,
-- `p` billentyűvel a névlista és a személyes beállítások panelje között lehet váltani,
-- külön állítható a személyes primerforrás,
-- külön kapcsolható a `Normalizált` és a `Rangsor` módosító,
-- `g` billentyűvel az aktív, mentett ICS-profil szerinti kimenet azonnal újragenerálható,
-- `r` billentyűvel a teljes primer audit frissíthető.
+`Enter` billentyűvel a kijelölt queue napi nézetére lehet ugrani.
+
+### Napok
+
+A `Napok` mód bal oldalán a szűrt napi queue látható.
+A jobb oldalon egyetlen részletes panel jelenik meg fix blokkokkal:
+
+- `Végső döntés`,
+- `Forrásmátrix`,
+- `Nyers és rejtett nevek`,
+- `Személyes műveletek`.
+
+A napi helyi kijelölések `Space` billentyűvel kapcsolhatók, ha a fókusz a
+személyes névlistán van.
+A mentés a nem követett `.local/nevnapok.local.yaml` `personalPrimary`
+blokkjába történik.
+
+### Nevek
+
+A `Nevek` mód a teljes névindexet adja:
+
+- az összes elérhető forrásból építkezik,
+- kereshető és szűrhető,
+- megmutatja az összes előforduló napot és az adott napi státuszt,
+- `Enter` billentyűvel a kijelölt előfordulás napi auditnézetére lehet ugrani.
+
+### Személyes primer-beállítások
+
+`b` billentyűvel külön drawer nyitható a személyes primerforrás és a
+`Normalizált` / `Rangsor` módosítók állításához.
+
+Ez a drawer ugyanazt a nem követett helyi YAML-profilt írja, mint az ICS
+nézet.
 
 ## Billentyűk
 
-- `↑` / `↓` — választás vagy beállításváltás
-- `←` / `→` — néven belüli vagy beállításon belüli lépkedés
-- `Enter` — indítás
-- `Space` — helyi primerkiegészítés vagy személyes beállítás kapcsolása
+- `↑` / `↓` — mozgás az aktív listában
+- `←` / `→` — panelváltás a napi vagy névnézetben
+- `Enter` — drill-down, kibontás vagy ugrás a kijelölt napra
+- `Space` — helyi primerkiegészítés kapcsolása a napi személyes listában
 - `g` — az aktív, mentett ICS-profil szerinti generálás
 - `r` — riportfrissítés
-- `Tab` vagy `1`–`4` — fülváltás a primer audit nézetben
-- `p` — panelváltás a `Személyes` fülön
+- `Tab` vagy `1`–`3` — módváltás a primer audit nézetben
+- `/` — keresés a `Napok` vagy `Nevek` módban
+- `f` — előre definiált szűrők váltása
+- `s` — rendezés váltása
+- `b` — személyes primer-beállítások drawer
+- `?` — helyi súgó
 - `Esc` vagy `v` — vissza a menübe
 - `q` — kilépés

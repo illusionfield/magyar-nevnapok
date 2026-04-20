@@ -11,7 +11,14 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 - Az új helyi YAML egy fájlban tárolja az `ics` blokkot, a személyes primerprofilt és a kézi helyi primernapokat.
 - Az ICS-generálás mostantól egyszerre pontosan egy aktív kimenet móddal dolgozik: közös, primer+további külön vagy személyes.
 - A személyes primerprofil már nem hoz létre automatikusan külön ICS-t; csak a `personal` kimenet módnál érvényesül.
-- A TUI ICS nézete és a `Saját primer szerkesztő` ugyanazt a közös helyi YAML-fájlt szerkeszti.
+- A TUI ICS nézete és a Primer audit személyes beállítási drawerje ugyanazt a közös helyi YAML-fájlt szerkeszti.
+
+### Primer audit TUI
+
+- A Primer audit TUI mostantól három felső szintű módra épül: `Áttekintés`, `Napok` és `Nevek`.
+- Elkészült az audit-központú napi queue, a teljes névindex és a napi/név szerinti drill-down navigáció.
+- A régi négytabos, kontextusfüggő `p`-s panelváltás helyett egységes keresés, szűrés, rendezés és drawer-modell került be.
+- A primer audit riport napi `finalPrimaryNames` és `finalPrimaryCount` mezői mostantól hiánytalan napoknál is helyesek.
 
 ## [0.6.2] - 2026-04-09
 

@@ -354,7 +354,7 @@ Elérhető formátumok:
 Megjegyzés:
   Az ICS generálás a nem követett .local/nevnapok.local.yaml fájl mentett profiljából dolgozik.
   Ugyanebben a helyi YAML-ban él a személyes primerprofil és a kézi helyi primerkiegészítés is.
-  A TUI ICS nézete és a Primer audit Személyes füle ezt a közös helyi YAML-t írja.
+  A TUI ICS nézete és a Primer audit személyes beállítási drawerje ezt a közös helyi YAML-t írja.
   Egyszerre pontosan egy aktív ICS kimenet mód él: közös, primer+további külön vagy személyes.
   A személyes primerprofil csak akkor hat a generálásra, ha a mentett profil személyes ICS módra van állítva.
 

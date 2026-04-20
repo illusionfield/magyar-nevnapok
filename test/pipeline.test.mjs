@@ -138,6 +138,13 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
         names: ["Bori", "Cecil"],
         preferredNames: ["Bori", "Cecil"],
       },
+      {
+        month: 1,
+        day: 3,
+        monthDay: "01-03",
+        names: ["Dóra"],
+        preferredNames: ["Dóra"],
+      },
     ],
   };
   const legacyPrimer = {
@@ -157,6 +164,13 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
         monthDay: "01-02",
         names: ["Bori", "Cecil"],
         preferredNames: ["Bori", "Cecil"],
+      },
+      {
+        month: 1,
+        day: 3,
+        monthDay: "01-03",
+        names: ["Dóra"],
+        preferredNames: ["Dóra"],
       },
     ],
   };
@@ -178,6 +192,13 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
         names: ["Bori", "Cecil"],
         preferredNames: ["Bori", "Cecil"],
       },
+      {
+        month: 1,
+        day: 3,
+        monthDay: "01-03",
+        names: ["Dóra"],
+        preferredNames: ["Dóra"],
+      },
     ],
   };
   const normalizaloRiport = {
@@ -196,6 +217,13 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
         monthDay: "01-02",
         names: ["Bori", "Cecil", "Bella"],
         preferredNames: ["Bella"],
+      },
+      {
+        month: 1,
+        day: 3,
+        monthDay: "01-03",
+        names: ["Dóra"],
+        preferredNames: ["Dóra"],
       },
     ],
   };
@@ -238,6 +266,12 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
         relatedNames: [],
         nicknames: ["Bori"],
         days: [{ month: 1, day: 2, monthDay: "01-02", primaryRanked: true }],
+      },
+      {
+        name: "Dóra",
+        relatedNames: [],
+        nicknames: [],
+        days: [{ month: 1, day: 3, monthDay: "01-03", primaryLegacy: true }],
       },
     ],
   };
@@ -349,8 +383,9 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
   const januar = riport.months.find((honap) => honap.month === 1);
   const elsoNap = januar.rows.find((sor) => sor.monthDay === "01-01");
   const masodikNap = januar.rows.find((sor) => sor.monthDay === "01-02");
+  const harmadikNap = januar.rows.find((sor) => sor.monthDay === "01-03");
 
-  assert.equal(riport.summary.rowCount, 2);
+  assert.equal(riport.summary.rowCount, 3);
   assert.equal(riport.summary.combinedMissingCount, 3);
   assert.equal(riport.summary.uniqueMissingNameCount, 3);
   assert.equal(riport.personal.settingsSnapshot.primarySource, "legacy");
@@ -370,6 +405,9 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
   assert.equal(masodikNap.sections.szemelyes.entries[0].localSelected, true);
   assert.equal(masodikNap.normalizedMissing[0].name, "Bella");
   assert.equal(masodikNap.normalizedMissing[0].highlight, true);
+  assert.deepEqual(harmadikNap.finalPrimaryNames, ["Dóra"]);
+  assert.equal(harmadikNap.finalPrimaryCount, 1);
+  assert.deepEqual(harmadikNap.combinedMissing, []);
   assert.deepEqual(Object.keys(masodikNap.sections).sort(), [
     "forrasok",
     "hianyzok",
@@ -503,6 +541,104 @@ test("az audit primer CLI snapshot módban a meglévő unified riportból olvas"
   assert.match(stdout, /Primer audit – 04-18 – források/u);
   assert.match(stdout, /Ilma, Andrea/u);
   assert.match(stdout, /manual-override/u);
+});
+
+test("az audit primer CLI snapshot módban hiánytalan napnál is a helyes végső primereket mutatja", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-primer-audit-cli-clean-"));
+  const riport = {
+    generatedAt: "2026-04-20T12:00:00.000Z",
+    summary: {
+      rowCount: 1,
+      combinedMissingCount: 0,
+      localSelectedCount: 0,
+      warningDayCount: 0,
+      hardFailureCount: 0,
+    },
+    personal: {
+      settingsSnapshot: {
+        primarySource: "default",
+        modifiers: {
+          normalized: false,
+          ranking: false,
+        },
+      },
+    },
+    months: [
+      {
+        month: 4,
+        monthName: "Április",
+        rows: [
+          {
+            month: 4,
+            day: 19,
+            monthDay: "04-19",
+            finalPrimaryNames: ["Emma", "Noémi"],
+            finalPrimaryCount: 2,
+            source: "legacy-wiki-exact",
+            warning: false,
+            hidden: ["Elemér"],
+            combinedMissing: [],
+            localSelectedCount: 0,
+            sections: {
+              osszefoglalo: {
+                preferredNames: ["Emma", "Noémi"],
+                source: "legacy-wiki-exact",
+                warning: false,
+                hiddenCount: 1,
+                combinedMissingCount: 0,
+                localSelectedCount: 0,
+                rawNameCount: 3,
+              },
+              forrasok: {
+                preferredNames: ["Emma", "Noémi"],
+                legacy: ["Emma", "Noémi"],
+                wiki: ["Emma", "Noémi"],
+                normalized: ["Emma"],
+                ranking: ["Emma"],
+                hidden: ["Elemér"],
+                rawNames: ["Emma", "Noémi", "Elemér"],
+                source: "legacy-wiki-exact",
+                warning: false,
+              },
+              hianyzok: {
+                combinedMissing: [],
+                normalizedMissing: [],
+                rankingMissing: [],
+              },
+              szemelyes: {
+                settingsSnapshot: {
+                  primarySource: "default",
+                  modifiers: {
+                    normalized: false,
+                    ranking: false,
+                  },
+                },
+                selectedNames: [],
+                entries: [],
+              },
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "riportok", "primer-audit.yaml"),
+    riport
+  );
+
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [binUtvonal, "audit", "primer", "reszletek", "--nap", "04-19", "--resz", "osszefoglalo", "--snapshot"],
+    {
+      cwd: ideiglenesKonyvtar,
+    }
+  );
+
+  assert.match(stdout, /Primer audit – 04-19 – összkép/u);
+  assert.match(stdout, /Emma, Noémi/u);
+  assert.match(stdout, /Közös hiányzó[\s│]+0/u);
 });
 
 test("az audit primer helyi CLI műveletei csak a nem követett helyi konfigot írják", async () => {

@@ -102,7 +102,10 @@ export async function buildPrimerAuditReport({
     const normalizedMissing = withLocalSelection(missingRow.normalizedMissing ?? [], selectedNameSet);
     const rankingMissing = withLocalSelection(missingRow.rankingMissing ?? [], selectedNameSet);
     const personalEntries = buildPersonalEntries(combinedMissing, selectedNames);
-    const finalPrimaryNames = [...(missingRow.finalPrimaryNames ?? finalRow.preferredNames ?? [])];
+    const finalPrimaryNames =
+      finalRow.preferredNames?.length > 0
+        ? [...finalRow.preferredNames]
+        : [...(missingRow.finalPrimaryNames ?? [])];
     const row = {
       month: finalRow.month,
       day: finalRow.day,
