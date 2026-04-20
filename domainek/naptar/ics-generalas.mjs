@@ -8,7 +8,11 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { betoltStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
-import { normalizeNameForMatch } from "../primer/alap.mjs";
+import {
+  buildPrimaryRegistryLookup,
+  loadPrimaryRegistry,
+  normalizeNameForMatch,
+} from "../primer/alap.mjs";
 import {
   betoltHelyiPrimerFelulirasokat,
   buildHelyiPrimerFelulirasMap,
@@ -33,10 +37,24 @@ export async function epitIcsKimenetiTervet(rawOptions = {}, runtime = {}) {
     runtime.localPrimaryOverrideMap instanceof Map
       ? runtime.localPrimaryOverrideMap
       : await loadLocalPrimaryOverrideMap(options.localPrimaryOverrides);
-  const sourceDays = applyLocalPrimaryOverridesToSourceDays(
+  const rawSourceDays = applyLocalPrimaryOverridesToSourceDays(
     Array.isArray(payload.days) ? normalizeSourceDays(payload.days) : buildDaysFromNames(payload.names),
     localPrimaryOverrideMap
   );
+  const primarySelectionModeResolved = resolvePrimarySelectionMode(options);
+  options.primarySelectionModeResolved = primarySelectionModeResolved;
+  const finalPrimaryLookup =
+    primarySelectionModeResolved === "canonical-final"
+      ? await loadFinalPrimaryLookup(runtime)
+      : null;
+  const globalNameCatalog =
+    primarySelectionModeResolved === "canonical-final"
+      ? buildGlobalNameCatalogFromPayload(payload, rawSourceDays)
+      : null;
+  const sourceDays =
+    primarySelectionModeResolved === "canonical-final"
+      ? applyFinalPrimaryOverlayToSourceDays(rawSourceDays, finalPrimaryLookup, globalNameCatalog)
+      : rawSourceDays;
   const sourceNameMap = buildNameMapFromSourceDays(sourceDays);
   const jobs = buildCalendarJobs(sourceDays, outputPath, options);
 
@@ -46,6 +64,8 @@ export async function epitIcsKimenetiTervet(rawOptions = {}, runtime = {}) {
     options,
     payload,
     localPrimaryOverrideMap,
+    finalPrimaryLookup,
+    globalNameCatalog,
     sourceDays,
     sourceNameMap,
     jobs,
@@ -127,6 +147,19 @@ async function loadLocalPrimaryOverrideMap(localPrimaryOverridesPath) {
   return buildHelyiPrimerFelulirasMap(payload);
 }
 
+async function loadFinalPrimaryLookup(runtime = {}) {
+  if (runtime.finalPrimaryLookup instanceof Map) {
+    return runtime.finalPrimaryLookup;
+  }
+
+  if (Array.isArray(runtime.finalPrimaryRegistryPayload?.days)) {
+    return buildPrimaryRegistryLookup(runtime.finalPrimaryRegistryPayload.days);
+  }
+
+  const { payload } = await loadPrimaryRegistry(kanonikusUtvonalak.primer.vegso);
+  return buildPrimaryRegistryLookup(payload.days);
+}
+
 /**
  * A `buildCalendarJobs` felépíti a szükséges adatszerkezetet.
  */
@@ -136,7 +169,7 @@ function buildCalendarJobs(sourceDays, outputPath, options) {
   const baseJobs = [];
 
   if (options.restHandling === "split") {
-    const splitDays = splitSourceDaysByPrimary(sourceDays, options.primarySource);
+    const splitDays = splitSourceDaysByPrimary(sourceDays, options);
     baseJobs.push({
       sourceDays: splitDays.primaryDays,
       outputPath: path.resolve(
@@ -298,13 +331,13 @@ function deriveSplitOutputPath(outputPath, suffix) {
 /**
  * A `splitSourceDaysByPrimary` felbontja a megadott szöveget vagy listát.
  */
-function splitSourceDaysByPrimary(sourceDays, primarySource) {
+function splitSourceDaysByPrimary(sourceDays, options) {
   const primaryDays = [];
   const restDays = [];
   let skippedPrimaryDays = 0;
 
   for (const sourceDay of sourceDays) {
-    const selection = splitPrimaryNames(sourceDay.names, primarySource);
+    const selection = splitPrimaryNamesForSourceDay(sourceDay, options);
 
     if (selection.primaryNames.length > 0) {
       primaryDays.push({
@@ -327,6 +360,282 @@ function splitSourceDaysByPrimary(sourceDays, primarySource) {
     primaryDays,
     restDays,
     skippedPrimaryDays,
+  };
+}
+
+function resolvePrimarySelectionMode(options) {
+  if (options.primarySelectionMode === "canonical-final") {
+    return "canonical-final";
+  }
+
+  if (options.primarySelectionMode === "configured") {
+    return "configured";
+  }
+
+  if (options.primarySourceConfigured === true) {
+    return "configured";
+  }
+
+  if (options.scope === "primary") {
+    return "canonical-final";
+  }
+
+  return "configured";
+}
+
+function applyFinalPrimaryOverlayToSourceDays(sourceDays, finalPrimaryLookup, globalNameCatalog) {
+  const dayMap = new Map(
+    sourceDays.map((sourceDay) => [sourceDay.monthDay, cloneSourceDay(sourceDay)])
+  );
+  const monthDays = uniqueSorted([...dayMap.keys(), ...finalPrimaryLookup.keys()]);
+
+  for (const monthDay of monthDays) {
+    const finalDay = finalPrimaryLookup.get(monthDay) ?? null;
+    const bucket = dayMap.get(monthDay) ?? buildEmptySourceDay(monthDay, finalDay);
+    const preferredNames = Array.isArray(finalDay?.preferredNames) ? [...finalDay.preferredNames] : [];
+    const normalizedPreferredNames = Array.isArray(finalDay?.normalizedPreferredNames)
+      ? [...finalDay.normalizedPreferredNames]
+      : preferredNames.map((name) => normalizeNameForMatch(name));
+
+    for (const [index, normalizedPreferredName] of normalizedPreferredNames.entries()) {
+      const preferredName = preferredNames[index];
+      const existingIndex = bucket.names.findIndex(
+        (entry) => normalizeNameForMatch(entry?.name) === normalizedPreferredName
+      );
+
+      if (existingIndex !== -1) {
+        bucket.names[existingIndex] = markEntryAsFinalPrimary(
+          bucket.names[existingIndex],
+          bucket,
+          preferredName
+        );
+        continue;
+      }
+
+      const template = globalNameCatalog.get(normalizedPreferredName) ?? null;
+
+      if (!template) {
+        throw new Error(
+          `A végső primerjegyzékben szereplő név nem található a névadatbázisban: ${preferredName} (${monthDay}).`
+        );
+      }
+
+      bucket.names.push(buildFinalPrimaryOverlayEntry(template, bucket, preferredName));
+    }
+
+    bucket.primaryRegistry = {
+      preferredNames,
+      normalizedPreferredNames,
+      preferredNameOrder:
+        finalDay?.preferredNameOrder instanceof Map
+          ? new Map(finalDay.preferredNameOrder)
+          : new Map(normalizedPreferredNames.map((name, index) => [name, index + 1])),
+    };
+    dayMap.set(monthDay, bucket);
+  }
+
+  return Array.from(dayMap.values()).sort((left, right) => left.monthDay.localeCompare(right.monthDay));
+}
+
+function buildGlobalNameCatalog(sourceDays) {
+  const catalog = new Map();
+
+  for (const sourceDay of sourceDays) {
+    for (const nameEntry of sourceDay.names) {
+      const normalized = normalizeNameForMatch(nameEntry?.name);
+
+      if (!normalized || catalog.has(normalized)) {
+        continue;
+      }
+
+      catalog.set(normalized, cloneNameEntry(nameEntry));
+    }
+  }
+
+  return catalog;
+}
+
+function buildGlobalNameCatalogFromPayload(payload, sourceDays) {
+  const catalog = buildGlobalNameCatalog(sourceDays);
+
+  if (!Array.isArray(payload?.names)) {
+    return catalog;
+  }
+
+  for (const nameEntry of payload.names) {
+    const normalized = normalizeNameForMatch(nameEntry?.name);
+
+    if (!normalized || catalog.has(normalized)) {
+      continue;
+    }
+
+    const normalizedDays = normalizeNamedayEntries(nameEntry?.days);
+    const firstDay = normalizedDays[0] ?? null;
+
+    catalog.set(normalized, {
+      name: nameEntry.name,
+      gender: {
+        label: nameEntry.gender ?? null,
+      },
+      origin: nameEntry.origin ?? null,
+      meaning: nameEntry.meaning ?? null,
+      nicknames: Array.isArray(nameEntry.nicknames) ? [...nameEntry.nicknames] : [],
+      relatedNames: Array.isArray(nameEntry.relatedNames) ? [...nameEntry.relatedNames] : [],
+      frequency: nameEntry.frequency ?? null,
+      meta: nameEntry.meta ?? null,
+      dayMeta: {
+        month: firstDay?.month ?? null,
+        day: firstDay?.day ?? null,
+        monthDay: firstDay?.monthDay ?? null,
+        primary: firstDay?.primary === true,
+        primaryLocal: firstDay?.primaryLocal === true,
+        primaryLegacy: firstDay?.primaryLegacy === true,
+        primaryRanked: firstDay?.primaryRanked === true,
+        legacyOrder: Number.isInteger(firstDay?.legacyOrder) ? firstDay.legacyOrder : null,
+        ranking: normalizeRanking(firstDay?.ranking),
+      },
+    });
+  }
+
+  return catalog;
+}
+
+function buildEmptySourceDay(monthDay, finalDay) {
+  const parsed = parseNamedayValue(monthDay);
+
+  return {
+    monthDay,
+    month: Number(finalDay?.month ?? parsed?.month ?? 0),
+    day: Number(finalDay?.day ?? parsed?.day ?? 0),
+    names: [],
+  };
+}
+
+function cloneSourceDay(sourceDay) {
+  return {
+    ...sourceDay,
+    names: Array.isArray(sourceDay?.names) ? sourceDay.names.map(cloneNameEntry) : [],
+    primaryRegistry:
+      sourceDay?.primaryRegistry && typeof sourceDay.primaryRegistry === "object"
+        ? {
+            preferredNames: [...(sourceDay.primaryRegistry.preferredNames ?? [])],
+            normalizedPreferredNames: [
+              ...(sourceDay.primaryRegistry.normalizedPreferredNames ?? []),
+            ],
+            preferredNameOrder:
+              sourceDay.primaryRegistry.preferredNameOrder instanceof Map
+                ? new Map(sourceDay.primaryRegistry.preferredNameOrder)
+                : new Map(),
+          }
+        : null,
+  };
+}
+
+function cloneNameEntry(entry) {
+  return {
+    ...entry,
+    gender:
+      entry?.gender && typeof entry.gender === "object"
+        ? {
+            ...entry.gender,
+          }
+        : entry?.gender ?? null,
+    nicknames: Array.isArray(entry?.nicknames) ? [...entry.nicknames] : [],
+    relatedNames: Array.isArray(entry?.relatedNames) ? [...entry.relatedNames] : [],
+    dayMeta: {
+      ...(entry?.dayMeta ?? {}),
+      ranking: normalizeRanking(entry?.dayMeta?.ranking),
+    },
+  };
+}
+
+function markEntryAsFinalPrimary(entry, sourceDay, preferredName) {
+  const cloned = cloneNameEntry(entry);
+
+  return {
+    ...cloned,
+    name: preferredName ?? cloned.name,
+    dayMeta: {
+      ...cloned.dayMeta,
+      month: sourceDay.month,
+      day: sourceDay.day,
+      monthDay: sourceDay.monthDay,
+      primary: true,
+      primaryRegistry: true,
+      primaryOverlay: false,
+    },
+  };
+}
+
+function buildFinalPrimaryOverlayEntry(template, sourceDay, preferredName) {
+  const cloned = cloneNameEntry(template);
+
+  return {
+    ...cloned,
+    name: preferredName ?? cloned.name,
+    dayMeta: {
+      month: sourceDay.month,
+      day: sourceDay.day,
+      monthDay: sourceDay.monthDay,
+      primary: true,
+      primaryLocal: false,
+      primaryLegacy: false,
+      primaryRanked: false,
+      legacyOrder: null,
+      ranking: null,
+      primaryRegistry: true,
+      primaryOverlay: true,
+      sourceMonthDay: template?.dayMeta?.monthDay ?? null,
+    },
+  };
+}
+
+function splitPrimaryNamesForSourceDay(sourceDay, options) {
+  if (options?.primarySelectionModeResolved === "canonical-final") {
+    return splitFinalPrimaryNames(sourceDay);
+  }
+
+  return splitPrimaryNames(sourceDay.names, options?.primarySource);
+}
+
+function splitFinalPrimaryNames(sourceDay) {
+  const normalizedPreferredNames = Array.isArray(sourceDay?.primaryRegistry?.normalizedPreferredNames)
+    ? sourceDay.primaryRegistry.normalizedPreferredNames
+    : [];
+
+  if (normalizedPreferredNames.length === 0) {
+    return {
+      primaryNames: [],
+      restNames: [...(sourceDay?.names ?? [])],
+    };
+  }
+
+  const entryMap = new Map();
+
+  for (const entry of sourceDay.names ?? []) {
+    const normalized = normalizeNameForMatch(entry?.name);
+
+    if (normalized && !entryMap.has(normalized)) {
+      entryMap.set(normalized, entry);
+    }
+  }
+
+  const primaryNames = normalizedPreferredNames.map((normalizedPreferredName) => {
+    const entry = entryMap.get(normalizedPreferredName) ?? null;
+
+    if (!entry) {
+      throw new Error(
+        `A végső primer név hiányzik a futásidejű ICS-forrásnapból: ${normalizedPreferredName} (${sourceDay.monthDay}).`
+      );
+    }
+
+    return entry;
+  });
+  const selected = new Set(primaryNames);
+
+  return {
+    primaryNames,
+    restNames: (sourceDay.names ?? []).filter((entry) => !selected.has(entry)),
   };
 }
 
@@ -721,7 +1030,7 @@ function buildEventsForContext(context) {
     };
   }
 
-  const selection = splitPrimaryNames(sourceDay.names, options.primarySource);
+  const selection = splitPrimaryNamesForSourceDay(sourceDay, options);
 
   if (selection.primaryNames.length === 0) {
     return {
@@ -2361,7 +2670,7 @@ function buildCalendarDescription(payload, options, eventCount) {
   }
 
   if (renderBehavior.isPrimaryMode) {
-    parts.push(`Elsődleges forrás: ${primarySourceLabelHu(options.primarySource)}`);
+    parts.push(`Elsődleges forrás: ${primarySelectionLabelHu(options)}`);
   }
 
   parts.push(`Leírás: ${descriptionModeLabelHu(options.descriptionMode)}`);
@@ -2383,6 +2692,7 @@ function buildCalendarDescription(payload, options, eventCount) {
  * A `normalizeOptions` normalizálja a megadott értéket.
  */
 export function normalizeOptions(options = {}) {
+  const hasExplicitPrimarySource = Object.prototype.hasOwnProperty.call(options, "primarySource");
   const normalized = {
     input: options.input ?? DEFAULT_INPUT_PATH,
     output: options.output ?? DEFAULT_OUTPUT_PATH,
@@ -2393,6 +2703,9 @@ export function normalizeOptions(options = {}) {
     restHandling: options.restHandling ?? "hidden",
     restLayout: options.restLayout ?? null,
     primarySource: options.primarySource ?? "default",
+    primarySourceConfigured: hasExplicitPrimarySource,
+    primarySelectionMode: options.primarySelectionMode ?? "auto",
+    primarySelectionModeResolved: null,
     leapProfile: options.leapProfile ?? "off",
     leapStrategy: "b",
     descriptionMode: options.descriptionMode ?? "none",
@@ -2413,6 +2726,7 @@ export function normalizeOptions(options = {}) {
   const validLayouts = new Set(["grouped", "separate"]);
   const validRestHandling = new Set(["hidden", "description", "daily-event", "split"]);
   const validPrimarySources = new Set(["default", "legacy", "ranked", "either"]);
+  const validPrimarySelectionModes = new Set(["auto", "configured", "canonical-final"]);
   const validDescriptionModes = new Set(["none", "compact", "detailed"]);
   const validDescriptionFormats = new Set(["text", "html", "full"]);
   const validLeapProfiles = new Set(["off", "hungarian-a", "hungarian-b", "hungarian-both"]);
@@ -2434,6 +2748,12 @@ export function normalizeOptions(options = {}) {
 
   if (!validPrimarySources.has(normalized.primarySource)) {
     throw new Error("A személyes primerforrás ezek egyike lehet: default, legacy, ranked, either.");
+  }
+
+  if (!validPrimarySelectionModes.has(normalized.primarySelectionMode)) {
+    throw new Error(
+      "A belső primarySelectionMode értéke ezek egyike lehet: auto, configured, canonical-final."
+    );
   }
 
   if (!validDescriptionModes.has(normalized.descriptionMode)) {
@@ -2980,6 +3300,14 @@ function primarySourceLabelHu(value) {
   }
 
   return value;
+}
+
+function primarySelectionLabelHu(options) {
+  if (options?.primarySelectionModeResolved === "canonical-final") {
+    return "végső primerjegyzék";
+  }
+
+  return primarySourceLabelHu(options?.primarySource);
 }
 
 /**
