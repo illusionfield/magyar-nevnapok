@@ -80,10 +80,14 @@ Az utóbbi riport havi bontásban jeleníti meg
 ### Helyi primerkiegészítések
 
 ```text
-  data/primary-registry-overrides.local.yaml
+  .local/nevnapok.local.yaml
 ```
 
 Ez a fájl nem követett, személyes bemenet.
+Az itt tárolt `ics` blokk a közös naptárprofil mértékadó forrása.
+Az `ics.outputMode` egyszerre pontosan egy aktív ICS-kimenetet jelöl ki.
+A `personalPrimary` blokk a személyes primerforrást, a `Normalizált` / `Rangsor`
+módosítókat és a kézi helyi primernapokat is együtt tárolja.
 Az itt rögzített nevek nem írják felül a közös primerjegyzéket, hanem a személyes primeres
 naptár generálásakor hozzáadódnak a közös primerlistához.
 
@@ -93,4 +97,6 @@ naptár generálásakor hozzáadódnak a közös primerlistához.
   output/naptar/nevnapok-sajat.ics
 ```
 
-Ez a kimenet csak akkor készül el, ha a helyi primerkiegészítések között legalább egy név szerepel.
+Ez a kimenet csak akkor készül el, ha az aktív `ics.outputMode` értéke `personal`.
+A személyes primerforrás, a `Normalizált` / `Rangsor` módosítók és a kézi helyi
+primernapok ekkor szólnak bele a generált tartalomba.

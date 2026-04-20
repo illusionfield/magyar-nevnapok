@@ -4,6 +4,15 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 
 ## [Unreleased]
 
+### ICS és személyes primerworkflow
+
+- Az ICS generálás mértékadó helyi profilja mostantól a nem követett `.local/nevnapok.local.yaml`.
+- Az ICS publikus CLI-felületéről kikerültek a részletes kapcsolók; a generálás a mentett helyi YAML-profilt használja.
+- Az új helyi YAML egy fájlban tárolja az `ics` blokkot, a személyes primerprofilt és a kézi helyi primernapokat.
+- Az ICS-generálás mostantól egyszerre pontosan egy aktív kimenet móddal dolgozik: közös, primer+további külön vagy személyes.
+- A személyes primerprofil már nem hoz létre automatikusan külön ICS-t; csak a `personal` kimenet módnál érvényesül.
+- A TUI ICS nézete és a `Saját primer szerkesztő` ugyanazt a közös helyi YAML-fájlt szerkeszti.
+
 ## [0.6.2] - 2026-04-09
 
 ### Kimenetek

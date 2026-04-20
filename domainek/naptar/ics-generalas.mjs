@@ -5,6 +5,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { betoltStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
 import { normalizeNameForMatch } from "../primer/alap.mjs";
@@ -20,18 +21,18 @@ const DEFAULT_LOCAL_PRIMARY_OVERRIDES_PATH = kanonikusUtvonalak.kezi.primerFelul
 const CURRENT_YEAR = new Date().getFullYear();
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 
-const args = parseArgs(process.argv.slice(2));
-const options = normalizeOptions(args);
-
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * Az `epitIcsKimenetiTervet` a normalizált opciók alapján felépíti az összes generálandó kimenetet.
  */
-async function main() {
+export async function epitIcsKimenetiTervet(rawOptions = {}, runtime = {}) {
+  const options = normalizeOptions(rawOptions);
   const inputPath = path.resolve(process.cwd(), options.input);
   const outputPath = path.resolve(process.cwd(), options.output);
-
-  const payload = await betoltStrukturaltFajl(inputPath);
-  const localPrimaryOverrideMap = await loadLocalPrimaryOverrideMap(options.localPrimaryOverrides);
+  const payload = runtime.payload ?? (await betoltStrukturaltFajl(inputPath));
+  const localPrimaryOverrideMap =
+    runtime.localPrimaryOverrideMap instanceof Map
+      ? runtime.localPrimaryOverrideMap
+      : await loadLocalPrimaryOverrideMap(options.localPrimaryOverrides);
   const sourceDays = applyLocalPrimaryOverridesToSourceDays(
     Array.isArray(payload.days) ? normalizeSourceDays(payload.days) : buildDaysFromNames(payload.names),
     localPrimaryOverrideMap
@@ -39,15 +40,73 @@ async function main() {
   const sourceNameMap = buildNameMapFromSourceDays(sourceDays);
   const jobs = buildCalendarJobs(sourceDays, outputPath, options);
 
-  for (const job of jobs) {
-    const result = buildCalendarArtifact(job.sourceDays, sourceNameMap, payload, job.options);
-    await writeCalendarFile(job.outputPath, result.calendarText);
+  return {
+    inputPath,
+    outputPath,
+    options,
+    payload,
+    localPrimaryOverrideMap,
+    sourceDays,
+    sourceNameMap,
+    jobs,
+    plannedOutputPaths: jobs.map((job) => job.outputPath),
+  };
+}
 
-    console.log(`Mentve: ${result.events.length} esemény ide: ${job.outputPath}`);
+/**
+ * A `vegrehajtIcsKimenetiTervet` a korábban felépített terv alapján legenerálja az ICS-kimeneteket.
+ */
+export async function vegrehajtIcsKimenetiTervet(terv, runtime = {}) {
+  const results = [];
 
-    if (job.skippedEmptyPrimaryDays > 0) {
+  for (const job of terv.jobs) {
+    const result = buildCalendarArtifact(job.sourceDays, terv.sourceNameMap, terv.payload, job.options);
+
+    if (runtime.writeFiles !== false) {
+      await writeCalendarFile(job.outputPath, result.calendarText);
+    }
+
+    results.push({
+      outputPath: job.outputPath,
+      sourceDays: job.sourceDays,
+      skippedEmptyPrimaryDays: job.skippedEmptyPrimaryDays,
+      options: job.options,
+      events: result.events,
+      eventCount: result.events.length,
+      calendarText: result.calendarText,
+    });
+  }
+
+  return {
+    inputPath: terv.inputPath,
+    outputPath: terv.outputPath,
+    options: terv.options,
+    payload: terv.payload,
+    results,
+    writtenPaths: results.map((entry) => entry.outputPath),
+  };
+}
+
+/**
+ * A `generalIcsKimeneteket` a normalizált opciók alapján legenerálja az összes érintett ICS-fájlt.
+ */
+export async function generalIcsKimeneteket(rawOptions = {}, runtime = {}) {
+  const terv = await epitIcsKimenetiTervet(rawOptions, runtime);
+  return vegrehajtIcsKimenetiTervet(terv, runtime);
+}
+
+/**
+ * A `futtatCliModban` a modul közvetlen futtatási belépési pontja.
+ */
+async function futtatCliModban(argv = process.argv.slice(2)) {
+  const { results } = await generalIcsKimeneteket(parseArgs(argv));
+
+  for (const result of results) {
+    console.log(`Mentve: ${result.eventCount} esemény ide: ${result.outputPath}`);
+
+    if (result.skippedEmptyPrimaryDays > 0) {
       console.log(
-        `${job.skippedEmptyPrimaryDays} nap kimaradt a(z) ${calendarPartitionLogLabel(job.options.calendarPartition)} részből, mert a kiválasztott primerforrás nem adott elsődleges neveket.`
+        `${result.skippedEmptyPrimaryDays} nap kimaradt a(z) ${calendarPartitionLogLabel(result.options.calendarPartition)} részből, mert a kiválasztott primerforrás nem adott elsődleges neveket.`
       );
     }
   }
@@ -73,12 +132,10 @@ async function loadLocalPrimaryOverrideMap(localPrimaryOverridesPath) {
  */
 function buildCalendarJobs(sourceDays, outputPath, options) {
   const leapStrategies =
-    options.leapMode === "hungarian-until-2050" && options.leapStrategy === "both"
-      ? ["a", "b"]
-      : [options.leapStrategy];
+    options.leapProfile === "hungarian-both" ? ["a", "b"] : [options.leapStrategy];
   const baseJobs = [];
 
-  if (options.splitPrimaryRest) {
+  if (options.restHandling === "split") {
     const splitDays = splitSourceDaysByPrimary(sourceDays, options.primarySource);
     baseJobs.push({
       sourceDays: splitDays.primaryDays,
@@ -88,7 +145,10 @@ function buildCalendarJobs(sourceDays, outputPath, options) {
       ),
       skippedEmptyPrimaryDays: splitDays.skippedPrimaryDays,
       optionOverrides: {
-        mode: options.primaryCalendarMode,
+        scope: "all",
+        layout: options.layout,
+        restHandling: "hidden",
+        restLayout: null,
         calendarName: `${options.calendarName} — elsődleges`,
         calendarPartition: "primary",
       },
@@ -101,7 +161,10 @@ function buildCalendarJobs(sourceDays, outputPath, options) {
       ),
       skippedEmptyPrimaryDays: 0,
       optionOverrides: {
-        mode: options.restCalendarMode,
+        scope: "all",
+        layout: options.restLayout,
+        restHandling: "hidden",
+        restLayout: null,
         calendarName: `${options.calendarName} — további`,
         calendarPartition: "rest",
       },
@@ -621,7 +684,7 @@ function buildRecurringEvents(sourceDays, referenceNameMap, options) {
  */
 function buildEventsForContext(context) {
   const { sourceDay, actualDate, sourceNameMap, actualNameMap, options, year } = context;
-  const modeBehavior = getModeBehavior(options.mode);
+  const modeBehavior = getRenderBehavior(options);
 
   if (!modeBehavior.isPrimaryMode) {
     if (modeBehavior.grouped) {
@@ -719,49 +782,18 @@ function buildEventsForContext(context) {
 }
 
 /**
- * A `getModeBehavior` visszaadja az aktuális futási módhoz tartozó viselkedési szabályokat.
+ * A `getRenderBehavior` visszaadja az aktuális futási modellhez tartozó viselkedési szabályokat.
  */
-function getModeBehavior(mode) {
-  const behaviors = {
-    together: {
-      grouped: true,
-      isPrimaryMode: false,
-      withRestDescription: false,
-      withRemainderGrouped: false,
-    },
-    separate: {
-      grouped: false,
-      isPrimaryMode: false,
-      withRestDescription: false,
-      withRemainderGrouped: false,
-    },
-    "primary-together": {
-      grouped: true,
-      isPrimaryMode: true,
-      withRestDescription: false,
-      withRemainderGrouped: false,
-    },
-    "primary-together-with-rest": {
-      grouped: true,
-      isPrimaryMode: true,
-      withRestDescription: true,
-      withRemainderGrouped: false,
-    },
-    "primary-separate": {
-      grouped: false,
-      isPrimaryMode: true,
-      withRestDescription: false,
-      withRemainderGrouped: false,
-    },
-    "primary-separate-with-rest": {
-      grouped: false,
-      isPrimaryMode: true,
-      withRestDescription: false,
-      withRemainderGrouped: true,
-    },
-  };
+function getRenderBehavior(options) {
+  const grouped = options.layout === "grouped";
+  const isPrimaryMode = options.scope === "primary";
 
-  return behaviors[mode] ?? behaviors.together;
+  return {
+    grouped,
+    isPrimaryMode,
+    withRestDescription: isPrimaryMode && options.restHandling === "description",
+    withRemainderGrouped: isPrimaryMode && options.restHandling === "daily-event",
+  };
 }
 
 /**
@@ -2311,19 +2343,24 @@ function serializeCalendar(events, payload, options) {
  */
 function buildCalendarDescription(payload, options, eventCount) {
   const parts = [];
-  const modeBehavior = getModeBehavior(options.mode);
+  const renderBehavior = getRenderBehavior(options);
 
   parts.push(`Forrás: ${payload?.source?.provider ?? "nevnapok.yaml"}`);
   parts.push(`Események: ${eventCount}`);
 
   if (options.calendarPartition) {
     parts.push(`Naptár-rész: ${calendarPartitionLabelHu(options.calendarPartition)}`);
-    parts.push(`Elsődleges kijelölés: ${primarySourceLabelHu(options.primarySource)}`);
   }
 
-  parts.push(`Csoportosítás: ${modeLabelHu(options.mode)}`);
+  parts.push(`Hatókör: ${scopeLabelHu(options.scope)}`);
+  parts.push(`Elrendezés: ${layoutLabelHu(options.layout)}`);
+  parts.push(`További nevek kezelése: ${restHandlingLabelHu(options.restHandling)}`);
 
-  if (modeBehavior.isPrimaryMode) {
+  if (options.restHandling === "split") {
+    parts.push(`További naptár elrendezése: ${layoutLabelHu(options.restLayout)}`);
+  }
+
+  if (renderBehavior.isPrimaryMode) {
     parts.push(`Elsődleges forrás: ${primarySourceLabelHu(options.primarySource)}`);
   }
 
@@ -2332,11 +2369,11 @@ function buildCalendarDescription(payload, options, eventCount) {
   parts.push(`További névnapok: ${options.includeOtherDays ? "bekapcsolva" : "kikapcsolva"}`);
   parts.push(`Év napja: ${ordinalModeLabelHu(options.ordinalDay)}`);
 
-  if (options.leapMode === "hungarian-until-2050") {
-    parts.push(`Szökőéves mód: magyar február 24–29. eltolás ${options.untilYear}-ig`);
-    parts.push(`Szökőéves stratégia: ${leapStrategyLabelHu(options.leapStrategy)}`);
+  if (options.leapProfile !== "off") {
+    parts.push(`Szökőéves profil: ${leapProfileLabelHu(options.leapProfile)}`);
+    parts.push(`Szökőéves tartomány vége: ${options.untilYear}`);
   } else {
-    parts.push("Szökőéves mód: kikapcsolva");
+    parts.push("Szökőéves profil: kikapcsolva");
   }
 
   return parts.join("; ");
@@ -2345,22 +2382,23 @@ function buildCalendarDescription(payload, options, eventCount) {
 /**
  * A `normalizeOptions` normalizálja a megadott értéket.
  */
-function normalizeOptions(options) {
+export function normalizeOptions(options = {}) {
   const normalized = {
     input: options.input ?? DEFAULT_INPUT_PATH,
     output: options.output ?? DEFAULT_OUTPUT_PATH,
     primaryOutput: options.primaryOutput ?? null,
     restOutput: options.restOutput ?? null,
-    mode: options.mode ?? "together",
+    scope: options.scope ?? "all",
+    layout: options.layout ?? "grouped",
+    restHandling: options.restHandling ?? "hidden",
+    restLayout: options.restLayout ?? null,
     primarySource: options.primarySource ?? "default",
-    leapStrategy: options.leapStrategy ?? "b",
-    splitPrimaryRest: options.splitPrimaryRest ?? false,
-    primaryCalendarMode: options.primaryCalendarMode ?? null,
-    restCalendarMode: options.restCalendarMode ?? null,
+    leapProfile: options.leapProfile ?? "off",
+    leapStrategy: "b",
     descriptionMode: options.descriptionMode ?? "none",
     descriptionFormat: options.descriptionFormat ?? "text",
     includeOtherDays: options.includeOtherDays ?? false,
-    leapMode: options.leapMode ?? "none",
+    leapMode: "none",
     ordinalDay: options.ordinalDay ?? "none",
     calendarName: options.calendarName ?? DEFAULT_CALENDAR_NAME,
     localPrimaryOverrides: options.localPrimaryOverrides ?? null,
@@ -2371,50 +2409,83 @@ function normalizeOptions(options) {
     rruleUntil: null,
   };
 
-  const validModes = new Set([
-    "together",
-    "separate",
-    "primary-together",
-    "primary-together-with-rest",
-    "primary-separate",
-    "primary-separate-with-rest",
-  ]);
+  const validScopes = new Set(["all", "primary"]);
+  const validLayouts = new Set(["grouped", "separate"]);
+  const validRestHandling = new Set(["hidden", "description", "daily-event", "split"]);
   const validPrimarySources = new Set(["default", "legacy", "ranked", "either"]);
   const validDescriptionModes = new Set(["none", "compact", "detailed"]);
-  const validDescriptionFormats = new Set(["text", "html", "full", "both"]);
-  const validLeapModes = new Set(["none", "hungarian-until-2050"]);
+  const validDescriptionFormats = new Set(["text", "html", "full"]);
+  const validLeapProfiles = new Set(["off", "hungarian-a", "hungarian-b", "hungarian-both"]);
   const validOrdinalModes = new Set(["none", "summary", "description"]);
 
-  if (!validModes.has(normalized.mode)) {
+  if (!validScopes.has(normalized.scope)) {
+    throw new Error("A --scope kapcsoló értéke ezek egyike lehet: all, primary.");
+  }
+
+  if (!validLayouts.has(normalized.layout)) {
+    throw new Error("A --layout kapcsoló értéke ezek egyike lehet: grouped, separate.");
+  }
+
+  if (!validRestHandling.has(normalized.restHandling)) {
     throw new Error(
-      "A --mode kapcsoló értéke ezek egyike lehet: together, separate, primary-together, primary-together-with-rest, primary-separate, primary-separate-with-rest."
+      "A --rest-handling kapcsoló értéke ezek egyike lehet: hidden, description, daily-event, split."
     );
   }
 
   if (!validPrimarySources.has(normalized.primarySource)) {
-    throw new Error("A --primary-source kapcsoló értéke ezek egyike lehet: default, legacy, ranked, either.");
+    throw new Error("A személyes primerforrás ezek egyike lehet: default, legacy, ranked, either.");
   }
 
   if (!validDescriptionModes.has(normalized.descriptionMode)) {
     throw new Error("A --description kapcsoló értéke ezek egyike lehet: none, compact, detailed.");
   }
 
+  if (normalized.descriptionFormat === "both") {
+    throw new Error("A --description-format=both megszűnt. Használd helyette a full értéket.");
+  }
+
   if (!validDescriptionFormats.has(normalized.descriptionFormat)) {
     throw new Error("A --description-format kapcsoló értéke ezek egyike lehet: text, html, full.");
   }
 
-  normalized.leapStrategy = normalizeLeapStrategyOption(normalized.leapStrategy);
-
-  if (normalized.descriptionFormat === "both") {
-    normalized.descriptionFormat = "full";
-  }
-
-  if (!validLeapModes.has(normalized.leapMode)) {
-    throw new Error("A --leap-mode kapcsoló értéke ezek egyike lehet: none, hungarian-until-2050.");
+  if (!validLeapProfiles.has(normalized.leapProfile)) {
+    throw new Error(
+      "A --leap-profile kapcsoló értéke ezek egyike lehet: off, hungarian-a, hungarian-b, hungarian-both."
+    );
   }
 
   if (!validOrdinalModes.has(normalized.ordinalDay)) {
     throw new Error("A --ordinal-day kapcsoló értéke ezek egyike lehet: none, summary, description.");
+  }
+
+  if (normalized.scope === "all" && normalized.restHandling !== "hidden") {
+    throw new Error(
+      "A --rest-handling csak --scope primary mellett lehet description, daily-event vagy split."
+    );
+  }
+
+  if (normalized.restHandling === "split") {
+    normalized.restLayout = normalized.restLayout ?? normalized.layout;
+
+    if (!validLayouts.has(normalized.restLayout)) {
+      throw new Error("A --rest-layout kapcsoló értéke ezek egyike lehet: grouped, separate.");
+    }
+  } else {
+    if (normalized.restLayout != null) {
+      throw new Error("A --rest-layout csak --rest-handling split mellett használható.");
+    }
+
+    normalized.restLayout = null;
+  }
+
+  if (normalized.restHandling !== "split") {
+    if (normalized.primaryOutput != null) {
+      throw new Error("A --primary-output csak --rest-handling split mellett használható.");
+    }
+
+    if (normalized.restOutput != null) {
+      throw new Error("A --rest-output csak --rest-handling split mellett használható.");
+    }
   }
 
   if (!Number.isInteger(normalized.baseYear) || normalized.baseYear < 1900) {
@@ -2429,24 +2500,23 @@ function normalizeOptions(options) {
     throw new Error("A --until-year kapcsoló értékének egész évszámnak kell lennie, és nem lehet kisebb a --from-year értékénél.");
   }
 
-  if (normalized.leapMode === "hungarian-until-2050" && normalized.untilYear > 2050) {
-    throw new Error("A --until-year értéke nem lehet nagyobb 2050-nél, ha a --leap-mode engedélyezve van.");
+  if (normalized.leapProfile !== "off" && normalized.untilYear > 2050) {
+    throw new Error("A --until-year értéke nem lehet nagyobb 2050-nél, ha a --leap-profile engedélyezve van.");
   }
 
-  if (normalized.leapMode === "hungarian-until-2050") {
+  if (normalized.leapProfile === "hungarian-a") {
+    normalized.leapMode = "hungarian-until-2050";
+    normalized.leapStrategy = "a";
+    normalized.rruleUntil = formatUntilDateTime(normalized.untilYear);
+  } else if (normalized.leapProfile === "hungarian-b") {
+    normalized.leapMode = "hungarian-until-2050";
+    normalized.leapStrategy = "b";
+    normalized.rruleUntil = formatUntilDateTime(normalized.untilYear);
+  } else if (normalized.leapProfile === "hungarian-both") {
+    normalized.leapMode = "hungarian-until-2050";
+    normalized.leapStrategy = "both";
     normalized.rruleUntil = formatUntilDateTime(normalized.untilYear);
   }
-
-  normalized.primaryCalendarMode = normalizeSplitCalendarMode(
-    normalized.primaryCalendarMode,
-    getModeBehavior(normalized.mode).grouped ? "together" : "separate",
-    "--primary-calendar-mode"
-  );
-  normalized.restCalendarMode = normalizeSplitCalendarMode(
-    normalized.restCalendarMode,
-    getModeBehavior(normalized.mode).grouped ? "together" : "separate",
-    "--rest-calendar-mode"
-  );
 
   return normalized;
 }
@@ -2454,11 +2524,53 @@ function normalizeOptions(options) {
 /**
  * A `parseArgs` feldolgozza a bemenetet és strukturált eredményt ad vissza.
  */
-function parseArgs(argv) {
+export function parseArgs(argv = []) {
   const options = {};
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+
+    if (arg === "--split-primary-rest" || arg.startsWith("--split-primary-rest=")) {
+      throw new Error(
+        "A --split-primary-rest megszűnt. Használd a --scope primary --rest-handling split kapcsolókat."
+      );
+    }
+
+    if (arg === "--mode" || arg.startsWith("--mode=")) {
+      throw new Error(
+        "A --mode megszűnt. Használd a --scope, --layout és --rest-handling kapcsolókat."
+      );
+    }
+
+    if (arg === "--primary-calendar-mode" || arg.startsWith("--primary-calendar-mode=")) {
+      throw new Error(
+        "A --primary-calendar-mode megszűnt. Használd a --layout kapcsolót, split esetén pedig a --rest-layout kapcsolót."
+      );
+    }
+
+    if (arg === "--rest-calendar-mode" || arg.startsWith("--rest-calendar-mode=")) {
+      throw new Error(
+        "A --rest-calendar-mode megszűnt. Használd helyette a --rest-layout kapcsolót."
+      );
+    }
+
+    if (arg === "--primary-source" || arg.startsWith("--primary-source=")) {
+      throw new Error(
+        "A --primary-source megszűnt a publikus ICS-felületen. A személyes primerforrást a helyi beállítások kezelik."
+      );
+    }
+
+    if (arg === "--leap-mode" || arg.startsWith("--leap-mode=")) {
+      throw new Error(
+        "A --leap-mode megszűnt. Használd helyette a --leap-profile kapcsolót."
+      );
+    }
+
+    if (arg === "--leap-strategy" || arg.startsWith("--leap-strategy=")) {
+      throw new Error(
+        "A --leap-strategy megszűnt. Használd helyette a --leap-profile kapcsolót."
+      );
+    }
 
     if (arg === "--include-other-days") {
       options.includeOtherDays = true;
@@ -2466,8 +2578,7 @@ function parseArgs(argv) {
     }
 
     if (arg === "--no-other-days") {
-      options.includeOtherDays = false;
-      continue;
+      throw new Error("A --no-other-days megszűnt. Egyszerűen hagyd el az --include-other-days kapcsolót.");
     }
 
     if (arg === "--input" && argv[index + 1]) {
@@ -2514,63 +2625,58 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (arg === "--split-primary-rest") {
-      options.splitPrimaryRest = true;
-      continue;
-    }
-
-    if (arg === "--mode" && argv[index + 1]) {
-      options.mode = argv[index + 1];
+    if (arg === "--scope" && argv[index + 1]) {
+      options.scope = argv[index + 1];
       index += 1;
       continue;
     }
 
-    if (arg.startsWith("--mode=")) {
-      options.mode = arg.slice("--mode=".length);
+    if (arg.startsWith("--scope=")) {
+      options.scope = arg.slice("--scope=".length);
       continue;
     }
 
-    if (arg === "--primary-source" && argv[index + 1]) {
-      options.primarySource = argv[index + 1];
+    if (arg === "--layout" && argv[index + 1]) {
+      options.layout = argv[index + 1];
       index += 1;
       continue;
     }
 
-    if (arg.startsWith("--primary-source=")) {
-      options.primarySource = arg.slice("--primary-source=".length);
+    if (arg.startsWith("--layout=")) {
+      options.layout = arg.slice("--layout=".length);
       continue;
     }
 
-    if (arg === "--leap-strategy" && argv[index + 1]) {
-      options.leapStrategy = argv[index + 1];
+    if (arg === "--rest-handling" && argv[index + 1]) {
+      options.restHandling = argv[index + 1];
       index += 1;
       continue;
     }
 
-    if (arg.startsWith("--leap-strategy=")) {
-      options.leapStrategy = arg.slice("--leap-strategy=".length);
+    if (arg.startsWith("--rest-handling=")) {
+      options.restHandling = arg.slice("--rest-handling=".length);
       continue;
     }
 
-    if (arg === "--primary-calendar-mode" && argv[index + 1]) {
-      options.primaryCalendarMode = argv[index + 1];
+    if (arg === "--rest-layout" && argv[index + 1]) {
+      options.restLayout = argv[index + 1];
       index += 1;
       continue;
     }
 
-    if (arg.startsWith("--primary-calendar-mode=")) {
-      options.primaryCalendarMode = arg.slice("--primary-calendar-mode=".length);
+    if (arg.startsWith("--rest-layout=")) {
+      options.restLayout = arg.slice("--rest-layout=".length);
       continue;
     }
 
-    if (arg === "--rest-calendar-mode" && argv[index + 1]) {
-      options.restCalendarMode = argv[index + 1];
+    if (arg === "--leap-profile" && argv[index + 1]) {
+      options.leapProfile = argv[index + 1];
       index += 1;
       continue;
     }
 
-    if (arg.startsWith("--rest-calendar-mode=")) {
-      options.restCalendarMode = arg.slice("--rest-calendar-mode=".length);
+    if (arg.startsWith("--leap-profile=")) {
+      options.leapProfile = arg.slice("--leap-profile=".length);
       continue;
     }
 
@@ -2592,18 +2698,11 @@ function parseArgs(argv) {
     }
 
     if (arg.startsWith("--description-format=")) {
+      if (arg.slice("--description-format=".length) === "both") {
+        throw new Error("A --description-format=both megszűnt. Használd helyette a full értéket.");
+      }
+
       options.descriptionFormat = arg.slice("--description-format=".length);
-      continue;
-    }
-
-    if (arg === "--leap-mode" && argv[index + 1]) {
-      options.leapMode = argv[index + 1];
-      index += 1;
-      continue;
-    }
-
-    if (arg.startsWith("--leap-mode=")) {
-      options.leapMode = arg.slice("--leap-mode=".length);
       continue;
     }
 
@@ -2680,6 +2779,10 @@ function parseArgs(argv) {
       options.untilYear = Number(arg.slice("--until-year=".length));
       continue;
     }
+
+    if (arg.startsWith("--")) {
+      throw new Error(`Ismeretlen ICS-kapcsoló: ${arg}`);
+    }
   }
 
   return options;
@@ -2700,30 +2803,6 @@ function prettifyGender(value) {
   return value;
 }
 
-/**
- * A `normalizeLeapStrategyOption` normalizálja a megadott értéket.
- */
-function normalizeLeapStrategyOption(value) {
-  const candidate = String(value ?? "a").trim().toLowerCase();
-
-  if (candidate === "a" || candidate === "rrule-exdate-rdate") {
-    return "a";
-  }
-
-  if (candidate === "b" || candidate === "rrule-recurrence-id" || candidate === "recurrence-id") {
-    return "b";
-  }
-
-  if (candidate === "both" || candidate === "ab" || candidate === "a+b") {
-    return "both";
-  }
-
-  throw new Error("A --leap-strategy kapcsoló értéke ezek egyike lehet: a, b, both.");
-}
-
-/**
- * A `leapStrategyFileSuffix` fájlnév-utótagot ad a szökőéves stratégiához.
- */
 function leapStrategyFileSuffix(value) {
   if (value === "b") {
     return "B";
@@ -2733,39 +2812,26 @@ function leapStrategyFileSuffix(value) {
 }
 
 /**
- * A `leapStrategyLabelHu` magyar címkét ad a szökőéves stratégiához.
+ * A `leapProfileLabelHu` magyar címkét ad a szökőéves profilhoz.
  */
-function leapStrategyLabelHu(value) {
-  if (value === "a") {
-    return "A (RRULE + EXDATE + RDATE)";
+function leapProfileLabelHu(value) {
+  if (value === "off") {
+    return "kikapcsolva";
   }
 
-  if (value === "b") {
-    return "B (RRULE + RECURRENCE-ID)";
+  if (value === "hungarian-a") {
+    return "magyar eltolás A";
   }
 
-  if (value === "both") {
-    return "A és B";
+  if (value === "hungarian-b") {
+    return "magyar eltolás B";
+  }
+
+  if (value === "hungarian-both") {
+    return "magyar eltolás A + B";
   }
 
   return value;
-}
-
-/**
- * A `normalizeSplitCalendarMode` normalizálja a megadott értéket.
- */
-function normalizeSplitCalendarMode(value, fallback, optionName) {
-  const candidate = value ?? fallback;
-
-  if (candidate === "grouped" || candidate === "together") {
-    return "together";
-  }
-
-  if (candidate === "separate" || candidate === "separated") {
-    return "separate";
-  }
-
-  throw new Error(`${optionName} kapcsoló értéke ezek egyike lehet: grouped, together, separate.`);
 }
 
 /**
@@ -2841,10 +2907,25 @@ function ordinalModeLabelHu(value) {
 }
 
 /**
- * A `modeLabelHu` magyar címkét ad az aktuális működési módhoz.
+ * A `scopeLabelHu` magyar címkét ad a hatókörhöz.
  */
-function modeLabelHu(value) {
-  if (value === "together") {
+function scopeLabelHu(value) {
+  if (value === "all") {
+    return "összes névnap";
+  }
+
+  if (value === "primary") {
+    return "csak elsődleges nevek";
+  }
+
+  return value;
+}
+
+/**
+ * A `layoutLabelHu` magyar címkét ad az eseményelrendezéshez.
+ */
+function layoutLabelHu(value) {
+  if (value === "grouped") {
     return "naponként együtt";
   }
 
@@ -2852,20 +2933,27 @@ function modeLabelHu(value) {
     return "névenként külön";
   }
 
-  if (value === "primary-together") {
-    return "csak az elsődleges névnapok, naponként együtt";
+  return value;
+}
+
+/**
+ * A `restHandlingLabelHu` magyar címkét ad a nem elsődleges nevek kezeléséhez.
+ */
+function restHandlingLabelHu(value) {
+  if (value === "hidden") {
+    return "elrejtve";
   }
 
-  if (value === "primary-together-with-rest") {
-    return "elsődleges névnapok együtt, a többi a leírásban";
+  if (value === "description") {
+    return "a leírásban";
   }
 
-  if (value === "primary-separate") {
-    return "csak az elsődleges névnapok, névenként külön";
+  if (value === "daily-event") {
+    return "külön napi eseményben";
   }
 
-  if (value === "primary-separate-with-rest") {
-    return "elsődleges névnapok külön, a többi csoportosan";
+  if (value === "split") {
+    return "külön naptárban";
   }
 
   return value;
@@ -3089,7 +3177,9 @@ function foldLine(line) {
   return segments.map((segment, index) => (index === 0 ? segment : ` ${segment}`)).join("\r\n");
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  futtatCliModban().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

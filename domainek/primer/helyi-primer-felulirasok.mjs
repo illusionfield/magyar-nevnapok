@@ -8,22 +8,52 @@
  * hogy a közös, repo-követett döntési réteget módosítaná.
  */
 
-import path from "node:path";
-import { betoltStrukturaltFajl, mentStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
-import { letezik } from "../../kozos/fajlrendszer.mjs";
-import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
+import {
+  DEFAULT_LOCAL_CONFIG_PATH,
+  allitHelyiPrimerBlokkot,
+  alapertelmezettHelyiPrimerBeallitasok as alapertelmezettHelyiPrimerBeallitasBlokk,
+  alapertelmezettHelyiPrimerModositok as alapertelmezettHelyiPrimerModositokBlokk,
+  betoltHelyiFelhasznaloiKonfigot,
+  normalizalHelyiPrimerBeallitasokat as normalizalHelyiPrimerBlokkot,
+  uresHelyiFelhasznaloiKonfigPayload,
+} from "../helyi-konfig.mjs";
 import { dedupeKeepOrder, normalizeNameForMatch, parseMonthDay } from "./alap.mjs";
 
 export const DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH =
-  kanonikusUtvonalak.kezi.primerFelulirasokHelyi;
+  DEFAULT_LOCAL_CONFIG_PATH;
 const ERVENYES_HELYI_PRIMER_FORRASOK = new Set(["default", "legacy", "ranked", "either"]);
+
+function extractLegacyPersonalPayload(payload) {
+  const personalPrimary = normalizalHelyiPrimerBlokkot(payload?.personalPrimary);
+
+  return {
+    version: 1,
+    generatedAt: payload?.generatedAt ?? new Date().toISOString(),
+    source: payload?.source ?? "helyi felhasználói beállítások",
+    settings: {
+      primarySource: personalPrimary.primarySource,
+      modifiers: personalPrimary.modifiers,
+    },
+    days: personalPrimary.days,
+  };
+}
+
+/**
+ * Az `alapertelmezettHelyiPrimerModositok` a személyes primer módosítóinak alapértékeit adja.
+ */
+export function alapertelmezettHelyiPrimerModositok() {
+  return alapertelmezettHelyiPrimerModositokBlokk();
+}
 
 /**
  * Az `alapertelmezettHelyiPrimerBeallitasok` a helyi, személyes primerbeállítások alapértékeit adja.
  */
 export function alapertelmezettHelyiPrimerBeallitasok() {
+  const alap = alapertelmezettHelyiPrimerBeallitasBlokk();
+
   return {
-    primarySource: "default",
+    primarySource: alap.primarySource,
+    modifiers: alap.modifiers,
   };
 }
 
@@ -31,13 +61,7 @@ export function alapertelmezettHelyiPrimerBeallitasok() {
  * Az `uresHelyiPrimerFelulirasPayload` létrehozza az üres, de érvényes helyi felülírási payloadot.
  */
 export function uresHelyiPrimerFelulirasPayload(generatedAt = new Date().toISOString()) {
-  return {
-    version: 1,
-    generatedAt,
-    source: "helyi egyedi primerkiegészítések",
-    settings: alapertelmezettHelyiPrimerBeallitasok(),
-    days: [],
-  };
+  return extractLegacyPersonalPayload(uresHelyiFelhasznaloiKonfigPayload(generatedAt));
 }
 
 /**
@@ -46,26 +70,12 @@ export function uresHelyiPrimerFelulirasPayload(generatedAt = new Date().toISOSt
 export async function betoltHelyiPrimerFelulirasokat(
   filePath = DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH
 ) {
-  const resolvedPath = path.resolve(process.cwd(), filePath);
-
-  if (!(await letezik(resolvedPath))) {
-    return {
-      path: resolvedPath,
-      payload: uresHelyiPrimerFelulirasPayload(),
-    };
-  }
-
-  const payload = await betoltStrukturaltFajl(resolvedPath);
-
-  if (!Array.isArray(payload?.days)) {
-    throw new Error(
-      `A helyi primerkiegészítések nem tartalmaznak érvényes days tömböt: ${resolvedPath}`
-    );
-  }
+  const { path: resolvedPath, payload, sourcePath } = await betoltHelyiFelhasznaloiKonfigot(filePath);
 
   return {
     path: resolvedPath,
-    payload,
+    sourcePath,
+    payload: extractLegacyPersonalPayload(payload),
   };
 }
 
@@ -74,13 +84,28 @@ export async function betoltHelyiPrimerFelulirasokat(
  */
 function normalizalHelyiPrimerBeallitasokat(settings) {
   const alap = alapertelmezettHelyiPrimerBeallitasok();
-  const primarySource = String(settings?.primarySource ?? alap.primarySource).trim();
+  const normalizalt = normalizalHelyiPrimerBlokkot({
+    ...alap,
+    ...settings,
+  });
 
   return {
-    primarySource: ERVENYES_HELYI_PRIMER_FORRASOK.has(primarySource)
-      ? primarySource
-      : alap.primarySource,
+    primarySource: normalizalt.primarySource,
+    modifiers: normalizalt.modifiers,
   };
+}
+
+/**
+ * A `vanNemAlapertelmezettHelyiPrimerBeallitas` megmondja, hogy a személyes primerprofil eltér-e az alaphelyzettől.
+ */
+export function vanNemAlapertelmezettHelyiPrimerBeallitas(settings) {
+  const normalized = normalizalHelyiPrimerBeallitasokat(settings);
+
+  return (
+    normalized.primarySource !== "default" ||
+    normalized.modifiers.normalized === true ||
+    normalized.modifiers.ranking === true
+  );
 }
 
 /**
@@ -89,10 +114,11 @@ function normalizalHelyiPrimerBeallitasokat(settings) {
 export async function betoltHelyiPrimerBeallitasokat(
   filePath = DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH
 ) {
-  const { path: resolvedPath, payload } = await betoltHelyiPrimerFelulirasokat(filePath);
+  const { path: resolvedPath, payload, sourcePath } = await betoltHelyiPrimerFelulirasokat(filePath);
 
   return {
     path: resolvedPath,
+    sourcePath,
     settings: normalizalHelyiPrimerBeallitasokat(payload?.settings),
     payload,
   };
@@ -105,30 +131,47 @@ export async function allitHelyiPrimerForrast({
   primarySource,
   filePath = DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH,
 }) {
-  const normalizedPrimarySource = String(primarySource ?? "").trim();
-
-  if (!ERVENYES_HELYI_PRIMER_FORRASOK.has(normalizedPrimarySource)) {
-    throw new Error("A helyi primerforrás ezek egyike lehet: default, legacy, ranked, either.");
-  }
-
-  const { path: resolvedPath, payload } = await betoltHelyiPrimerFelulirasokat(filePath);
-  const nextPayload = {
-    version: 1,
-    generatedAt: new Date().toISOString(),
-    source: payload?.source ?? "helyi egyedi primerkiegészítések",
-    settings: {
-      ...normalizalHelyiPrimerBeallitasokat(payload?.settings),
-      primarySource: normalizedPrimarySource,
-    },
-    days: Array.isArray(payload?.days) ? payload.days : [],
-  };
-
-  await mentStrukturaltFajl(resolvedPath, nextPayload);
+  const eredmeny = await allitHelyiPrimerBeallitasokat({
+    primarySource,
+    filePath,
+  });
 
   return {
-    path: resolvedPath,
+    path: eredmeny.path,
+    payload: eredmeny.payload,
+    primarySource: eredmeny.settings.primarySource,
+  };
+}
+
+/**
+ * Az `allitHelyiPrimerBeallitasokat` a teljes személyes primerbeállítás-profilt menti.
+ */
+export async function allitHelyiPrimerBeallitasokat({
+  primarySource,
+  modifiers,
+  filePath = DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH,
+}) {
+  if (primarySource != null) {
+    const normalizedPrimarySource = String(primarySource).trim();
+
+    if (!ERVENYES_HELYI_PRIMER_FORRASOK.has(normalizedPrimarySource)) {
+      throw new Error("A helyi primerforrás ezek egyike lehet: default, legacy, ranked, either.");
+    }
+  }
+
+  const eredmeny = await allitHelyiPrimerBlokkot(
+    {
+      primarySource,
+      modifiers,
+    },
+    filePath
+  );
+  const nextPayload = extractLegacyPersonalPayload(eredmeny.payload);
+
+  return {
+    path: eredmeny.path,
     payload: nextPayload,
-    primarySource: normalizedPrimarySource,
+    settings: normalizalHelyiPrimerBeallitasokat(nextPayload.settings),
   };
 }
 
@@ -251,17 +294,18 @@ export async function kapcsolHelyiPrimerKiegeszitest({
     overrideMap.set(normalizedMonthDay, currentDay);
   }
 
-  const nextPayload = {
-    version: 1,
-    generatedAt: new Date().toISOString(),
-    source: payload?.source ?? "helyi egyedi primerkiegészítések",
-    settings: normalizalHelyiPrimerBeallitasokat(payload?.settings),
-    days: Array.from(overrideMap.values()).sort((left, right) =>
-      left.monthDay.localeCompare(right.monthDay, "hu")
-    ),
-  };
-
-  await mentStrukturaltFajl(resolvedPath, nextPayload);
+  const nextDays = Array.from(overrideMap.values()).sort((left, right) =>
+    left.monthDay.localeCompare(right.monthDay, "hu")
+  );
+  const eredmeny = await allitHelyiPrimerBlokkot(
+    {
+      primarySource: payload?.settings?.primarySource,
+      modifiers: payload?.settings?.modifiers,
+      days: nextDays,
+    },
+    filePath
+  );
+  const nextPayload = extractLegacyPersonalPayload(eredmeny.payload);
 
   return {
     path: resolvedPath,

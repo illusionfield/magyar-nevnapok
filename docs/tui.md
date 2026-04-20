@@ -22,21 +22,25 @@ Indítás:
 ## ICS-beállítás szerkesztő
 
 Az `ICS generálás` menüpont most már nem azonnal fut, hanem egy külön nézetet nyit meg.
-Itt a korábbi CLI-kapcsolók fontosabb része kurzorból állítható:
+Itt a mentett helyi YAML `ics` blokkja állítható kurzorból:
 
-- split primary/rest,
-- elsődleges és további naptár módja,
-- szökőéves mód és stratégia,
+- hatókör,
+- elrendezés,
+- további nevek kezelése,
+- split esetén a további naptár elrendezése,
+- szökőéves profil,
 - évintervallum,
 - leírásmód és formátum,
 - év-napja megjelenítés,
 - további névnapok beemelése a leírásba.
+- az aktív ICS kimenet módot.
 
 Minden kapcsolóhoz külön, részletes magyarázat jelenik meg a jobb oldali panelen.
 A kijelölés mozgatásakor és az érték váltásakor a felső infósor is azonnal leírja,
 hogy az aktuális állás mit jelent a gyakorlatban.
-A primerforrás-választó kikerült ebből a nézetből, mert a személyes primerlogika a
-saját primer szerkesztőhöz tartozik.
+A módosítások azonnal a nem követett `.local/nevnapok.local.yaml` fájlba mentődnek.
+A jobb oldali panel már nem parancselőnézetet, hanem a mentett profil összegzését és a YAML-részletet mutatja.
+A generálás csak az aktív kimenet módhoz tartozó ICS-fájlokat hagyja meg.
 
 ## Audit inspector nézetek
 
@@ -55,17 +59,18 @@ Az új szerkesztő a `primer-nelkul-marado-nevek` audit közös oszlopára épü
 - a bal oldali listában a napok között lehet mozogni,
 - a jobb oldalon a közös hiányzó névjelöltek jelennek meg,
 - `Space` billentyűvel egy név helyi primerkiegészítésként ki-be kapcsolható,
-- a mentés a nem követett `data/primary-registry-overrides.local.yaml` fájlba történik,
-- `g` billentyűvel a saját primeres ICS-fájl azonnal újragenerálható,
-- külön panelben állítható a személyes primerforrás is (`default`, `legacy`, `ranked`, `either`).
+- a mentés a nem követett `.local/nevnapok.local.yaml` `personalPrimary` blokkjába történik,
+- `g` billentyűvel az aktív, mentett ICS-profil szerinti kimenet azonnal újragenerálható,
+- külön panelben állítható a személyes primerforrás,
+- ugyanitt külön kapcsolható a `Normalizált` és a `Rangsor` módosító is.
 
 ## Billentyűk
 
-- `↑` / `↓` — választás
-- `←` / `→` — néven belüli vagy részleten belüli lépkedés
+- `↑` / `↓` — választás vagy beállításváltás
+- `←` / `→` — néven belüli vagy beállításon belüli lépkedés
 - `Enter` — indítás
 - `Space` — helyi primerkiegészítés kapcsolása a szerkesztőben
-- `g` — saját naptár újragenerálása a szerkesztőben
+- `g` — az aktív, mentett ICS-profil szerinti generálás a szerkesztőben
 - `r` — riport és helyi kijelölések frissítése a szerkesztőben
 - `Tab` vagy `p` — panelváltás a saját primer szerkesztőben
 - `Esc` vagy `v` — vissza a menübe

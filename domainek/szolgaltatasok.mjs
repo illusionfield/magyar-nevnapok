@@ -3,6 +3,7 @@
  * A CLI és a TUI közös alkalmazásszintű szolgáltatásai.
  */
 
+import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { futtatPipelineCelt, listazPipelineAllapot, listazPipelineCelokat } from "../pipeline/futtato.mjs";
@@ -11,16 +12,27 @@ import { futtatNodeFolyamat } from "../kozos/parancs-futtatas.mjs";
 import { kanonikusUtvonalak } from "../kozos/utvonalak.mjs";
 import { letezik } from "../kozos/fajlrendszer.mjs";
 import {
+  alapertelmezettHelyiIcsBeallitasok,
+  allitHelyiIcsBeallitasokat,
+  betoltHelyiIcsBeallitasokat,
+} from "./helyi-konfig.mjs";
+import {
+  allitHelyiPrimerBeallitasokat,
   allitHelyiPrimerForrast,
   betoltHelyiPrimerBeallitasokat,
   betoltHelyiPrimerFelulirasokat,
   buildHelyiPrimerFelulirasMap,
   kapcsolHelyiPrimerKiegeszitest,
   tartalmazHelyiPrimerKiegeszitest,
-  vanHelyiPrimerFeluliras,
 } from "./primer/helyi-primer-felulirasok.mjs";
 import { buildCombinedMissingEntries } from "./auditok/primer-nelkul-marado-nevek.mjs";
 import { exportalCsv, exportalExcel } from "./kimenetek/tabularis-export.mjs";
+import {
+  epitIcsKimenetiTervet,
+  vegrehajtIcsKimenetiTervet,
+} from "./naptar/ics-generalas.mjs";
+import { epitIcsOutputProfilt, listazIcsMenedzseltKimeneteket } from "./naptar/ics-beallitasok.mjs";
+import { normalizeNameForMatch } from "./primer/alap.mjs";
 
 const aktualisKonyvtar = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,36 +43,120 @@ function modulUtvonal(relativ) {
   return path.resolve(aktualisKonyvtar, "..", relativ);
 }
 
-/**
- * A `szarmaztatottKimenetiUtvonal` utótagot illeszt a fájlnévhez.
- */
-function szarmaztatottKimenetiUtvonal(utvonal, utotag) {
-  const parsed = path.parse(utvonal);
-  const ext = parsed.ext || ".ics";
-  return path.join(parsed.dir, `${parsed.name}-${utotag}${ext}`);
+function egyesitNevlistakat(baseValues = [], extraValues = []) {
+  const merged = [];
+  const seen = new Set();
+
+  for (const value of [...baseValues, ...extraValues]) {
+    const key = normalizeNameForMatch(value);
+
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    merged.push(value);
+  }
+
+  return merged;
 }
 
-/**
- * A `szamolIcsKimenetiUtvonalakat` előre kiszámolja a szolgáltatásszintű ICS generálás várható fájljait.
- */
-function szamolIcsKimenetiUtvonalakat(opciok = {}) {
-  const baseOutput = opciok.output ?? kanonikusUtvonalak.naptar.alap;
-  const leapStrategies =
-    opciok.leapMode === "hungarian-until-2050" && opciok.leapStrategy === "both"
-      ? ["A", "B"]
-      : [null];
-  const baseOutputs = opciok.splitPrimaryRest
-    ? [
-        opciok.primaryOutput ?? szarmaztatottKimenetiUtvonal(baseOutput, "primary"),
-        opciok.restOutput ?? szarmaztatottKimenetiUtvonal(baseOutput, "rest"),
-      ]
-    : [baseOutput];
+function egyesitHelyiPrimerMapokat(baseMap, extraMap) {
+  const merged = new Map();
 
-  return baseOutputs.flatMap((output) =>
-    leapStrategies.map((strategy) =>
-      strategy ? szarmaztatottKimenetiUtvonal(output, strategy) : output
-    )
-  );
+  for (const currentMap of [baseMap, extraMap]) {
+    if (!(currentMap instanceof Map)) {
+      continue;
+    }
+
+    for (const day of currentMap.values()) {
+      const current = merged.get(day.monthDay) ?? {
+        month: day.month,
+        day: day.day,
+        monthDay: day.monthDay,
+        addedPreferredNames: [],
+      };
+
+      current.addedPreferredNames = egyesitNevlistakat(
+        current.addedPreferredNames,
+        day.addedPreferredNames ?? []
+      );
+
+      if (current.addedPreferredNames.length > 0) {
+        merged.set(day.monthDay, current);
+      }
+    }
+  }
+
+  return merged;
+}
+
+function epitModositoPrimerMapot(riport, modifiers = {}) {
+  const map = new Map();
+
+  for (const month of riport?.months ?? []) {
+    for (const row of month.rows ?? []) {
+      const names = [];
+
+      if (modifiers.normalized === true) {
+        names.push(...(row.normalizedMissing ?? []).map((entry) => entry.name));
+      }
+
+      if (modifiers.ranking === true) {
+        names.push(...(row.rankingMissing ?? []).map((entry) => entry.name));
+      }
+
+      const addedPreferredNames = egyesitNevlistakat(names);
+
+      if (addedPreferredNames.length === 0) {
+        continue;
+      }
+
+      map.set(row.monthDay, {
+        month: row.month,
+        day: row.day,
+        monthDay: row.monthDay,
+        addedPreferredNames,
+      });
+    }
+  }
+
+  return map;
+}
+
+async function betoltSajatPrimerIcsBeallitasokat() {
+  const [helyiFelulirasok, helyiBeallitasok] = await Promise.all([
+    betoltHelyiPrimerFelulirasokat(),
+    betoltHelyiPrimerBeallitasokat(),
+  ]);
+  const manualMap = buildHelyiPrimerFelulirasMap(helyiFelulirasok.payload);
+  let modifierMap = new Map();
+
+  if (
+    helyiBeallitasok.settings.modifiers?.normalized === true ||
+    helyiBeallitasok.settings.modifiers?.ranking === true
+  ) {
+    await futtatAuditot("primer-nelkul-marado-nevek", {
+      tukrozzStdout: false,
+      tukrozzStderr: false,
+    });
+
+    const riport = await betoltStrukturaltFajl(kanonikusUtvonalak.riportok.primerNelkulMaradoNevek);
+    modifierMap = epitModositoPrimerMapot(riport, helyiBeallitasok.settings.modifiers);
+  }
+
+  return {
+    settings: helyiBeallitasok.settings,
+    manualMap,
+    modifierMap,
+    effectiveOverrideMap: egyesitHelyiPrimerMapokat(modifierMap, manualMap),
+  };
+}
+
+async function torolIcsKimeneteket(utvonalak = []) {
+  for (const utvonal of utvonalak) {
+    await fs.rm(utvonal, { force: true });
+  }
 }
 
 const auditWorkerTar = {
@@ -165,6 +261,38 @@ export function listazKimenetiFormatumokat() {
 }
 
 /**
+ * A `betoltIcsBeallitasokat` az egységes helyi YAML ICS-blokkját tölti be a felületeknek.
+ */
+export async function betoltIcsBeallitasokat() {
+  const eredmeny = await betoltHelyiIcsBeallitasokat();
+
+  return {
+    settings: eredmeny.settings,
+    configPath: path.relative(process.cwd(), eredmeny.path),
+    sourcePath: path.relative(process.cwd(), eredmeny.sourcePath),
+  };
+}
+
+/**
+ * Az `allitIcsBeallitasokat` az egységes helyi YAML ICS-blokkját menti.
+ */
+export async function allitIcsBeallitasokat(beallitasok = {}) {
+  const eredmeny = await allitHelyiIcsBeallitasokat(beallitasok);
+
+  return {
+    settings: eredmeny.settings,
+    configPath: path.relative(process.cwd(), eredmeny.path),
+  };
+}
+
+/**
+ * A `visszaallitIcsBeallitasokat` visszaállítja az egységes helyi YAML ICS-blokkját az alapértékekre.
+ */
+export async function visszaallitIcsBeallitasokat() {
+  return allitIcsBeallitasokat(alapertelmezettHelyiIcsBeallitasok());
+}
+
+/**
  * A `pipelineAllapot` szolgáltatásszinten visszaadja a pipeline állapotát.
  */
 export async function pipelineAllapot() {
@@ -186,146 +314,53 @@ export function listazPipelineCelLista() {
 }
 
 /**
- * Az `epitIcsGeneratorArgumentumokat` a szolgáltatásszintű opciókat CLI-argumentumokká alakítja.
- */
-function epitIcsGeneratorArgumentumokat(opciok = {}) {
-  const args = [
-    "--input",
-    opciok.input ?? kanonikusUtvonalak.adatbazis.nevnapok,
-    "--output",
-    opciok.output ?? kanonikusUtvonalak.naptar.alap,
-  ];
-
-  if (opciok.primaryOutput) {
-    args.push("--primary-output", opciok.primaryOutput);
-  }
-
-  if (opciok.restOutput) {
-    args.push("--rest-output", opciok.restOutput);
-  }
-
-  if (opciok.splitPrimaryRest === true) {
-    args.push("--split-primary-rest");
-  }
-
-  if (opciok.mode) {
-    args.push("--mode", opciok.mode);
-  }
-
-  if (opciok.primarySource) {
-    args.push("--primary-source", opciok.primarySource);
-  }
-
-  if (opciok.leapStrategy) {
-    args.push("--leap-strategy", opciok.leapStrategy);
-  }
-
-  if (opciok.primaryCalendarMode) {
-    args.push("--primary-calendar-mode", opciok.primaryCalendarMode);
-  }
-
-  if (opciok.restCalendarMode) {
-    args.push("--rest-calendar-mode", opciok.restCalendarMode);
-  }
-
-  if (opciok.descriptionMode) {
-    args.push("--description", opciok.descriptionMode);
-  }
-
-  if (opciok.descriptionFormat) {
-    args.push("--description-format", opciok.descriptionFormat);
-  }
-
-  if (opciok.includeOtherDays === true) {
-    args.push("--include-other-days");
-  }
-
-  if (opciok.includeOtherDays === false) {
-    args.push("--no-other-days");
-  }
-
-  if (opciok.leapMode) {
-    args.push("--leap-mode", opciok.leapMode);
-  }
-
-  if (opciok.ordinalDay) {
-    args.push("--ordinal-day", opciok.ordinalDay);
-  }
-
-  if (opciok.calendarName) {
-    args.push("--calendar-name", opciok.calendarName);
-  }
-
-  if (Number.isInteger(opciok.baseYear)) {
-    args.push("--base-year", String(opciok.baseYear));
-  }
-
-  if (Number.isInteger(opciok.fromYear)) {
-    args.push("--from-year", String(opciok.fromYear));
-  }
-
-  if (Number.isInteger(opciok.untilYear)) {
-    args.push("--until-year", String(opciok.untilYear));
-  }
-
-  if (opciok.localPrimaryOverrides) {
-    args.push(
-      "--local-primary-overrides",
-      opciok.localPrimaryOverrides === true
-        ? kanonikusUtvonalak.kezi.primerFelulirasokHelyi
-        : opciok.localPrimaryOverrides
-    );
-  }
-
-  return args;
-}
-
-/**
  * A `generalKimenetet` lefuttatja a kiválasztott kimeneti generálást.
  */
 export async function generalKimenetet(formatum, opciok = {}) {
   if (formatum === "ics") {
-    const letrehozott = szamolIcsKimenetiUtvonalakat(opciok);
-    const sajatOutput =
-      opciok.sajatOutput ??
-      (opciok.output
-        ? szarmaztatottKimenetiUtvonal(opciok.output, "sajat")
-        : kanonikusUtvonalak.naptar.sajat);
-    const helyiPrimerBeallitasok = await betoltHelyiPrimerBeallitasokat();
-
-    await futtatNodeFolyamat(
-      modulUtvonal("domainek/naptar/ics-generalas.mjs"),
-      epitIcsGeneratorArgumentumokat({
-        ...opciok,
-        output: opciok.output ?? kanonikusUtvonalak.naptar.alap,
-      }),
-      {
-        tukrozzStdout: true,
-        tukrozzStderr: true,
-      }
+    const helyiIcsBeallitasok = await betoltHelyiIcsBeallitasokat();
+    const kozpontiBeallitasok = {
+      ...helyiIcsBeallitasok.settings,
+      ...opciok,
+    };
+    const szemelyesProfil =
+      kozpontiBeallitasok.outputMode === "personal"
+        ? await betoltSajatPrimerIcsBeallitasokat()
+        : null;
+    const outputProfil = epitIcsOutputProfilt(kozpontiBeallitasok, {
+      personalPrimarySettings: szemelyesProfil?.settings,
+    });
+    const terv = await epitIcsKimenetiTervet(outputProfil.generatorOptions, {
+      localPrimaryOverrideMap: outputProfil.usesPersonalPrimary
+        ? szemelyesProfil?.effectiveOverrideMap
+        : undefined,
+    });
+    const aktivKimenetek = new Set(terv.plannedOutputPaths.map((utvonal) => path.resolve(utvonal)));
+    const torlendoKimenetek = listazIcsMenedzseltKimeneteket(kozpontiBeallitasok).filter(
+      (utvonal) => !aktivKimenetek.has(path.resolve(utvonal))
     );
 
-    if (await vanHelyiPrimerFeluliras()) {
-      await futtatNodeFolyamat(
-        modulUtvonal("domainek/naptar/ics-generalas.mjs"),
-        epitIcsGeneratorArgumentumokat({
-          ...opciok,
-          output: sajatOutput,
-          mode: "primary-together",
-          primarySource: opciok.primarySource ?? helyiPrimerBeallitasok.settings.primarySource,
-          calendarName: `${opciok.calendarName ?? "Névnapok"} — saját elsődleges`,
-          localPrimaryOverrides: kanonikusUtvonalak.kezi.primerFelulirasokHelyi,
-        }),
-        {
-          tukrozzStdout: true,
-          tukrozzStderr: true,
-        }
-      );
+    await torolIcsKimeneteket(torlendoKimenetek);
 
-      letrehozott.push(sajatOutput);
+    const eredmeny = await vegrehajtIcsKimenetiTervet(terv);
+
+    for (const result of eredmeny.results) {
+      console.log(`Mentve: ${result.eventCount} esemény ide: ${result.outputPath}`);
+
+      if (result.skippedEmptyPrimaryDays > 0) {
+        const reszCimke =
+          result.options.calendarPartition === "primary"
+            ? "elsődleges naptár"
+            : result.options.calendarPartition === "rest"
+              ? "további névnapok naptára"
+              : "naptár";
+        console.log(
+          `${result.skippedEmptyPrimaryDays} nap kimaradt a(z) ${reszCimke} részből, mert a kiválasztott primerforrás nem adott elsődleges neveket.`
+        );
+      }
     }
 
-    return letrehozott;
+    return eredmeny.writtenPaths;
   }
 
   if (formatum === "json") {
@@ -549,6 +584,18 @@ export async function allitSajatPrimerForrast(primarySource) {
 
   return {
     primarySource: eredmeny.primarySource,
+    localOverridesPath: path.relative(process.cwd(), eredmeny.path),
+  };
+}
+
+/**
+ * Az `allitSajatPrimerBeallitasokat` a teljes személyes primerprofilt menti.
+ */
+export async function allitSajatPrimerBeallitasokat(beallitasok = {}) {
+  const eredmeny = await allitHelyiPrimerBeallitasokat(beallitasok);
+
+  return {
+    settings: eredmeny.settings,
     localOverridesPath: path.relative(process.cwd(), eredmeny.path),
   };
 }

@@ -148,7 +148,9 @@ NPM audit:
 - `output/adatbazis/nevnapok.xlsx`
 - `output/adatbazis/formalizalt-elek.yaml`
 - `output/naptar/nevnapok.ics`
-- `output/naptar/nevnapok-sajat.ics` — csak akkor készül el, ha van helyi primerkiegészítés
+- `output/naptar/nevnapok-primary.ics` — akkor készül el, ha az aktív ICS kimenet mód a primer + további külön
+- `output/naptar/nevnapok-rest.ics` — akkor készül el, ha az aktív ICS kimenet mód a primer + további külön
+- `output/naptar/nevnapok-sajat.ics` — akkor készül el, ha az aktív ICS kimenet mód a személyes ICS
 - `output/riportok/*.yaml`
 - `output/pipeline/manifest.yaml`
 
@@ -159,7 +161,7 @@ Kiemelt riportok:
 
 Helyi, nem követett személyes bemenet:
 
-- `data/primary-registry-overrides.local.yaml`
+- `.local/nevnapok.local.yaml`
 
 ## Fontos alapelvek
 
@@ -169,11 +171,12 @@ Helyi, nem követett személyes bemenet:
 - A CLI és a TUI ugyanazt az alkalmazásszintű szolgáltatásréteget használja.
 - A pipeline lépései deklarált bemenetekkel és kimenetekkel működnek.
 - A hivatalos névjegyzék eltérései dokumentált kivétellistában vannak kezelve.
-- A saját primerkiegészítések külön, nem követett helyi YAML-fájlba kerülnek.
+- Az ICS-profil, a személyes primerprofil és a kézi helyi primernapok egy közös, nem követett helyi YAML-fájlban élnek: `.local/nevnapok.local.yaml`.
+- A helyi YAML `personalPrimary` blokkja a személyes primerforrást és a `Normalizált` / `Rangsor` módosítókat is tárolja.
+- Az `ics.outputMode` egyszerre pontosan egy aktív ICS-kimenetet jelöl ki: közös, primer+további külön vagy személyes.
 - A scraper réteg Puppeteer 24-gyel is stabilan fut; a HUN-REN HTTP-forráshoz a projekt központi kompatibilitási launch-opciókat használ.
-- Az ICS TUI-beállításnézet részletes, kapcsolónkénti magyarázatot ad.
-- A személyes primerforrás a saját primer szerkesztőben állítható, nem az általános ICS-nézetben.
-- A régi `--primary-source` CLI-kapcsoló kompatibilitási okból még működik, de szándékosan nem része a kiemelt, ajánlott workflow-nak.
+- Az `ics` generálás publikus CLI-felülete már nem részletes kapcsolókkal dolgozik, hanem a mentett helyi YAML-profilt használja.
+- A TUI ICS nézete és a saját primer szerkesztő ugyanazt a helyi YAML-fájlt frissíti.
 
 ## Dokumentáció
 

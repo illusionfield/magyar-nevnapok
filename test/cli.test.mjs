@@ -32,7 +32,7 @@ test("a kimenet súgó tartalmazza a csv és excel formátumokat", async () => {
   assert.match(stdout, /excel/i);
 });
 
-test("az ICS súgó már nem listázza kiemelt opcióként a primerforrást, csak kompatibilitási megjegyzésként", async () => {
+test("az ICS súgó a helyi YAML-profilt emeli ki, és nem listázza a részletes ICS-kapcsolókat", async () => {
   const { stdout } = await execFileAsync(
     process.execPath,
     [binUtvonal, "kimenet", "general", "ics", "--help"],
@@ -41,9 +41,60 @@ test("az ICS súgó már nem listázza kiemelt opcióként a primerforrást, csa
     }
   );
 
-  assert.doesNotMatch(stdout, /Primerforrás: default, legacy, ranked vagy either/);
-  assert.match(stdout, /--primary-source kapcsoló kompatibilitási okból/);
-  assert.match(stdout, /Saját primer szerkesztő/);
+  assert.match(stdout, /\.local\/nevnapok\.local\.yaml/u);
+  assert.match(stdout, /mentett profiljából dolgozik/u);
+  assert.doesNotMatch(stdout, /--scope <mod>/);
+  assert.doesNotMatch(stdout, /--layout <mod>/);
+  assert.doesNotMatch(stdout, /--rest-handling <mod>/);
+  assert.doesNotMatch(stdout, /--rest-layout <mod>/);
+  assert.doesNotMatch(stdout, /--leap-profile <profil>/);
+  assert.doesNotMatch(stdout, /--from-year <ev>/);
+  assert.doesNotMatch(stdout, /--description-format <formatum>/);
+  assert.doesNotMatch(stdout, /--mode <mod>/);
+  assert.doesNotMatch(stdout, /--split-primary-rest/);
+  assert.doesNotMatch(stdout, /--primary-calendar-mode/);
+  assert.doesNotMatch(stdout, /--rest-calendar-mode/);
+  assert.doesNotMatch(stdout, /--primary-source/);
+  assert.doesNotMatch(stdout, /--leap-mode/);
+  assert.doesNotMatch(stdout, /--leap-strategy/);
+  assert.match(stdout, /személyes primerprofil/u);
+  assert.match(stdout, /aktív ICS kimenet mód/u);
+});
+
+test("a legacy ICS kapcsoló célzott hibával áll le", async () => {
+  try {
+    await execFileAsync(
+      process.execPath,
+      [binUtvonal, "kimenet", "general", "ics", "--mode", "together"],
+      {
+        cwd: gyoker,
+      }
+    );
+    assert.fail("A legacy kapcsolónak hibára kellett volna futnia.");
+  } catch (error) {
+    assert.match(
+      `${error.stdout ?? ""}\n${error.stderr ?? ""}`,
+      /--mode kapcsoló megszűnt.*\.local\/nevnapok\.local\.yaml/us
+    );
+  }
+});
+
+test("az új részletes ICS kapcsoló is célzott hibával áll le", async () => {
+  try {
+    await execFileAsync(
+      process.execPath,
+      [binUtvonal, "kimenet", "general", "ics", "--scope", "primary"],
+      {
+        cwd: gyoker,
+      }
+    );
+    assert.fail("A részletes ICS kapcsolónak hibára kellett volna futnia.");
+  } catch (error) {
+    assert.match(
+      `${error.stdout ?? ""}\n${error.stderr ?? ""}`,
+      /--scope kapcsoló megszűnt.*\.local\/nevnapok\.local\.yaml/us
+    );
+  }
 });
 
 test("az audit súgó tartalmazza a primer nélkül maradó nevek auditot", async () => {

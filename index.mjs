@@ -4,8 +4,11 @@
  */
 
 export {
+  allitSajatPrimerBeallitasokat,
   allitSajatPrimerForrast,
+  allitIcsBeallitasokat,
   betoltAuditInspectorAdata,
+  betoltIcsBeallitasokat,
   betoltPrimerNelkulAuditInspectorAdata,
   betoltPrimerNelkulMaradoNevekSzerkesztoAdata,
   betoltVegsoPrimerAuditInspectorAdata,
@@ -18,6 +21,7 @@ export {
   listazPipelineCelLista,
   pipelineAllapot,
   torolGoogleNaptarat,
+  visszaallitIcsBeallitasokat,
 } from "./domainek/szolgaltatasok.mjs";
 
 export { artifactumTar } from "./pipeline/artifactumok.mjs";

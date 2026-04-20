@@ -164,35 +164,30 @@ Elérhető célok:
       "--output <utvonal>",
       "Kimeneti útvonal. ICS esetén célfájl, CSV esetén cél-CSV, Excel esetén cél-XLSX."
     )
-    .option("--primary-output <utvonal>", "A szétválasztott elsődleges naptár célútvonala.")
-    .option("--rest-output <utvonal>", "A szétválasztott további névnapok naptárának célútvonala.")
-    .option("--split-primary-rest", "Az elsődleges és a további névnapokat külön kimenetbe bontja.")
-    .option(
-      "--mode <mod>",
-      "ICS mód: together, separate, primary-together, primary-together-with-rest, primary-separate, primary-separate-with-rest."
-    )
-    .addOption(
-      new Option(
-        "--primary-source <forras>",
-        "Kompatibilitási kapcsoló a személyes primerforrás egyszeri felülírására."
-      ).hideHelp()
-    )
-    .option("--primary-calendar-mode <mod>", "Split esetén: grouped/together vagy separate.")
-    .option("--rest-calendar-mode <mod>", "Split esetén: grouped/together vagy separate.")
-    .option("--leap-mode <mod>", "Szökőéves mód: none vagy hungarian-until-2050.")
-    .option("--leap-strategy <strategia>", "Szökőéves stratégia: a, b vagy both.")
-    .option("--from-year <ev>", "Szökőéves tartomány kezdőéve.", Number)
-    .option("--until-year <ev>", "Szökőéves tartomány záróéve.", Number)
-    .option("--base-year <ev>", "A nem szökőéves ismétlődő események báziséve.", Number)
-    .option("--description <mod>", "Leírásmód: none, compact vagy detailed.")
-    .option("--description-format <formatum>", "Leírásformátum: text, html vagy full.")
-    .option("--ordinal-day <mod>", "Az év napja megjelenítése: none, summary vagy description.")
-    .option("--include-other-days", "A leírásban a további névnapok is szerepeljenek.")
-    .option("--calendar-name <nev>", "Az ICS naptár neve.")
-    .option(
-      "--local-primary-overrides [utvonal]",
-      "ICS esetén a helyi primerkiegészítések fájlja; útvonal nélkül az alapértelmezett helyi YAML."
-    )
+    .addOption(new Option("--primary-output <utvonal>").hideHelp())
+    .addOption(new Option("--rest-output <utvonal>").hideHelp())
+    .addOption(new Option("--scope <mod>").hideHelp())
+    .addOption(new Option("--layout <mod>").hideHelp())
+    .addOption(new Option("--rest-handling <mod>").hideHelp())
+    .addOption(new Option("--rest-layout <mod>").hideHelp())
+    .addOption(new Option("--leap-profile <profil>").hideHelp())
+    .addOption(new Option("--from-year <ev>").argParser(Number).hideHelp())
+    .addOption(new Option("--until-year <ev>").argParser(Number).hideHelp())
+    .addOption(new Option("--base-year <ev>").argParser(Number).hideHelp())
+    .addOption(new Option("--description <mod>").hideHelp())
+    .addOption(new Option("--description-format <formatum>").hideHelp())
+    .addOption(new Option("--ordinal-day <mod>").hideHelp())
+    .addOption(new Option("--include-other-days").hideHelp())
+    .addOption(new Option("--calendar-name <nev>").hideHelp())
+    .addOption(new Option("--local-primary-overrides [utvonal]").hideHelp())
+    .addOption(new Option("--mode <mod>").hideHelp())
+    .addOption(new Option("--split-primary-rest").hideHelp())
+    .addOption(new Option("--primary-calendar-mode <mod>").hideHelp())
+    .addOption(new Option("--rest-calendar-mode <mod>").hideHelp())
+    .addOption(new Option("--primary-source <forras>").hideHelp())
+    .addOption(new Option("--leap-mode <mod>").hideHelp())
+    .addOption(new Option("--leap-strategy <strategia>").hideHelp())
+    .addOption(new Option("--no-other-days").hideHelp())
     .addHelpText(
       "after",
       `
@@ -200,20 +195,15 @@ Elérhető formátumok:
   ${listazKimenetiFormatumokat().join(", ")}
 
 Megjegyzés:
-  Ha létezik helyi primerkiegészítés a data/primary-registry-overrides.local.yaml fájlban,
-  az ICS generálás a közös nevnapok.ics mellett egy saját primeres nevnapok-sajat.ics fájlt is előállít.
-  A személyes primerforrás alapértelmezett kezelése a TUI Saját primer szerkesztő nézetében történik.
-  A régi --primary-source kapcsoló kompatibilitási okból továbbra is működik, de nem ez az ajánlott workflow.
+  Az ICS generálás a nem követett .local/nevnapok.local.yaml fájl mentett profiljából dolgozik.
+  Ugyanebben a helyi YAML-ban él a személyes primerprofil és a kézi helyi primerkiegészítés is.
+  A TUI ICS nézete és a Saját primer szerkesztő ezt a közös helyi YAML-t írja.
+  Egyszerre pontosan egy aktív ICS kimenet mód él: közös, primer+további külön vagy személyes.
+  A személyes primerprofil csak akkor hat a generálásra, ha a mentett profil személyes ICS módra van állítva.
 
 Táblázatos exportok:
   A csv export UTF-8 BOM-mal és pontosvesszős tagolással készül, hogy Excelben is jól nyíljon meg.
   Az excel export egy több munkalapos .xlsx fájlt készít Nevnapok, Napok és Meta lapokkal.
-
-Példa régi, részletes ICS-vezérlésre:
-  nevnapok kimenet general ics \\
-    --split-primary-rest --primary-calendar-mode separate --rest-calendar-mode grouped \\
-    --leap-mode hungarian-until-2050 --from-year 2025 --until-year 2040 \\
-    --description detailed --description-format text --ordinal-day description --include-other-days
 
 Példák táblázatos exportokra:
   nevnapok kimenet general csv
@@ -221,6 +211,44 @@ Példák táblázatos exportokra:
 `
     )
     .action(async (formatum, opciok) => {
+      if (formatum === "ics") {
+        const tiltottIcsKapcsolok = [
+          ["--input", opciok.input != null],
+          ["--output", opciok.output != null],
+          ["--primary-output", opciok.primaryOutput != null],
+          ["--rest-output", opciok.restOutput != null],
+          ["--scope", opciok.scope != null],
+          ["--layout", opciok.layout != null],
+          ["--rest-handling", opciok.restHandling != null],
+          ["--rest-layout", opciok.restLayout != null],
+          ["--leap-profile", opciok.leapProfile != null],
+          ["--from-year", opciok.fromYear != null],
+          ["--until-year", opciok.untilYear != null],
+          ["--base-year", opciok.baseYear != null],
+          ["--description", opciok.description != null],
+          ["--description-format", opciok.descriptionFormat != null],
+          ["--ordinal-day", opciok.ordinalDay != null],
+          ["--include-other-days", opciok.includeOtherDays === true],
+          ["--calendar-name", opciok.calendarName != null],
+          ["--local-primary-overrides", opciok.localPrimaryOverrides != null],
+          ["--mode", opciok.mode != null],
+          ["--split-primary-rest", opciok.splitPrimaryRest === true],
+          ["--primary-calendar-mode", opciok.primaryCalendarMode != null],
+          ["--rest-calendar-mode", opciok.restCalendarMode != null],
+          ["--primary-source", opciok.primarySource != null],
+          ["--leap-mode", opciok.leapMode != null],
+          ["--leap-strategy", opciok.leapStrategy != null],
+          ["--no-other-days", opciok.otherDays === false],
+        ];
+        const hasznaltTiltottKapcsolo = tiltottIcsKapcsolok.find(([, hasznalva]) => hasznalva)?.[0];
+
+        if (hasznaltTiltottKapcsolo) {
+          throw new Error(
+            `A ${hasznaltTiltottKapcsolo} kapcsoló megszűnt az ICS publikus felületén. Az ICS-profilt mostantól a .local/nevnapok.local.yaml kezeli.`
+          );
+        }
+      }
+
       const eredmeny = await generalKimenetet(formatum, opciok);
       if (Array.isArray(eredmeny) && eredmeny.length > 0) {
         printDataTable(

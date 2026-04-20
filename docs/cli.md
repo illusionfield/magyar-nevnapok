@@ -51,13 +51,29 @@ Az `excel` export egy `.xlsx` munkafüzetet készít a következő lapokkal:
 - `Napok` — napi összegző nézet,
 - `Meta` — rövid exportmeta és darabszámok.
 
-Ha létezik helyi primerkiegészítés a `data/primary-registry-overrides.local.yaml` fájlban,
-akkor az `ics` generálás a közös `output/naptar/nevnapok.ics` mellett a
-`output/naptar/nevnapok-sajat.ics` fájlt is elkészíti.
+Az `ics` generálás egyszerre pontosan egy aktív kimenet móddal dolgozik:
 
-A személyes primerforrás elsődleges kezelése már a TUI `Saját primer szerkesztő`
-nézetében történik. A régi `--primary-source` kapcsoló kompatibilitási okból
-továbbra is értelmezett, de nem része a kiemelt, dokumentált alapworkflow-nak.
+- `common` → csak `output/naptar/nevnapok.ics`
+- `split` → csak `output/naptar/nevnapok-primary.ics` és `output/naptar/nevnapok-rest.ics`
+- `personal` → csak `output/naptar/nevnapok-sajat.ics`
+
+Az ICS-generálás a nem követett `.local/nevnapok.local.yaml` mentett profiljából dolgozik.
+Ebben a fájlban él:
+
+- az `ics` blokk a teljes közös naptárprofillal,
+- az `ics.outputMode` az aktív ICS-kimenet kijelölésével,
+- a `personalPrimary` blokk a személyes primerforrással,
+- a `Normalizált` / `Rangsor` módosítók állapota,
+- és a kézi helyi primernapok listája.
+
+A személyes primerprofil csak akkor hat a generálásra, ha az aktív mód `personal`.
+
+A `nevnapok kimenet general ics` publikus felületén a részletes ICS-kapcsolók megszűntek.
+Ha valaki ilyet használ, a CLI célzott hibával jelzi, hogy az ICS-profilt mostantól a
+`.local/nevnapok.local.yaml` kezeli.
+
+A régi `.local/primary-registry-overrides.local.yaml` és
+`data/primary-registry-overrides.local.yaml` fájlok csak beolvasási kompatibilitásként maradnak.
 
 ## Auditok
 

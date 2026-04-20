@@ -8,6 +8,10 @@ import path from "node:path";
 const gyoker = process.cwd();
 
 export const kanonikusUtvonalak = {
+  helyi: {
+    nevnapokKonfig: path.join(gyoker, ".local", "nevnapok.local.yaml"),
+    primerFelulirasokLegacy: path.join(gyoker, ".local", "primary-registry-overrides.local.yaml"),
+  },
   kezi: {
     legacyIcs: path.join(gyoker, "data", "nevnapok_tisztitott_regi_nevkeszlet.ics"),
     primerFelulirasok: path.join(gyoker, "data", "primary-registry-overrides.yaml"),

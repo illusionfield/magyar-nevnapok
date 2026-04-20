@@ -8,15 +8,25 @@ import React, { useEffect, useMemo, useState } from "react";
 import { render, Box, Text, useApp, useInput } from "ink";
 import { Spinner } from "@inkjs/ui";
 import {
-  allitSajatPrimerForrast,
+  allitIcsBeallitasokat,
+  allitSajatPrimerBeallitasokat,
   betoltAuditInspectorAdata,
+  betoltIcsBeallitasokat,
   betoltPrimerNelkulMaradoNevekSzerkesztoAdata,
   kapcsolPrimerNelkuliHelyiKiegeszitest,
   futtatAuditot,
   futtatPipeline,
   generalKimenetet,
   pipelineAllapot,
+  visszaallitIcsBeallitasokat,
 } from "../index.mjs";
+import { szerializalStrukturaltAdat } from "../kozos/strukturalt-fajl.mjs";
+import {
+  ICS_BEALLITAS_DEFINICIOK,
+  epitIcsOutputProfilt,
+  icsErtekCimke,
+  normalizalIcsBeallitasokat,
+} from "../domainek/naptar/ics-beallitasok.mjs";
 
 const e = React.createElement;
 const KOZOS_FORRAS_CIMKEK = {
@@ -24,203 +34,22 @@ const KOZOS_FORRAS_CIMKEK = {
   ranking: "R",
 };
 const SAJAT_PRIMER_FORRAS_PROFILOK = ["default", "legacy", "ranked", "either"];
-const ALAPERTELMEZETT_ICS_BEALLITASOK = {
-  splitPrimaryRest: false,
-  mode: "together",
-  primaryCalendarMode: "together",
-  restCalendarMode: "together",
-  leapMode: "none",
-  leapStrategy: "b",
-  fromYear: new Date().getFullYear(),
-  untilYear: 2040,
-  baseYear: 2024,
-  descriptionMode: "none",
-  descriptionFormat: "text",
-  ordinalDay: "none",
-  includeOtherDays: false,
-};
-const ICS_BEALLITAS_DEFINICIOK = [
+const SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK = [
   {
-    kulcs: "splitPrimaryRest",
-    cimke: "Primer / további szétválasztás",
+    kulcs: "primarySource",
+    cimke: "Primerforrás",
+    tipus: "enum",
+    ertekek: SAJAT_PRIMER_FORRAS_PROFILOK,
+  },
+  {
+    kulcs: "modifiers.normalized",
+    cimke: "Normalizált módosító",
     tipus: "boolean",
-    rovidLeiras:
-      "Külön fájlba bontja az elsődleges és a további névnapokat. Hasznos, ha két külön naptárt szeretnél szinkronizálni.",
-    ertekLeirasok: {
-      true:
-        "Két külön ICS készül: egy elsődleges és egy további névnapos. A szétválasztott naptárak külön-külön is importálhatók.",
-      false:
-        "Minden névnap egyetlen kimeneti naptárba kerül. Ez a legegyszerűbb, egyfájlos használat.",
-    },
   },
   {
-    kulcs: "mode",
-    cimke: "Naptármód",
-    tipus: "enum",
-    ertekek: [
-      "together",
-      "separate",
-      "primary-together",
-      "primary-together-with-rest",
-      "primary-separate",
-      "primary-separate-with-rest",
-    ],
-    rovidLeiras:
-      "Meghatározza, hogy naponta egy esemény készüljön, vagy névenként külön események, illetve hogy csak primernevek vagy minden névnap jelenjen meg.",
-    ertekLeirasok: {
-      together:
-        "Naponta egyetlen esemény készül, amelyen az aznapi nevek együtt jelennek meg. Ez a legletisztultabb általános naptárnézet.",
-      separate:
-        "Minden név külön eseményt kap. Akkor hasznos, ha szűrni vagy finomabban feldolgozni akarod az eseményeket.",
-      "primary-together":
-        "Csak az elsődleges nevek kerülnek be, naponta egy eseményben összefogva. Jó választás tiszta primernaptárhoz.",
-      "primary-together-with-rest":
-        "Az elsődleges nevek a fő eseményben maradnak, a további nevek pedig a leírásban szerepelnek. Kiegyensúlyozott, informatív mód.",
-      "primary-separate":
-        "Csak az elsődleges nevek maradnak bent, és azok is külön eseményenként. Részletes, de még mindig primerfókuszú nézet.",
-      "primary-separate-with-rest":
-        "Az elsődleges nevek külön eseményeket kapnak, a további névnapok pedig kiegészítő információként megmaradnak. Haladó, részletes beállítás.",
-    },
-  },
-  {
-    kulcs: "primaryCalendarMode",
-    cimke: "Elsődleges naptár módja",
-    tipus: "enum",
-    ertekek: ["grouped", "separate"],
-    rovidLeiras:
-      "Szétválasztott exportnál ez dönti el, hogy az elsődleges naptár naponta egyetlen eseményt vagy névenként külön eseményeket kapjon.",
-    ertekLeirasok: {
-      grouped: "Az elsődleges nevek naponta együtt maradnak, így rövidebb és nyugodtabb naptárképet adnak.",
-      separate:
-        "Az elsődleges nevek külön események lesznek. Akkor jó, ha névenként akarsz szűrni vagy külön emlékeztetőket kezelni.",
-    },
-  },
-  {
-    kulcs: "restCalendarMode",
-    cimke: "További naptár módja",
-    tipus: "enum",
-    ertekek: ["grouped", "separate"],
-    rovidLeiras:
-      "Szétválasztott exportnál ez szabályozza a nem elsődleges névnapok csoportosítását.",
-    ertekLeirasok: {
-      grouped:
-        "A további névnapok naponta csoportosítva jelennek meg. Ez a kevésbé zajos, áttekinthetőbb beállítás.",
-      separate:
-        "A további névnapok külön eseményekké válnak. Akkor hasznos, ha a teljes névnapkészletet részletesen akarod látni.",
-    },
-  },
-  {
-    kulcs: "leapMode",
-    cimke: "Szökőéves mód",
-    tipus: "enum",
-    ertekek: ["none", "hungarian-until-2050"],
-    rovidLeiras:
-      "A február végi mozgó névnapok kezelését szabályozza. A magyar gyakorlat 2050-ig külön stratégiával modellezhető.",
-    ertekLeirasok: {
-      none:
-        "Nincs külön szökőéves eltolás. Az események egyszerű, ismétlődő mintában készülnek el.",
-      "hungarian-until-2050":
-        "A magyar február 24–29. napokra vonatkozó eltolási szabályt alkalmazza 2050-ig. Ez a történeti és gyakorlati kompatibilitási mód.",
-    },
-  },
-  {
-    kulcs: "leapStrategy",
-    cimke: "Szökőéves stratégia",
-    tipus: "enum",
-    ertekek: ["a", "b", "both"],
-    rovidLeiras:
-      "A magyar szökőéves névnapeltolás több értelmezési változata közül választ. Csak akkor számít, ha a szökőéves mód be van kapcsolva.",
-    ertekLeirasok: {
-      a: "Az A stratégia szerint generál. Ezt használd, ha a korábbi kompatibilitási variánsod erre épült.",
-      b: "A B stratégia szerint generál. Akkor célszerű, ha a másik történeti eltolási mintát követed.",
-      both:
-        "Mindkét változat külön fájlban elkészül. Összehasonlításhoz és ellenőrzéshez a leghasznosabb opció.",
-    },
-  },
-  {
-    kulcs: "fromYear",
-    cimke: "Szökőéves tartomány kezdete",
-    tipus: "number",
-    min: 1900,
-    max: 2050,
-    step: 1,
-    rovidLeiras:
-      "A szökőéves, konkrét évre szóló események kezdőéve. Csak a magyar szökőéves mód mellett lényeges.",
-  },
-  {
-    kulcs: "untilYear",
-    cimke: "Szökőéves tartomány vége",
-    tipus: "number",
-    min: 1900,
-    max: 2050,
-    step: 1,
-    rovidLeiras:
-      "A szökőéves, konkrét évre szóló események utolsó éve. Ha növeled, hosszabb időhorizontra készülnek el az eltolt februári napok.",
-  },
-  {
-    kulcs: "baseYear",
-    cimke: "Bázisév",
-    tipus: "number",
-    min: 1900,
-    max: 2100,
-    step: 1,
-    rovidLeiras:
-      "A nem szökőéves ismétlődő események technikai báziséve. Naptárimport-kompatibilitási célra szolgál, ritkán kell módosítani.",
-  },
-  {
-    kulcs: "descriptionMode",
-    cimke: "Leírásmód",
-    tipus: "enum",
-    ertekek: ["none", "compact", "detailed"],
-    rovidLeiras:
-      "Megadja, mennyi kiegészítő szöveg kerüljön az eseményleírásba.",
-    ertekLeirasok: {
-      none: "Nem kerül külön leírás az eseményekbe. A legminimalistább naptárkimenet.",
-      compact:
-        "Rövid, tömör leírás készül a legfontosabb adatokkal. Áttekinthető marad, de ad kontextust.",
-      detailed:
-        "Részletes eseményleírás készül. Akkor hasznos, ha a naptár legyen önmagában is informatív referencia.",
-    },
-  },
-  {
-    kulcs: "descriptionFormat",
-    cimke: "Leírásformátum",
-    tipus: "enum",
-    ertekek: ["text", "html", "full"],
-    rovidLeiras:
-      "A leírás technikai formátumát szabályozza, hogy a cél naptáralkalmazás milyen gazdag tartalmat tud megjeleníteni.",
-    ertekLeirasok: {
-      text: "Csak egyszerű szöveges leírás készül. Ez a legszélesebb körben kompatibilis forma.",
-      html: "HTML-leírás készül, gazdagabb megjelenítéshez. Olyan klienseknél hasznos, amelyek ezt ténylegesen kirajzolják.",
-      full:
-        "A szöveges és a gazdagabb leírás együtt készül el. Akkor jó, ha vegyes klienskörnyezetre exportálsz.",
-    },
-  },
-  {
-    kulcs: "ordinalDay",
-    cimke: "Év napja",
-    tipus: "enum",
-    ertekek: ["none", "summary", "description"],
-    rovidLeiras:
-      "Az év sorszámozott napjának megjelenítését szabályozza. Ez inkább információs extra, mint kötelező névnapadat.",
-    ertekLeirasok: {
-      none: "Az év napja egyáltalán nem jelenik meg.",
-      summary: "Az év napja rövid, kiemelt formában kerül be az esemény összefoglaló részébe.",
-      description: "Az év napja a leírás részeként jelenik meg, így kevésbé hangsúlyos, de visszakereshető.",
-    },
-  },
-  {
-    kulcs: "includeOtherDays",
-    cimke: "További névnapok a leírásban",
+    kulcs: "modifiers.ranking",
+    cimke: "Rangsor módosító",
     tipus: "boolean",
-    rovidLeiras:
-      "Az elsődleges fókuszú események leírásába beemeli a nem elsődleges, ugyanarra a napra eső neveket is.",
-    ertekLeirasok: {
-      true:
-        "A leírásban megjelennek a további névnapok is. Ettől informatívabb lesz a naptár, de hosszabb leírásokat kapsz.",
-      false:
-        "Csak a kiválasztott eseménylogika szerinti fő nevek látszanak. Rövidebb és tisztább marad a kimenet.",
-    },
   },
 ];
 
@@ -240,10 +69,10 @@ const menuPontok = [
   {
     azonosito: "ics",
     cim: "ICS generálás",
-    leiras: "Megnyitja az ICS-beállításokat, majd a kiválasztott kapcsolókkal generál naptárt.",
+    leiras: "Megnyitja a mentett helyi ICS-profilt, és abból generál naptárt.",
     vegrehajt: async () => ({
       tipus: "ics-beallitasok",
-      adat: { ...ALAPERTELMEZETT_ICS_BEALLITASOK },
+      adat: await betoltIcsBeallitasokat(),
     }),
   },
   {
@@ -600,72 +429,25 @@ function EredmenyNezet({ aktivPont, eredmeny }) {
   );
 }
 
-/**
- * Az `icsErtekCimke` emberi olvasatra alkalmas címkét ad az ICS-beállítások aktuális értékeihez.
- */
-function icsErtekCimke(kulcs, ertek) {
-  const cimkek = {
-    splitPrimaryRest: ertek ? "igen" : "nem",
-    includeOtherDays: ertek ? "igen" : "nem",
-    mode: {
-      together: "egy esemény naponta",
-      separate: "külön esemény névenként",
-      "primary-together": "csak primerek, naponta együtt",
-      "primary-together-with-rest": "primerek együtt, többi a leírásban",
-      "primary-separate": "csak primerek, külön eseményenként",
-      "primary-separate-with-rest": "primerek külön, többi külön gyűjtve",
-    },
-    primaryCalendarMode: {
-      grouped: "egyben",
-      together: "egyben",
-      separate: "külön",
-    },
-    restCalendarMode: {
-      grouped: "egyben",
-      together: "egyben",
-      separate: "külön",
-    },
-    leapMode: {
-      none: "kikapcsolva",
-      "hungarian-until-2050": "magyar szabály 2050-ig",
-    },
-    leapStrategy: {
-      a: "A",
-      b: "B",
-      both: "A + B",
-    },
-    descriptionMode: {
-      none: "nincs",
-      compact: "tömör",
-      detailed: "részletes",
-    },
-    descriptionFormat: {
-      text: "szöveg",
-      html: "HTML",
-      full: "szöveg + HTML",
-    },
-    ordinalDay: {
-      none: "nincs",
-      summary: "címben",
-      description: "leírásban",
-    },
-  };
+function getNestedValue(objektum, utvonal) {
+  return String(utvonal)
+    .split(".")
+    .reduce((aktualis, kulcs) => aktualis?.[kulcs], objektum);
+}
 
-  if (typeof ertek === "boolean") {
-    return ertek ? "igen" : "nem";
+function setNestedValue(objektum, utvonal, ertek) {
+  const kulcsok = String(utvonal).split(".");
+  const uj = { ...(objektum ?? {}) };
+  let aktualis = uj;
+
+  for (let index = 0; index < kulcsok.length - 1; index += 1) {
+    const kulcs = kulcsok[index];
+    aktualis[kulcs] = { ...(aktualis[kulcs] ?? {}) };
+    aktualis = aktualis[kulcs];
   }
 
-  if (typeof ertek === "number") {
-    return String(ertek);
-  }
-
-  const tabla = cimkek[kulcs];
-
-  if (tabla && typeof tabla === "object") {
-    return tabla[ertek] ?? String(ertek);
-  }
-
-  return String(ertek);
+  aktualis[kulcsok[kulcsok.length - 1]] = ertek;
+  return uj;
 }
 
 /**
@@ -676,7 +458,7 @@ function icsBeallitasLeiras(definicio, beallitasok) {
     return [];
   }
 
-  const aktualisErtek = beallitasok[definicio.kulcs];
+  const aktualisErtek = getNestedValue(beallitasok, definicio.kulcs);
   const ertekKulcs = String(aktualisErtek);
   const aktualisLeiras =
     definicio.ertekLeirasok?.[aktualisErtek] ??
@@ -712,10 +494,7 @@ function icsBeallitasValtozasUzenet(definicio, beallitasok) {
     return null;
   }
 
-  return `${definicio.cimke} → ${icsErtekCimke(
-    definicio.kulcs,
-    beallitasok[definicio.kulcs]
-  )}. ${sorok.slice(2).join(" ")}`.trim();
+  return `${definicio.cimke} → ${icsErtekCimke(definicio.kulcs, getNestedValue(beallitasok, definicio.kulcs))}. ${sorok.slice(2).join(" ")}`.trim();
 }
 
 /**
@@ -738,16 +517,52 @@ function sajatPrimerForrasCimke(ertek) {
 function sajatPrimerForrasLeiras(ertek) {
   const leirasok = {
     default:
-      "A saját naptárban az alapértelmezett primerlogika marad érvényben: a legacy elsődlegesek és a rangsorolt kiegészítések együtt határozzák meg a primerneveket.",
+      "Személyes ICS módban az alap primerlogika marad: a legacy elsődlegesekhez szükség esetén rangsorolt kiegészítés társul.",
     legacy:
-      "A saját naptár primeres része csak a legacy elsődleges kijelölésre támaszkodik. Akkor hasznos, ha a régi, hagyományos névnaprendhez akarsz közelebb maradni.",
+      "Személyes ICS módban a primeres rész csak a legacy elsődleges kijelölésre támaszkodik. Akkor hasznos, ha a régi, hagyományos névnaprendhez akarsz közelebb maradni.",
     ranked:
-      "A saját naptár primeres része a rangsorolt névjelölésekre épül. Ez modernebb, gyakorisági alapú fókuszt adhat a naptárnak.",
+      "Személyes ICS módban a primeres rész a rangsorolt névjelölésekre épül. Ez modernebb, gyakorisági alapú fókuszt adhat a naptárnak.",
     either:
-      "A saját naptárban a legacy és a rangsorolt primerjelölés uniója használható. Ez bővebb primerlistát eredményezhet, de zajosabb is lehet.",
+      "Személyes ICS módban a legacy és a rangsorolt primerjelölés uniója használható. Ez bővebb primerlistát eredményezhet, de zajosabb is lehet.",
   };
 
   return leirasok[ertek] ?? String(ertek);
+}
+
+function szemelyesModifierLeiras(kulcs, aktiv) {
+  if (kulcs === "modifiers.normalized") {
+    return aktiv
+      ? "A normalizált hiányok személyes ICS módban automatikusan beleszólnak a kimenetbe."
+      : "A normalizált hiányok nem szólnak bele automatikusan a személyes ICS-be.";
+  }
+
+  if (kulcs === "modifiers.ranking") {
+    return aktiv
+      ? "A rangsorolt hiányok személyes ICS módban automatikusan beleszólnak a kimenetbe."
+      : "A rangsorolt hiányok nem szólnak bele automatikusan a személyes ICS-be.";
+  }
+
+  return "";
+}
+
+function szemelyesBeallitasCimke(definicio, beallitasok) {
+  const ertek = getNestedValue(beallitasok, definicio.kulcs);
+
+  if (definicio.kulcs === "primarySource") {
+    return sajatPrimerForrasCimke(ertek);
+  }
+
+  return ertek ? "bekapcsolva" : "kikapcsolva";
+}
+
+function szemelyesBeallitasLeiras(definicio, beallitasok) {
+  const ertek = getNestedValue(beallitasok, definicio.kulcs);
+
+  if (definicio.kulcs === "primarySource") {
+    return sajatPrimerForrasLeiras(ertek);
+  }
+
+  return szemelyesModifierLeiras(definicio.kulcs, ertek === true);
 }
 
 /**
@@ -769,20 +584,20 @@ function leptetEnumErteket(ertekek, aktualisErtek, irany) {
  * Az `frissitIcsBeallitast` egyetlen beállítást módosít a definíció alapján.
  */
 function frissitIcsBeallitast(beallitasok, definicio, irany) {
-  const aktualisErtek = beallitasok[definicio.kulcs];
+  const aktualisErtek = getNestedValue(beallitasok, definicio.kulcs);
 
   if (definicio.tipus === "boolean") {
-    return {
-      ...beallitasok,
-      [definicio.kulcs]: !aktualisErtek,
-    };
+    return normalizalIcsBeallitasokat(setNestedValue(beallitasok, definicio.kulcs, !aktualisErtek));
   }
 
   if (definicio.tipus === "enum") {
-    return {
-      ...beallitasok,
-      [definicio.kulcs]: leptetEnumErteket(definicio.ertekek, aktualisErtek, irany),
-    };
+    return normalizalIcsBeallitasokat(
+      setNestedValue(
+        beallitasok,
+        definicio.kulcs,
+        leptetEnumErteket(definicio.ertekek, aktualisErtek, irany)
+      )
+    );
   }
 
   if (definicio.tipus === "number") {
@@ -791,64 +606,91 @@ function frissitIcsBeallitast(beallitasok, definicio, irany) {
     const max = definicio.max ?? Number.MAX_SAFE_INTEGER;
     const kovetkezo = Math.max(min, Math.min(max, Number(aktualisErtek) + irany * step));
 
-    return {
-      ...beallitasok,
-      [definicio.kulcs]: kovetkezo,
-    };
+    return normalizalIcsBeallitasokat(setNestedValue(beallitasok, definicio.kulcs, kovetkezo));
   }
 
   return beallitasok;
 }
 
 /**
- * A `buildIcsParancsElozetet` rövid parancselőnézetet ad a TUI ICS-beállításaihoz.
+ * A `buildIcsYamlElozetet` rövid YAML-előnézetet ad a TUI ICS-beállításaihoz.
  */
-function buildIcsParancsElozetet(beallitasok) {
-  const reszek = ["nevnapok kimenet general ics"];
+function buildIcsYamlElozetet(beallitasok) {
+  return szerializalStrukturaltAdat({
+    ics: beallitasok,
+  }).trimEnd();
+}
 
-  if (beallitasok.splitPrimaryRest) {
-    reszek.push("--split-primary-rest");
+function lathatoIcsBeallitasDefiniciok(beallitasok) {
+  return ICS_BEALLITAS_DEFINICIOK.filter((definicio) =>
+    typeof definicio.lathato === "function" ? definicio.lathato(beallitasok) : true
+  );
+}
+
+function buildIcsKimenetiOsszegzest(beallitasok) {
+  const profil = epitIcsOutputProfilt(beallitasok);
+  const sorok = [
+    `Aktív mód: ${icsErtekCimke("outputMode", profil.settings.outputMode)}`,
+    `Létrejövő fájlok: ${profil.activeBaseOutputs.map((utvonal) => relativUtvonal(utvonal)).join(" • ")}`,
+  ];
+
+  if (profil.settings.leapProfile === "hungarian-both") {
+    sorok.push("Szökőéves A+B profilnál a tényleges fájlnevek -A és -B utótagot kapnak.");
   }
 
-  reszek.push(`--mode ${beallitasok.mode}`);
-  reszek.push(`--primary-calendar-mode ${beallitasok.primaryCalendarMode}`);
-  reszek.push(`--rest-calendar-mode ${beallitasok.restCalendarMode}`);
-  reszek.push(`--leap-mode ${beallitasok.leapMode}`);
-  reszek.push(`--leap-strategy ${beallitasok.leapStrategy}`);
-  reszek.push(`--from-year ${beallitasok.fromYear}`);
-  reszek.push(`--until-year ${beallitasok.untilYear}`);
-  reszek.push(`--base-year ${beallitasok.baseYear}`);
-  reszek.push(`--description ${beallitasok.descriptionMode}`);
-  reszek.push(`--description-format ${beallitasok.descriptionFormat}`);
-  reszek.push(`--ordinal-day ${beallitasok.ordinalDay}`);
-
-  if (beallitasok.includeOtherDays) {
-    reszek.push("--include-other-days");
+  if (profil.usesPersonalPrimary) {
+    sorok.push(
+      "A személyes primerforrás, a Normalizált és a Rangsor módosító, valamint a kézi helyi kiegészítések most aktívak."
+    );
+  } else {
+    sorok.push("A személyes primerprofil most nem hoz létre külön ICS-t.");
   }
 
-  return reszek.join(" ");
+  sorok.push("A generálás az inaktív, menedzselt ICS-kimeneteket eltakarítja a kimeneti mappából.");
+
+  return sorok;
 }
 
 /**
- * Az `ICSBeallitasNezet` a régi kapcsolókat TUI-ból is vezérelhetővé teszi.
+ * Az `ICSBeallitasNezet` az ortogonális ICS-kapcsolókat TUI-ból is vezérelhetővé teszi.
  */
 function ICSBeallitasNezet({ adat, visszaMenu }) {
   const { exit } = useApp();
-  const [beallitasok, setBeallitasok] = useState(adat);
+  const [beallitasok, setBeallitasok] = useState(adat?.settings ?? adat ?? {});
+  const [configPath, setConfigPath] = useState(adat?.configPath ?? ".local/nevnapok.local.yaml");
   const [kijeloltIndex, setKijeloltIndex] = useState(0);
   const [folyamatban, setFolyamatban] = useState(false);
   const [uzenet, setUzenet] = useState(null);
   const [uzenetTipus, setUzenetTipus] = useState("info");
 
   useEffect(() => {
-    setBeallitasok(adat);
+    setBeallitasok(adat?.settings ?? adat ?? {});
+    setConfigPath(adat?.configPath ?? ".local/nevnapok.local.yaml");
     setKijeloltIndex(0);
-    setUzenet(icsBeallitasValtozasUzenet(ICS_BEALLITAS_DEFINICIOK[0], adat));
+    const kezdoDefinicio = lathatoIcsBeallitasDefiniciok(adat?.settings ?? adat ?? {})[0] ?? null;
+    setUzenet(icsBeallitasValtozasUzenet(kezdoDefinicio, adat?.settings ?? adat ?? {}));
     setUzenetTipus("info");
   }, [adat]);
 
-  const aktualisDefinicio = ICS_BEALLITAS_DEFINICIOK[kijeloltIndex] ?? null;
+  const lathatoDefiniciok = useMemo(
+    () => lathatoIcsBeallitasDefiniciok(beallitasok),
+    [beallitasok]
+  );
+
+  useEffect(() => {
+    if (lathatoDefiniciok.length === 0) {
+      setKijeloltIndex(0);
+      return;
+    }
+
+    if (kijeloltIndex >= lathatoDefiniciok.length) {
+      setKijeloltIndex(lathatoDefiniciok.length - 1);
+    }
+  }, [kijeloltIndex, lathatoDefiniciok.length]);
+
+  const aktualisDefinicio = lathatoDefiniciok[kijeloltIndex] ?? null;
   const helpSorok = icsBeallitasLeiras(aktualisDefinicio, beallitasok);
+  const kimenetiOsszegzes = buildIcsKimenetiOsszegzest(beallitasok);
 
   useInput(async (input, key) => {
     if (input === "q") {
@@ -868,8 +710,8 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
     if (key.upArrow) {
       setKijeloltIndex((elozo) => {
         const kovetkezo =
-          (elozo - 1 + ICS_BEALLITAS_DEFINICIOK.length) % ICS_BEALLITAS_DEFINICIOK.length;
-        setUzenet(icsBeallitasValtozasUzenet(ICS_BEALLITAS_DEFINICIOK[kovetkezo], beallitasok));
+          (elozo - 1 + lathatoDefiniciok.length) % Math.max(lathatoDefiniciok.length, 1);
+        setUzenet(icsBeallitasValtozasUzenet(lathatoDefiniciok[kovetkezo], beallitasok));
         setUzenetTipus("info");
         return kovetkezo;
       });
@@ -878,8 +720,8 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
 
     if (key.downArrow) {
       setKijeloltIndex((elozo) => {
-        const kovetkezo = (elozo + 1) % ICS_BEALLITAS_DEFINICIOK.length;
-        setUzenet(icsBeallitasValtozasUzenet(ICS_BEALLITAS_DEFINICIOK[kovetkezo], beallitasok));
+        const kovetkezo = (elozo + 1) % Math.max(lathatoDefiniciok.length, 1);
+        setUzenet(icsBeallitasValtozasUzenet(lathatoDefiniciok[kovetkezo], beallitasok));
         setUzenetTipus("info");
         return kovetkezo;
       });
@@ -887,41 +729,66 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
     }
 
     if (key.leftArrow) {
-      setBeallitasok((elozo) => {
-        const kovetkezo = frissitIcsBeallitast(elozo, aktualisDefinicio, -1);
-        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, kovetkezo));
+      const kovetkezo = frissitIcsBeallitast(beallitasok, aktualisDefinicio, -1);
+
+      try {
+        const eredmeny = await allitIcsBeallitasokat(kovetkezo);
+        setBeallitasok(eredmeny.settings);
+        setConfigPath(eredmeny.configPath);
+        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, eredmeny.settings));
         setUzenetTipus("info");
-        return kovetkezo;
-      });
+      } catch (error) {
+        setUzenetTipus("hiba");
+        setUzenet(error?.message ?? String(error));
+      }
       return;
     }
 
     if (key.rightArrow) {
-      setBeallitasok((elozo) => {
-        const kovetkezo = frissitIcsBeallitast(elozo, aktualisDefinicio, 1);
-        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, kovetkezo));
+      const kovetkezo = frissitIcsBeallitast(beallitasok, aktualisDefinicio, 1);
+
+      try {
+        const eredmeny = await allitIcsBeallitasokat(kovetkezo);
+        setBeallitasok(eredmeny.settings);
+        setConfigPath(eredmeny.configPath);
+        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, eredmeny.settings));
         setUzenetTipus("info");
-        return kovetkezo;
-      });
+      } catch (error) {
+        setUzenetTipus("hiba");
+        setUzenet(error?.message ?? String(error));
+      }
       return;
     }
 
     if (input === " ") {
-      setBeallitasok((elozo) => {
-        const kovetkezo = frissitIcsBeallitast(elozo, aktualisDefinicio, 1);
-        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, kovetkezo));
+      const kovetkezo = frissitIcsBeallitast(beallitasok, aktualisDefinicio, 1);
+
+      try {
+        const eredmeny = await allitIcsBeallitasokat(kovetkezo);
+        setBeallitasok(eredmeny.settings);
+        setConfigPath(eredmeny.configPath);
+        setUzenet(icsBeallitasValtozasUzenet(aktualisDefinicio, eredmeny.settings));
         setUzenetTipus("info");
-        return kovetkezo;
-      });
+      } catch (error) {
+        setUzenetTipus("hiba");
+        setUzenet(error?.message ?? String(error));
+      }
       return;
     }
 
     if (input === "r") {
-      setBeallitasok({ ...ALAPERTELMEZETT_ICS_BEALLITASOK });
-      setUzenetTipus("info");
-      setUzenet(
-        "Az ICS-beállítások visszaálltak az alapértékekre. A személyes primerforrás a Saját primer szerkesztőben állítható."
-      );
+      try {
+        const eredmeny = await visszaallitIcsBeallitasokat();
+        setBeallitasok(eredmeny.settings);
+        setConfigPath(eredmeny.configPath);
+        setUzenetTipus("info");
+        setUzenet(
+          "Az ICS-beállítások visszaálltak az alapértékekre, és a helyi YAML-fájl is frissült."
+        );
+      } catch (error) {
+        setUzenetTipus("hiba");
+        setUzenet(error?.message ?? String(error));
+      }
       return;
     }
 
@@ -929,7 +796,7 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
       setFolyamatban(true);
 
       try {
-        const utvonalak = await generalKimenetet("ics", beallitasok);
+        const utvonalak = await generalKimenetet("ics");
         setUzenetTipus("siker");
         setUzenet(
           `ICS generálás kész: ${utvonalak.map((utvonal) => relativUtvonal(utvonal)).join(", ")}`
@@ -955,7 +822,7 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
     e(
       Text,
       { dimColor: true },
-      "A teljes opciólista a CLI-ben is elérhető: nevnapok kimenet general ics --help"
+      `Mentett helyi profil: ${configPath}`
     ),
     folyamatban
       ? e(Box, { marginTop: 1 }, e(Spinner, { label: "ICS generálás folyamatban..." }))
@@ -981,7 +848,7 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
         Box,
         { flexDirection: "column", width: 58, marginRight: 2 },
         e(Text, { bold: true }, "Kapcsolók"),
-        ...ICS_BEALLITAS_DEFINICIOK.map((definicio, index) =>
+        ...lathatoDefiniciok.map((definicio, index) =>
           e(
             Text,
             {
@@ -990,7 +857,7 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
             },
             `${index === kijeloltIndex ? "❯" : " "} ${definicio.cimke}: ${icsErtekCimke(
               definicio.kulcs,
-              beallitasok[definicio.kulcs]
+              getNestedValue(beallitasok, definicio.kulcs)
             )}`
           )
         )
@@ -998,8 +865,11 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
       e(
         Box,
         { flexDirection: "column", flexGrow: 1 },
-        e(Text, { bold: true }, "Parancselőnézet"),
-        e(Text, null, buildIcsParancsElozetet(beallitasok)),
+        e(Text, { bold: true }, "Mentett helyi profil összegzése"),
+        ...kimenetiOsszegzes.map((sor, index) => e(Text, { key: `ics-output-${index}` }, sor)),
+        e(Text, { bold: true }, ""),
+        e(Text, { bold: true }, "YAML-előnézet"),
+        e(Text, null, buildIcsYamlElozetet(beallitasok)),
         e(Text, { bold: true }, ""),
         e(Text, { bold: true }, "Kapcsoló részletes leírása"),
         ...(helpSorok.length > 0
@@ -1010,7 +880,7 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
         e(
           Text,
           null,
-          "A primerforrás választó innen kikerült. A saját naptár primerlogikáját a Saját primer szerkesztő kezeli, mert ott együtt látszik a helyi kijelölésekkel és az egyéni naptárgenerálással."
+          "A nevnapok kimenet general ics már kizárólag a mentett helyi YAML-profilt használja, és csak az aktív kimenet módhoz tartozó ICS-eket hagyja meg. A személyes primerforrás és a Normalizált / Rangsor módosítók a Saját primer szerkesztőben kezelhetők."
         )
       )
     )
@@ -1025,6 +895,7 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
   const [szerkesztoAdat, setSzerkesztoAdat] = useState(adat);
   const [kijeloltSorIndex, setKijeloltSorIndex] = useState(0);
   const [kijeloltNevIndex, setKijeloltNevIndex] = useState(0);
+  const [kijeloltBeallitasIndex, setKijeloltBeallitasIndex] = useState(0);
   const [aktivPanel, setAktivPanel] = useState("nevek");
   const [folyamatban, setFolyamatban] = useState(false);
   const [uzenet, setUzenet] = useState(null);
@@ -1034,9 +905,10 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
     setSzerkesztoAdat(adat);
     setKijeloltSorIndex(0);
     setKijeloltNevIndex(0);
+    setKijeloltBeallitasIndex(0);
     setAktivPanel("nevek");
     setUzenet(
-      `Személyes primerforrás: ${sajatPrimerForrasCimke(
+      `Személyes primerbeállítások betöltve: ${sajatPrimerForrasCimke(
         adat?.localSettings?.primarySource ?? "default"
       )}`
     );
@@ -1047,6 +919,8 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
   const aktualisSor = sorok[kijeloltSorIndex] ?? null;
   const aktualisNevek = aktualisSor?.combinedMissing ?? [];
   const aktualisNev = aktualisNevek[kijeloltNevIndex] ?? null;
+  const aktualisBeallitasDefinicio =
+    SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK[kijeloltBeallitasIndex] ?? null;
   const lathatoSorok = kijeloltAblak(sorok, kijeloltSorIndex, 12);
 
   useEffect(() => {
@@ -1087,47 +961,87 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
     }
 
     if (key.tab || input === "p") {
-      setAktivPanel((elozo) => (elozo === "nevek" ? "primerforras" : "nevek"));
-      return;
-    }
-
-    if (sorok.length === 0) {
+      setAktivPanel((elozo) => (elozo === "nevek" ? "beallitasok" : "nevek"));
       return;
     }
 
     if (key.upArrow) {
+      if (aktivPanel === "beallitasok") {
+        setKijeloltBeallitasIndex(
+          (elozo) =>
+            (elozo - 1 + SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK.length) %
+            SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK.length
+        );
+        return;
+      }
+
+      if (sorok.length === 0) {
+        return;
+      }
+
       setKijeloltSorIndex((elozo) => (elozo - 1 + sorok.length) % sorok.length);
       return;
     }
 
     if (key.downArrow) {
+      if (aktivPanel === "beallitasok") {
+        setKijeloltBeallitasIndex(
+          (elozo) => (elozo + 1) % SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK.length
+        );
+        return;
+      }
+
+      if (sorok.length === 0) {
+        return;
+      }
+
       setKijeloltSorIndex((elozo) => (elozo + 1) % sorok.length);
       return;
     }
 
-    if (aktivPanel === "primerforras" && (key.leftArrow || key.rightArrow || input === " ")) {
-      const aktualisForras = szerkesztoAdat?.localSettings?.primarySource ?? "default";
-      const irany = key.leftArrow ? -1 : 1;
-      const kovetkezoForras = leptetEnumErteket(
-        SAJAT_PRIMER_FORRAS_PROFILOK,
-        aktualisForras,
-        irany
+    if (aktivPanel === "beallitasok" && (key.leftArrow || key.rightArrow || input === " ")) {
+      if (!aktualisBeallitasDefinicio) {
+        return;
+      }
+
+      const aktualisErtek = getNestedValue(
+        szerkesztoAdat?.localSettings ?? {},
+        aktualisBeallitasDefinicio.kulcs
+      );
+      let kovetkezoErtek = aktualisErtek;
+
+      if (aktualisBeallitasDefinicio.tipus === "enum") {
+        const irany = key.leftArrow ? -1 : 1;
+        kovetkezoErtek = leptetEnumErteket(
+          aktualisBeallitasDefinicio.ertekek,
+          aktualisErtek,
+          irany
+        );
+      } else if (aktualisBeallitasDefinicio.tipus === "boolean") {
+        kovetkezoErtek = !(aktualisErtek === true);
+      }
+
+      const kovetkezoSettings = setNestedValue(
+        szerkesztoAdat?.localSettings ?? {},
+        aktualisBeallitasDefinicio.kulcs,
+        kovetkezoErtek
       );
 
       setFolyamatban(true);
       try {
-        const eredmeny = await allitSajatPrimerForrast(kovetkezoForras);
+        const eredmeny = await allitSajatPrimerBeallitasokat({
+          primarySource: kovetkezoSettings.primarySource,
+          modifiers: kovetkezoSettings.modifiers,
+        });
         setSzerkesztoAdat((elozo) => ({
           ...elozo,
-          localSettings: {
-            ...(elozo.localSettings ?? {}),
-            primarySource: eredmeny.primarySource,
-          },
+          localSettings: eredmeny.settings,
         }));
         setUzenetTipus("siker");
         setUzenet(
-          `Személyes primerforrás mentve: ${sajatPrimerForrasCimke(
-            eredmeny.primarySource
+          `Személyes beállítás mentve: ${aktualisBeallitasDefinicio.cimke} → ${szemelyesBeallitasCimke(
+            aktualisBeallitasDefinicio,
+            eredmeny.settings
           )}`
         );
       } catch (error) {
@@ -1136,6 +1050,10 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       } finally {
         setFolyamatban(false);
       }
+      return;
+    }
+
+    if (sorok.length === 0) {
       return;
     }
 
@@ -1218,6 +1136,15 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       { flexDirection: "column" },
       e(Text, { bold: true }, "Saját primer szerkesztő"),
       e(Text, { dimColor: true }, "Esc vagy v: vissza a menübe • q: kilépés"),
+      e(
+        Text,
+        { dimColor: true, marginTop: 1 },
+        `Személyes primerforrás: ${sajatPrimerForrasCimke(
+          szerkesztoAdat?.localSettings?.primarySource ?? "default"
+        )} • Normalizált: ${
+          szerkesztoAdat?.localSettings?.modifiers?.normalized ? "be" : "ki"
+        } • Rangsor: ${szerkesztoAdat?.localSettings?.modifiers?.ranking ? "be" : "ki"}`
+      ),
       e(Text, { marginTop: 1 }, "A riport jelenleg nem tartalmaz szerkeszthető napokat.")
     );
   }
@@ -1229,19 +1156,21 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
     e(
       Text,
       { dimColor: true },
-      "↑/↓: nap • Tab vagy p: panelváltás • ←/→: név vagy primerforrás • Space: kapcsolás • g: saját naptár generálása • r: frissítés • Esc vagy v: vissza • q: kilépés"
+      "↑/↓: nap vagy beállítás • Tab vagy p: panelváltás • ←/→: név vagy beállítás • Space: kapcsolás • g: mentett ICS profil szerinti generálás • r: frissítés • Esc vagy v: vissza • q: kilépés"
     ),
     e(
       Text,
       { dimColor: true },
-      `Riport: ${relativUtvonal(szerkesztoAdat.reportPath)} • Helyi felülírás: ${relativUtvonal(szerkesztoAdat.localOverridesPath)}`
+      `Riport: ${relativUtvonal(szerkesztoAdat.reportPath)} • Helyi konfig: ${relativUtvonal(szerkesztoAdat.localOverridesPath)}`
     ),
     e(
       Text,
       { dimColor: true },
       `Érintett napok: ${szerkesztoAdat.summary?.rowCount ?? 0} • Helyben kijelölt nevek: ${szerkesztoAdat.summary?.localSelectedCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
         szerkesztoAdat.localSettings?.primarySource ?? "default"
-      )}`
+      )} • Normalizált: ${
+        szerkesztoAdat.localSettings?.modifiers?.normalized ? "be" : "ki"
+      } • Rangsor: ${szerkesztoAdat.localSettings?.modifiers?.ranking ? "be" : "ki"}`
     ),
     folyamatban
       ? e(Box, { marginTop: 1 }, e(Spinner, { label: "Művelet folyamatban..." }))
@@ -1302,7 +1231,7 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
         e(
           Text,
           { bold: true },
-          `Aktív panel: ${aktivPanel === "nevek" ? "helyi névkijelölés" : "személyes primerforrás"}`
+          `Aktív panel: ${aktivPanel === "nevek" ? "helyi névkijelölés" : "személyes primerbeállítások"}`
         ),
         e(Text, { bold: true }, `${aktualisSor.monthName} • ${aktualisSor.monthDay}`),
         e(Text, null, `Végső primerek: ${formataltNevek(aktualisSor.finalPrimaryNames, 6)}`),
@@ -1346,29 +1275,40 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
             })
           : [e(Text, { key: "ures-nevek", dimColor: true }, "Nincs szerkeszthető jelölt.")]),
         e(Text, { bold: true }, ""),
-        e(Text, { bold: true }, "Személyes primerforrás"),
-        ...SAJAT_PRIMER_FORRAS_PROFILOK.map((forras) =>
+        e(Text, { bold: true }, "Személyes primerbeállítások"),
+        ...SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK.map((definicio, index) =>
           e(
             Text,
             {
-              key: `forras-${forras}`,
+              key: `beallitas-${definicio.kulcs}`,
               color:
-                szerkesztoAdat.localSettings?.primarySource === forras
-                  ? "green"
-                  : undefined,
+                aktivPanel === "beallitasok" && index === kijeloltBeallitasIndex
+                  ? "cyan"
+                  : definicio.kulcs === "primarySource" &&
+                      szerkesztoAdat.localSettings?.primarySource !== "default"
+                    ? "green"
+                    : definicio.kulcs === "modifiers.normalized" &&
+                        szerkesztoAdat.localSettings?.modifiers?.normalized
+                      ? "green"
+                      : definicio.kulcs === "modifiers.ranking" &&
+                          szerkesztoAdat.localSettings?.modifiers?.ranking
+                        ? "green"
+                        : undefined,
             },
-            `${aktivPanel === "primerforras" &&
-            szerkesztoAdat.localSettings?.primarySource === forras
-              ? "❯ "
-              : "  "}${sajatPrimerForrasCimke(forras)}${
-              szerkesztoAdat.localSettings?.primarySource === forras ? " [aktív]" : ""
-            }`
+            `${aktivPanel === "beallitasok" && index === kijeloltBeallitasIndex ? "❯ " : "  "}${
+              definicio.cimke
+            }: ${szemelyesBeallitasCimke(definicio, szerkesztoAdat.localSettings ?? {})}`
           )
         ),
         e(
           Text,
           { dimColor: true },
-          sajatPrimerForrasLeiras(szerkesztoAdat.localSettings?.primarySource ?? "default")
+          aktualisBeallitasDefinicio
+            ? szemelyesBeallitasLeiras(
+                aktualisBeallitasDefinicio,
+                szerkesztoAdat.localSettings ?? {}
+              )
+            : sajatPrimerForrasLeiras(szerkesztoAdat.localSettings?.primarySource ?? "default")
         ),
         e(Text, { bold: true }, ""),
         aktualisNev
@@ -1602,7 +1542,9 @@ function auditInspectorOsszegzesSorok(adat) {
     `Érintett napok: ${adat.summary?.rowCount ?? 0} • Közös hiányzó nevek: ${adat.summary?.combinedMissingCount ?? 0} • Egyedi nevek: ${adat.summary?.uniqueMissingNameCount ?? 0}`,
     `Helyben kijelölt nevek: ${adat.summary?.localSelectedCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
       adat.localSettings?.primarySource ?? "default"
-    )}`,
+    )} • Normalizált: ${adat.localSettings?.modifiers?.normalized ? "be" : "ki"} • Rangsor: ${
+      adat.localSettings?.modifiers?.ranking ? "be" : "ki"
+    }`,
   ];
 }
 
