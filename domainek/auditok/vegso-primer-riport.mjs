@@ -4,6 +4,7 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   areNameListsExactlyEqual,
   areNameSetsEqual,
@@ -157,7 +158,7 @@ async function main() {
 /**
  * A `buildFinalPrimaryRegistryReport` felépíti a szükséges adatszerkezetet.
  */
-function buildFinalPrimaryRegistryReport({
+export function buildFinalPrimaryRegistryReport({
   finalRegistryPayload,
   legacyRegistryPayload,
   wikiRegistryPayload,
@@ -1242,7 +1243,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

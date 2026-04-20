@@ -130,6 +130,12 @@ async function futtatAuditokat(formatum = "yaml") {
     })
   );
 
+  return futasok;
+}
+
+async function futtatPrimerAuditFrissitest(formatum = "yaml") {
+  const futasok = [];
+
   futasok.push(
     await futtatLepest({
       stepId: "audit-wiki-vs-legacy",
@@ -192,8 +198,8 @@ async function futtatAuditokat(formatum = "yaml") {
 
   futasok.push(
     await futtatLepest({
-      stepId: "audit-vegso-primer",
-      modul: "domainek/auditok/vegso-primer-riport.mjs",
+      stepId: "audit-primer-audit",
+      modul: "domainek/auditok/primer-audit.mjs",
       argumentumok: [
         "--final",
         kanonikusUtvonalak.primer.vegso,
@@ -207,8 +213,10 @@ async function futtatAuditokat(formatum = "yaml") {
         kanonikusUtvonalak.adatbazis.nevnapok,
         "--overrides",
         kanonikusUtvonalak.kezi.primerFelulirasok,
+        "--local",
+        kanonikusUtvonalak.helyi.nevnapokKonfig,
         "--report",
-        kanonikusUtvonalak.riportok.vegsoPrimer,
+        kanonikusUtvonalak.riportok.primerAudit,
       ],
       inputs: [
         kanonikusUtvonalak.primer.vegso,
@@ -217,32 +225,9 @@ async function futtatAuditokat(formatum = "yaml") {
         kanonikusUtvonalak.primer.normalizaloRiport,
         kanonikusUtvonalak.adatbazis.nevnapok,
         kanonikusUtvonalak.kezi.primerFelulirasok,
+        kanonikusUtvonalak.helyi.nevnapokKonfig,
       ],
-      outputs: [kanonikusUtvonalak.riportok.vegsoPrimer],
-      formatum,
-    })
-  );
-
-  futasok.push(
-    await futtatLepest({
-      stepId: "audit-primer-nelkul-marado-nevek",
-      modul: "domainek/auditok/primer-nelkul-marado-nevek.mjs",
-      argumentumok: [
-        "--final",
-        kanonikusUtvonalak.primer.vegso,
-        "--normalized",
-        kanonikusUtvonalak.primer.normalizaloRiport,
-        "--input",
-        kanonikusUtvonalak.adatbazis.nevnapok,
-        "--report",
-        kanonikusUtvonalak.riportok.primerNelkulMaradoNevek,
-      ],
-      inputs: [
-        kanonikusUtvonalak.primer.vegso,
-        kanonikusUtvonalak.primer.normalizaloRiport,
-        kanonikusUtvonalak.adatbazis.nevnapok,
-      ],
-      outputs: [kanonikusUtvonalak.riportok.primerNelkulMaradoNevek],
+      outputs: [kanonikusUtvonalak.riportok.primerAudit],
       formatum,
     })
   );
@@ -345,6 +330,25 @@ export const pipelineLepesek = [
       }),
   },
   {
+    azonosito: "primer-audit-frissites",
+    leiras: "Frissíti az egységes primer audit előfeltételeit és a primer audit riportot.",
+    bemenetek: [
+      kanonikusUtvonalak.primer.legacy,
+      kanonikusUtvonalak.primer.wiki,
+      kanonikusUtvonalak.primer.vegso,
+      kanonikusUtvonalak.adatbazis.nevnapok,
+      kanonikusUtvonalak.kezi.primerFelulirasok,
+    ],
+    kimenetek: [
+      kanonikusUtvonalak.riportok.wikiVsLegacy,
+      kanonikusUtvonalak.primer.normalizaloRiport,
+      kanonikusUtvonalak.riportok.primerNormalizalo,
+      kanonikusUtvonalak.riportok.primerAudit,
+    ],
+    dependsOn: ["vegso-primer-feloldas", "portal-nevadatbazis-epites"],
+    futtat: (opciok = {}) => futtatPrimerAuditFrissitest(opciok.formatum ?? "yaml"),
+  },
+  {
     azonosito: "formalizalt-elek-generalasa",
     leiras: "A formalizált eredetleírásból él-listát készít.",
     bemenetek: [kanonikusUtvonalak.adatbazis.nevnapok],
@@ -403,10 +407,9 @@ export const pipelineLepesek = [
       kanonikusUtvonalak.riportok.wikiVsLegacy,
       kanonikusUtvonalak.primer.normalizaloRiport,
       kanonikusUtvonalak.riportok.primerNormalizalo,
-      kanonikusUtvonalak.riportok.vegsoPrimer,
-      kanonikusUtvonalak.riportok.primerNelkulMaradoNevek,
+      kanonikusUtvonalak.riportok.primerAudit,
     ],
-    dependsOn: ["vegso-primer-feloldas", "portal-nevadatbazis-epites"],
+    dependsOn: ["primer-audit-frissites"],
     futtat: (opciok = {}) => futtatAuditokat(opciok.formatum ?? "yaml"),
   },
 ];

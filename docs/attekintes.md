@@ -35,6 +35,5 @@ hanem közvetlen CSV- és Excel-export is.
 
 ## Kiemelt auditok
 
-- `vegso-primer` — a végső primerjegyzék teljes diagnosztikája,
-- `primer-nelkul-marado-nevek` — havi bontásban mutatja azokat a normalizált és rangsorolt neveket, amelyek a teljes végső primerkészletből kimaradnak,
+- `primer-audit` — egységes primer diagnosztika a forrásnézettel, a hiányzó nevekkel és a személyes primerállapottal,
 - `hivatalos-nevjegyzek` — a dokumentált kivétellistával kezelt hivatalos névjegyzék-összevetés.

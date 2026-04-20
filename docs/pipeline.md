@@ -6,9 +6,10 @@
 2. `wiki-primer-gyujtes`
 3. `vegso-primer-feloldas`
 4. `portal-nevadatbazis-epites`
-5. `formalizalt-elek-generalasa`
-6. `naptar-generalas`
-7. `audit-futtatas`
+5. `primer-audit-frissites`
+6. `formalizalt-elek-generalasa`
+7. `naptar-generalas`
+8. `audit-futtatas`
 
 ## Állapotparancs
 

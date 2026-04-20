@@ -57,6 +57,7 @@ export const kanonikusUtvonalak = {
       "riportok",
       "primer-nelkul-marado-nevek-riport.yaml"
     ),
+    primerAudit: path.join(gyoker, "output", "riportok", "primer-audit.yaml"),
     hivatalosNevjegyzek: path.join(
       gyoker,
       "output",

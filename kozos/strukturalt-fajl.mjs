@@ -9,6 +9,24 @@ import path from "node:path";
 import YAML from "yaml";
 import { letrehozSzuloKonyvtarat } from "./fajlrendszer.mjs";
 
+function aliasLimitHiba(error) {
+  return /Excessive alias count indicates a resource exhaustion attack/u.test(
+    String(error?.message ?? error)
+  );
+}
+
+function parseYamlBiztonsagos(nyers) {
+  try {
+    return YAML.parse(nyers);
+  } catch (error) {
+    if (!aliasLimitHiba(error)) {
+      throw error;
+    }
+
+    return YAML.parse(nyers, { maxAliasCount: -1 });
+  }
+}
+
 /**
  * A `felismerFormatum` a fájlnévből vagy a kényszerített opcióból meghatározza a formátumot.
  */
@@ -58,7 +76,7 @@ export async function betoltStrukturaltFajl(utvonal) {
     return JSON.parse(nyers);
   }
 
-  return YAML.parse(nyers);
+  return parseYamlBiztonsagos(nyers);
 }
 
 /**
@@ -72,7 +90,7 @@ export function betoltStrukturaltFajlSzinkron(utvonal) {
     return JSON.parse(nyers);
   }
 
-  return YAML.parse(nyers);
+  return parseYamlBiztonsagos(nyers);
 }
 
 /**
@@ -89,6 +107,7 @@ export function szerializalStrukturaltAdat(adat, formatum = "yaml") {
     indent: 2,
     lineWidth: 0,
     minContentWidth: 0,
+    aliasDuplicateObjects: false,
   });
 }
 

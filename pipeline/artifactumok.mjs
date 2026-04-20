@@ -224,6 +224,12 @@ export const artifactumTar = {
     alapertelmezettUtvonal: kanonikusUtvonalak.riportok.primerNelkulMaradoNevek,
     schema: riportSchema,
   }),
+  primerAuditRiport: letrehozSpecifikacio({
+    azonosito: "primer-audit-riport",
+    verzio: 1,
+    alapertelmezettUtvonal: kanonikusUtvonalak.riportok.primerAudit,
+    schema: riportSchema,
+  }),
   hivatalosNevjegyzekRiport: letrehozSpecifikacio({
     azonosito: "hivatalos-nevjegyzek-riport",
     verzio: 1,

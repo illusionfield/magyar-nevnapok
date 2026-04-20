@@ -67,15 +67,14 @@ Tartalom:
 
 Különösen fontos riportok:
 
-- `output/riportok/vegso-primer-riport.yaml`
-- `output/riportok/primer-nelkul-marado-nevek-riport.yaml`
+- `output/riportok/primer-audit.yaml`
 
-Az utóbbi riport havi bontásban jeleníti meg
+Ez az egységes primer audit havi bontásban együtt jeleníti meg
 
 - a végső primernap neveit,
-- a normalizált hiányokat,
-- a rangsorolt hiányokat,
-- valamint a kettő unióját is külön közös oszlopban.
+- a legacy / wiki / normalizált / rangsorolt forrásnézetet,
+- a közös hiányzó neveket,
+- valamint a személyes primerállapotot és a helyi kijelöléseket is.
 
 ### Helyi primerkiegészítések
 

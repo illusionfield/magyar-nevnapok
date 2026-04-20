@@ -1,6 +1,6 @@
 /**
  * tui/index.mjs
- * Ink-alapú interaktív terminálfelület a pipeline-hoz, auditokhoz és a helyi primer-szerkesztőhöz.
+ * Ink-alapú interaktív terminálfelület a pipeline-hoz, auditokhoz és az egységes primer audit workspace-hez.
  */
 
 import path from "node:path";
@@ -10,14 +10,14 @@ import { Spinner } from "@inkjs/ui";
 import {
   allitIcsBeallitasokat,
   allitSajatPrimerBeallitasokat,
-  betoltAuditInspectorAdata,
   betoltIcsBeallitasokat,
-  betoltPrimerNelkulMaradoNevekSzerkesztoAdata,
-  kapcsolPrimerNelkuliHelyiKiegeszitest,
+  betoltPrimerAuditAdata,
   futtatAuditot,
   futtatPipeline,
   generalKimenetet,
+  hozzaadHelyiPrimerKiegeszitest,
   pipelineAllapot,
+  torolHelyiPrimerKiegeszitest,
   visszaallitIcsBeallitasokat,
 } from "../index.mjs";
 import { szerializalStrukturaltAdat } from "../kozos/strukturalt-fajl.mjs";
@@ -52,6 +52,12 @@ const SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK = [
     tipus: "boolean",
   },
 ];
+const PRIMER_AUDIT_TABOK = [
+  { azonosito: "osszefoglalo", cimke: "Összkép" },
+  { azonosito: "forrasok", cimke: "Források" },
+  { azonosito: "hianyzok", cimke: "Hiányzók" },
+  { azonosito: "szemelyes", cimke: "Személyes" },
+];
 
 const menuPontok = [
   {
@@ -78,34 +84,16 @@ const menuPontok = [
   {
     azonosito: "audit",
     cim: "Összes audit futtatása",
-    leiras: "Hivatalos lista, primer-összevetések, végső riport és primer nélküli audit.",
+    leiras: "Hivatalos lista, primer-összevetések és az egységes primer audit frissítése.",
     vegrehajt: async () => ({ tipus: "audit", adat: await futtatAuditot("mind") }),
   },
   {
-    azonosito: "audit-vegso-primer-inspector",
-    cim: "Végső primer audit inspector",
-    leiras: "Böngészhető, napi nézet a végső primerjegyzék forrásairól, eltéréseiről és rejtett neveiről.",
+    azonosito: "primer-audit",
+    cim: "Primer audit",
+    leiras: "Egységes napi workspace a forrásokhoz, hiányzókhoz és a személyes primerhez.",
     vegrehajt: async () => ({
-      tipus: "audit-inspector",
-      adat: await betoltAuditInspectorAdata("vegso-primer"),
-    }),
-  },
-  {
-    azonosito: "audit-primer-nelkul-inspector",
-    cim: "Primer nélkül maradó nevek inspector",
-    leiras: "Havi bontásban böngészhető, színezett nézet a végső primerkészletből kimaradó nevekre.",
-    vegrehajt: async () => ({
-      tipus: "audit-inspector",
-      adat: await betoltAuditInspectorAdata("primer-nelkul-marado-nevek"),
-    }),
-  },
-  {
-    azonosito: "primer-szerkeszto",
-    cim: "Saját primer szerkesztő",
-    leiras: "A közös hiányzó oszlopból space-szel helyi primerkiegészítést lehet kapcsolni.",
-    vegrehajt: async () => ({
-      tipus: "primer-szerkeszto",
-      adat: await betoltPrimerNelkulMaradoNevekSzerkesztoAdata(),
+      tipus: "primer-audit",
+      adat: await betoltPrimerAuditAdata(),
     }),
   },
   {
@@ -184,18 +172,6 @@ function formataltNevek(values, maxItems = 4) {
 }
 
 /**
- * A `lapitottSzerkesztoSorok` egyetlen navigálható listává bontja a havi szerkesztőadatot.
- */
-function lapitottSzerkesztoSorok(months) {
-  return (Array.isArray(months) ? months : []).flatMap((month) =>
-    (month.rows ?? []).map((row) => ({
-      ...row,
-      monthName: month.monthName,
-    }))
-  );
-}
-
-/**
  * A `kijeloltAblak` csak a kijelölt sor környezetét adja vissza, hogy a bal oldali lista ne legyen túl hosszú.
  */
 function kijeloltAblak(values, activeIndex, windowSize = 12) {
@@ -214,18 +190,7 @@ function kijeloltAblak(values, activeIndex, windowSize = 12) {
 }
 
 /**
- * A `szamolHelyiKijeloleseket` összesíti a jelenleg bejelölt helyi neveket.
- */
-function szamolHelyiKijeloleseket(months) {
-  return lapitottSzerkesztoSorok(months).reduce(
-    (sum, row) =>
-      sum + (row.combinedMissing ?? []).filter((entry) => entry.localSelected === true).length,
-    0
-  );
-}
-
-/**
- * A `lapitottAuditSorok` az audit-inspector havi sorait egyetlen navigálható listává alakítja.
+ * A `lapitottAuditSorok` a primer audit havi sorait egyetlen navigálható listává alakítja.
  */
 function lapitottAuditSorok(months) {
   return (Array.isArray(months) ? months : []).flatMap((month) =>
@@ -234,6 +199,69 @@ function lapitottAuditSorok(months) {
       monthName: month.monthName,
     }))
   );
+}
+
+function lapitottPrimerAuditSorok(months) {
+  return lapitottAuditSorok(months);
+}
+
+function frissitPrimerAuditHelyiKijelolest(adat, monthDay, name, selected) {
+  const nextMonths = (adat.months ?? []).map((month) => ({
+    ...month,
+    rows: (month.rows ?? []).map((row) => {
+      if (row.monthDay !== monthDay) {
+        return row;
+      }
+
+      const nextEntries = (row.sections?.szemelyes?.entries ?? row.personalEntries ?? []).map((entry) =>
+        entry.name === name
+          ? {
+              ...entry,
+              localSelected: selected,
+            }
+          : entry
+      );
+      const localSelectedNames = nextEntries
+        .filter((entry) => entry.localSelected === true)
+        .map((entry) => entry.name);
+
+      return {
+        ...row,
+        localSelectedNames,
+        localSelectedCount: localSelectedNames.length,
+        personalEntries: nextEntries,
+        sections: {
+          ...(row.sections ?? {}),
+          szemelyes: {
+            ...(row.sections?.szemelyes ?? {}),
+            selectedNames: localSelectedNames,
+            entries: nextEntries,
+          },
+          osszefoglalo: {
+            ...(row.sections?.osszefoglalo ?? {}),
+            localSelectedCount: localSelectedNames.length,
+          },
+        },
+      };
+    }),
+  }));
+
+  return {
+    ...adat,
+    months: nextMonths,
+    summary: {
+      ...(adat.summary ?? {}),
+      localSelectedCount: nextMonths.reduce(
+        (sum, month) =>
+          sum +
+          (month.rows ?? []).reduce(
+            (rowSum, row) => rowSum + ((row.sections?.szemelyes?.selectedNames ?? []).length || 0),
+            0
+          ),
+        0
+      ),
+    },
+  };
 }
 
 /**
@@ -296,41 +324,6 @@ function formataltKapcsolodoPrimerek(entries, maxItems = 6) {
   );
 
   return formataltNevek(normalized, maxItems);
-}
-
-/**
- * A `frissitHelyiKijelolest` immutábilisan frissíti egy név helyi jelölési állapotát.
- */
-function frissitHelyiKijelolest(adat, monthDay, name, selected) {
-  const nextMonths = (adat.months ?? []).map((month) => ({
-    ...month,
-    rows: (month.rows ?? []).map((row) => {
-      if (row.monthDay !== monthDay) {
-        return row;
-      }
-
-      return {
-        ...row,
-        combinedMissing: (row.combinedMissing ?? []).map((entry) =>
-          entry.name === name
-            ? {
-                ...entry,
-                localSelected: selected,
-              }
-            : entry
-        ),
-      };
-    }),
-  }));
-
-  return {
-    ...adat,
-    months: nextMonths,
-    summary: {
-      ...(adat.summary ?? {}),
-      localSelectedCount: szamolHelyiKijeloleseket(nextMonths),
-    },
-  };
 }
 
 /**
@@ -880,20 +873,280 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
         e(
           Text,
           null,
-          "A nevnapok kimenet general ics már kizárólag a mentett helyi YAML-profilt használja, és csak az aktív kimenet módhoz tartozó ICS-eket hagyja meg. A személyes primerforrás és a Normalizált / Rangsor módosítók a Saját primer szerkesztőben kezelhetők."
+          "A nevnapok kimenet general ics már kizárólag a mentett helyi YAML-profilt használja, és csak az aktív kimenet módhoz tartozó ICS-eket hagyja meg. A személyes primerforrás és a Normalizált / Rangsor módosítók a Primer audit nézet Személyes fülén kezelhetők."
         )
       )
     )
   );
 }
 
-/**
- * A `PrimerSzerkesztoNezet` a helyi primerkiegészítések kurzoros szerkesztője.
- */
-function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
+function primerAuditOsszegzesSorok(adat) {
+  return [
+    `Napok: ${adat.summary?.rowCount ?? 0} • Közös hiányzók: ${adat.summary?.combinedMissingCount ?? 0} • Helyi kijelölt nevek: ${adat.summary?.localSelectedCount ?? 0}`,
+    `Figyelmeztetéses napok: ${adat.summary?.warningDayCount ?? 0} • Kemény hibák: ${adat.summary?.hardFailureCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
+      adat.personal?.settingsSnapshot?.primarySource ?? "default"
+    )}`,
+  ];
+}
+
+function renderPrimerAuditBalOldaliSor(row) {
+  return e(
+    Text,
+    null,
+    e(Text, { bold: true, color: primerNapSzine(row.finalPrimaryCount) }, row.monthDay),
+    e(
+      Text,
+      null,
+      ` • ${formataltNevek(row.finalPrimaryNames ?? row.preferredNames, 3)} • ${
+        row.source ? vegsoPrimerForrasCimke(row.source) : "—"
+      } • hiányzó: ${(row.combinedMissing ?? []).length} • helyi: ${row.localSelectedCount ?? 0}${
+        row.warning ? " • figyelmeztetés" : ""
+      }${(row.hidden ?? []).length > 0 ? ` • rejtett: ${row.hidden.length}` : ""}`
+    )
+  );
+}
+
+function frissitPrimerAuditSzemelyesBeallitasokat(adat, settings) {
+  const nextMonths = (adat.months ?? []).map((month) => ({
+    ...month,
+    rows: (month.rows ?? []).map((row) => ({
+      ...row,
+      sections: {
+        ...(row.sections ?? {}),
+        szemelyes: {
+          ...(row.sections?.szemelyes ?? {}),
+          settingsSnapshot: settings,
+        },
+      },
+    })),
+  }));
+
+  return {
+    ...adat,
+    personal: {
+      ...(adat.personal ?? {}),
+      settingsSnapshot: settings,
+    },
+    months: nextMonths,
+  };
+}
+
+function renderPrimerAuditTab({
+  row,
+  aktivTab,
+  aktualisNev,
+  kijeloltNevIndex,
+  aktualisBeallitasDefinicio,
+  kijeloltBeallitasIndex,
+  aktivPanel,
+}) {
+  if (!row) {
+    return e(Text, null, "Nincs kijelölt nap.");
+  }
+
+  const osszefoglalo = row.sections?.osszefoglalo ?? {};
+  const forrasok = row.sections?.forrasok ?? {};
+  const hianyzok = row.sections?.hianyzok ?? {};
+  const szemelyes = row.sections?.szemelyes ?? {};
+
+  if (aktivTab === "osszefoglalo") {
+    return e(
+      Box,
+      { flexDirection: "column" },
+      e(Text, { bold: true }, `${row.monthName} • ${row.monthDay}`),
+      e(
+        Text,
+        { color: row.warning ? "red" : vegsoPrimerForrasSzine(row) },
+        `Végső primerek: ${formataltNevek(osszefoglalo.preferredNames ?? row.finalPrimaryNames, 8)}`
+      ),
+      e(Text, null, `Forrás: ${vegsoPrimerForrasCimke(osszefoglalo.source ?? row.source)}`),
+      e(Text, null, `Közös hiányzó nevek: ${osszefoglalo.combinedMissingCount ?? 0}`),
+      e(Text, null, `Helyi kijelölt nevek: ${osszefoglalo.localSelectedCount ?? 0}`),
+      e(Text, null, `Nyers aznapi nevek: ${osszefoglalo.rawNameCount ?? 0}`),
+      e(
+        Text,
+        { color: (row.hidden ?? []).length > 0 ? "yellow" : undefined },
+        `Rejtett nevek: ${osszefoglalo.hiddenCount ?? 0}`
+      ),
+      e(
+        Text,
+        { color: row.warning ? "red" : undefined },
+        `Figyelmeztetés: ${osszefoglalo.warning ? "igen" : "nem"}`
+      ),
+      e(Text, { bold: true }, ""),
+      e(Text, { bold: true }, "Napi összkép"),
+      e(Text, null, `Legacy: ${formataltNevek(row.legacy, 8)}`),
+      e(Text, null, `Wiki: ${formataltNevek(row.wiki, 8)}`),
+      e(Text, null, `Normalizált: ${formataltNevek(row.normalized, 8)}`),
+      e(Text, null, `Rangsorolt: ${formataltNevek(row.ranking, 8)}`)
+    );
+  }
+
+  if (aktivTab === "forrasok") {
+    return e(
+      Box,
+      { flexDirection: "column" },
+      e(Text, { bold: true }, `${row.monthName} • ${row.monthDay}`),
+      e(Text, null, `Végső primerek: ${formataltNevek(forrasok.preferredNames, 8)}`),
+      e(Text, null, `Legacy: ${formataltNevek(forrasok.legacy, 8)}`),
+      e(Text, null, `Wiki: ${formataltNevek(forrasok.wiki, 8)}`),
+      e(Text, null, `Normalizált: ${formataltNevek(forrasok.normalized, 8)}`),
+      e(Text, null, `Rangsorolt: ${formataltNevek(forrasok.ranking, 8)}`),
+      e(
+        Text,
+        { color: (forrasok.hidden ?? []).length > 0 ? "yellow" : undefined },
+        `Rejtett nevek: ${formataltNevek(forrasok.hidden, 8)}`
+      ),
+      e(Text, { dimColor: true }, `Nyers napi lista: ${formataltNevek(forrasok.rawNames, 12)}`),
+      e(Text, { dimColor: true }, `Forrás: ${vegsoPrimerForrasCimke(forrasok.source ?? row.source)}`),
+      e(
+        Text,
+        { color: forrasok.warning ? "red" : undefined },
+        `Figyelmeztetés: ${forrasok.warning ? "igen" : "nem"}`
+      )
+    );
+  }
+
+  if (aktivTab === "hianyzok") {
+    const combinedMissing = hianyzok.combinedMissing ?? [];
+
+    return e(
+      Box,
+      { flexDirection: "column" },
+      e(Text, { bold: true }, `${row.monthName} • ${row.monthDay}`),
+      e(Text, null, `Végső primerek: ${formataltNevek(row.finalPrimaryNames, 8)}`),
+      e(Text, { dimColor: true }, `Közös hiányok: ${formataltNevek(combinedMissing.map((entry) => `${entry.name} ${formatForrasJelzo(entry.sources)}`), 8)}`),
+      e(Text, { dimColor: true }, `Normalizált hiányok: ${formataltNevek((hianyzok.normalizedMissing ?? []).map((entry) => entry.name), 8)}`),
+      e(Text, { dimColor: true }, `Rangsorolt hiányok: ${formataltNevek((hianyzok.rankingMissing ?? []).map((entry) => entry.name), 8)}`),
+      e(Text, { bold: true }, ""),
+      e(Text, { bold: true }, "Hiányzó nevek"),
+      ...(combinedMissing.length > 0
+        ? combinedMissing.map((entry, index) =>
+            e(
+              Text,
+              {
+                key: `primer-audit-hianyzo-${row.monthDay}-${entry.name}`,
+                color: entry.highlight ? "blue" : index === kijeloltNevIndex ? "cyan" : undefined,
+              },
+              `${index === kijeloltNevIndex ? "❯ " : "  "}${entry.name} ${formatForrasJelzo(entry.sources)}`
+            )
+          )
+        : [e(Text, { key: "primer-audit-hianyzo-ures", dimColor: true }, "Nincs hiányzó név ezen a napon.")]),
+      aktualisNev
+        ? e(
+            Box,
+            { flexDirection: "column" },
+            e(Text, { bold: true }, ""),
+            e(Text, { bold: true }, `Kiválasztott név: ${aktualisNev.name}`),
+            e(Text, null, `Forrás: ${formatForrasJelzo(aktualisNev.sources)}`),
+            e(Text, null, `Kapcsolódás aznapi primerhez: ${aktualisNev.highlight ? "igen" : "nem"}`),
+            e(
+              Text,
+              { dimColor: !aktualisNev.highlight },
+              aktualisNev.highlight
+                ? `Hasonló primerek: ${formataltKapcsolodoPrimerek(
+                    aktualisNev.similarPrimaries,
+                    6
+                  )}`
+                : "Nincs közvetlen névkapcsolati jelölés az aznapi végső primerhez."
+            )
+          )
+        : null
+    );
+  }
+
+  const entries = szemelyes.entries ?? [];
+
+  return e(
+    Box,
+    { flexDirection: "column" },
+    e(Text, { bold: true }, `${row.monthName} • ${row.monthDay}`),
+    e(
+      Text,
+      { dimColor: true },
+      `Aktív panel: ${aktivPanel === "nevek" ? "helyi névkijelölés" : "személyes beállítások"}`
+    ),
+    e(Text, null, `Végső primerek: ${formataltNevek(row.finalPrimaryNames, 8)}`),
+    e(Text, { bold: true }, ""),
+    e(Text, { bold: true }, "Személyes jelöltek"),
+    ...(entries.length > 0
+      ? entries.map((entry, index) => {
+          const prefix = index === kijeloltNevIndex ? "❯" : " ";
+          const checkbox = entry.localSelected ? "[x]" : "[ ]";
+          const color =
+            entry.localSelected
+              ? "green"
+              : entry.highlight
+                ? "blue"
+                : index === kijeloltNevIndex && aktivPanel === "nevek"
+                  ? "cyan"
+                  : undefined;
+
+          return e(
+            Text,
+            {
+              key: `primer-audit-szemelyes-${row.monthDay}-${entry.name}`,
+              color,
+            },
+            `${prefix} ${checkbox} ${entry.name} ${formatForrasJelzo(entry.sources)}${
+              entry.manualOnly ? " [kézi]" : ""
+            }${aktivPanel === "nevek" && index === kijeloltNevIndex ? "  ←" : ""}`
+          );
+        })
+      : [e(Text, { key: "primer-audit-szemelyes-ures", dimColor: true }, "Nincs személyes jelölt ezen a napon.")]),
+    e(Text, { bold: true }, ""),
+    e(Text, { bold: true }, "Személyes primerbeállítások"),
+    ...SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK.map((definicio, index) =>
+      e(
+        Text,
+        {
+          key: `primer-audit-beallitas-${definicio.kulcs}`,
+          color: aktivPanel === "beallitasok" && index === kijeloltBeallitasIndex ? "cyan" : undefined,
+        },
+        `${aktivPanel === "beallitasok" && index === kijeloltBeallitasIndex ? "❯ " : "  "}${
+          definicio.cimke
+        }: ${szemelyesBeallitasCimke(definicio, szemelyes.settingsSnapshot ?? {})}`
+      )
+    ),
+    e(
+      Text,
+      { dimColor: true },
+      aktualisBeallitasDefinicio
+        ? szemelyesBeallitasLeiras(aktualisBeallitasDefinicio, szemelyes.settingsSnapshot ?? {})
+        : sajatPrimerForrasLeiras(szemelyes.settingsSnapshot?.primarySource ?? "default")
+    ),
+    aktualisNev
+      ? e(
+          Box,
+          { flexDirection: "column" },
+          e(Text, { bold: true }, ""),
+          e(Text, { bold: true }, `Kiválasztott név: ${aktualisNev.name}`),
+          e(Text, null, `Forrás: ${formatForrasJelzo(aktualisNev.sources)}`),
+          e(
+            Text,
+            null,
+            `Kapcsolódás aznapi primerhez: ${aktualisNev.highlight ? "igen" : "nem"}`
+          ),
+          e(
+            Text,
+            { dimColor: !aktualisNev.highlight },
+            aktualisNev.highlight
+              ? `Hasonló primerek: ${formataltKapcsolodoPrimerek(
+                  aktualisNev.similarPrimaries,
+                  6
+                )}`
+              : "Nincs közvetlen névkapcsolati jelölés az aznapi végső primerhez."
+          )
+        )
+      : null
+  );
+}
+
+function PrimerAuditNezet({ adat, visszaMenu }) {
   const { exit } = useApp();
-  const [szerkesztoAdat, setSzerkesztoAdat] = useState(adat);
+  const [primerAuditAdat, setPrimerAuditAdat] = useState(adat);
   const [kijeloltSorIndex, setKijeloltSorIndex] = useState(0);
+  const [kijeloltTabIndex, setKijeloltTabIndex] = useState(0);
   const [kijeloltNevIndex, setKijeloltNevIndex] = useState(0);
   const [kijeloltBeallitasIndex, setKijeloltBeallitasIndex] = useState(0);
   const [aktivPanel, setAktivPanel] = useState("nevek");
@@ -902,23 +1155,23 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
   const [uzenetTipus, setUzenetTipus] = useState("info");
 
   useEffect(() => {
-    setSzerkesztoAdat(adat);
+    setPrimerAuditAdat(adat);
     setKijeloltSorIndex(0);
+    setKijeloltTabIndex(0);
     setKijeloltNevIndex(0);
     setKijeloltBeallitasIndex(0);
     setAktivPanel("nevek");
-    setUzenet(
-      `Személyes primerbeállítások betöltve: ${sajatPrimerForrasCimke(
-        adat?.localSettings?.primarySource ?? "default"
-      )}`
-    );
+    setUzenet("Primer audit betöltve.");
     setUzenetTipus("info");
   }, [adat]);
 
-  const sorok = useMemo(() => lapitottSzerkesztoSorok(szerkesztoAdat?.months), [szerkesztoAdat]);
+  const sorok = useMemo(() => lapitottPrimerAuditSorok(primerAuditAdat?.months), [primerAuditAdat]);
   const aktualisSor = sorok[kijeloltSorIndex] ?? null;
-  const aktualisNevek = aktualisSor?.combinedMissing ?? [];
-  const aktualisNev = aktualisNevek[kijeloltNevIndex] ?? null;
+  const aktualisTab = PRIMER_AUDIT_TABOK[kijeloltTabIndex]?.azonosito ?? "osszefoglalo";
+  const aktualisSzemelyesNevek = aktualisSor?.sections?.szemelyes?.entries ?? [];
+  const aktualisHianyzoNevek = aktualisSor?.sections?.hianyzok?.combinedMissing ?? [];
+  const aktualisLista = aktualisTab === "hianyzok" ? aktualisHianyzoNevek : aktualisSzemelyesNevek;
+  const aktualisNev = aktualisLista[kijeloltNevIndex] ?? null;
   const aktualisBeallitasDefinicio =
     SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK[kijeloltBeallitasIndex] ?? null;
   const lathatoSorok = kijeloltAblak(sorok, kijeloltSorIndex, 12);
@@ -935,15 +1188,15 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
   }, [kijeloltSorIndex, sorok.length]);
 
   useEffect(() => {
-    if (aktualisNevek.length === 0) {
+    if (aktualisLista.length === 0) {
       setKijeloltNevIndex(0);
       return;
     }
 
-    if (kijeloltNevIndex >= aktualisNevek.length) {
-      setKijeloltNevIndex(aktualisNevek.length - 1);
+    if (kijeloltNevIndex >= aktualisLista.length) {
+      setKijeloltNevIndex(aktualisLista.length - 1);
     }
-  }, [aktualisNevek.length, kijeloltNevIndex]);
+  }, [aktualisLista.length, kijeloltNevIndex]);
 
   useInput(async (input, key) => {
     if (input === "q") {
@@ -960,13 +1213,23 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       return;
     }
 
-    if (key.tab || input === "p") {
+    if (key.tab) {
+      setKijeloltTabIndex((elozo) => (elozo + 1) % PRIMER_AUDIT_TABOK.length);
+      return;
+    }
+
+    if (["1", "2", "3", "4"].includes(input)) {
+      setKijeloltTabIndex(Number(input) - 1);
+      return;
+    }
+
+    if (input === "p" && aktualisTab === "szemelyes") {
       setAktivPanel((elozo) => (elozo === "nevek" ? "beallitasok" : "nevek"));
       return;
     }
 
     if (key.upArrow) {
-      if (aktivPanel === "beallitasok") {
+      if (aktualisTab === "szemelyes" && aktivPanel === "beallitasok") {
         setKijeloltBeallitasIndex(
           (elozo) =>
             (elozo - 1 + SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK.length) %
@@ -975,54 +1238,105 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
         return;
       }
 
-      if (sorok.length === 0) {
-        return;
+      if (sorok.length > 0) {
+        setKijeloltSorIndex((elozo) => (elozo - 1 + sorok.length) % sorok.length);
       }
-
-      setKijeloltSorIndex((elozo) => (elozo - 1 + sorok.length) % sorok.length);
       return;
     }
 
     if (key.downArrow) {
-      if (aktivPanel === "beallitasok") {
+      if (aktualisTab === "szemelyes" && aktivPanel === "beallitasok") {
         setKijeloltBeallitasIndex(
           (elozo) => (elozo + 1) % SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK.length
         );
         return;
       }
 
-      if (sorok.length === 0) {
-        return;
+      if (sorok.length > 0) {
+        setKijeloltSorIndex((elozo) => (elozo + 1) % sorok.length);
       }
-
-      setKijeloltSorIndex((elozo) => (elozo + 1) % sorok.length);
       return;
     }
 
-    if (aktivPanel === "beallitasok" && (key.leftArrow || key.rightArrow || input === " ")) {
+    if (input === "r") {
+      setFolyamatban(true);
+
+      try {
+        const friss = await betoltPrimerAuditAdata();
+        setPrimerAuditAdat(friss);
+        setUzenetTipus("info");
+        setUzenet("A primer audit friss riporttal újratöltve.");
+      } catch (error) {
+        setUzenetTipus("hiba");
+        setUzenet(error?.message ?? String(error));
+      } finally {
+        setFolyamatban(false);
+      }
+      return;
+    }
+
+    if (input === "g") {
+      setFolyamatban(true);
+      try {
+        const utvonalak = await generalKimenetet("ics");
+        setUzenetTipus("siker");
+        setUzenet(
+          `ICS generálás kész: ${utvonalak.map((utvonal) => relativUtvonal(utvonal)).join(", ")}`
+        );
+      } catch (error) {
+        setUzenetTipus("hiba");
+        setUzenet(error?.message ?? String(error));
+      } finally {
+        setFolyamatban(false);
+      }
+      return;
+    }
+
+    if (aktualisTab === "hianyzok" && aktualisLista.length > 0 && key.leftArrow) {
+      setKijeloltNevIndex((elozo) => (elozo - 1 + aktualisLista.length) % aktualisLista.length);
+      return;
+    }
+
+    if (aktualisTab === "hianyzok" && aktualisLista.length > 0 && key.rightArrow) {
+      setKijeloltNevIndex((elozo) => (elozo + 1) % aktualisLista.length);
+      return;
+    }
+
+    if (aktualisTab === "szemelyes" && aktivPanel === "nevek" && aktualisLista.length > 0) {
+      if (key.leftArrow) {
+        setKijeloltNevIndex((elozo) => (elozo - 1 + aktualisLista.length) % aktualisLista.length);
+        return;
+      }
+
+      if (key.rightArrow) {
+        setKijeloltNevIndex((elozo) => (elozo + 1) % aktualisLista.length);
+        return;
+      }
+    }
+
+    if (aktualisTab === "szemelyes" && aktivPanel === "beallitasok" && (key.leftArrow || key.rightArrow || input === " ")) {
       if (!aktualisBeallitasDefinicio) {
         return;
       }
 
       const aktualisErtek = getNestedValue(
-        szerkesztoAdat?.localSettings ?? {},
+        primerAuditAdat?.personal?.settingsSnapshot ?? {},
         aktualisBeallitasDefinicio.kulcs
       );
       let kovetkezoErtek = aktualisErtek;
 
       if (aktualisBeallitasDefinicio.tipus === "enum") {
-        const irany = key.leftArrow ? -1 : 1;
         kovetkezoErtek = leptetEnumErteket(
           aktualisBeallitasDefinicio.ertekek,
           aktualisErtek,
-          irany
+          key.leftArrow ? -1 : 1
         );
       } else if (aktualisBeallitasDefinicio.tipus === "boolean") {
         kovetkezoErtek = !(aktualisErtek === true);
       }
 
       const kovetkezoSettings = setNestedValue(
-        szerkesztoAdat?.localSettings ?? {},
+        primerAuditAdat?.personal?.settingsSnapshot ?? {},
         aktualisBeallitasDefinicio.kulcs,
         kovetkezoErtek
       );
@@ -1033,10 +1347,9 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
           primarySource: kovetkezoSettings.primarySource,
           modifiers: kovetkezoSettings.modifiers,
         });
-        setSzerkesztoAdat((elozo) => ({
-          ...elozo,
-          localSettings: eredmeny.settings,
-        }));
+        setPrimerAuditAdat((elozo) =>
+          frissitPrimerAuditSzemelyesBeallitasokat(elozo, eredmeny.settings)
+        );
         setUzenetTipus("siker");
         setUzenet(
           `Személyes beállítás mentve: ${aktualisBeallitasDefinicio.cimke} → ${szemelyesBeallitasCimke(
@@ -1053,73 +1366,39 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       return;
     }
 
-    if (sorok.length === 0) {
-      return;
-    }
-
-    if (key.leftArrow && aktivPanel === "nevek" && aktualisNevek.length > 0) {
-      setKijeloltNevIndex(
-        (elozo) => (elozo - 1 + aktualisNevek.length) % aktualisNevek.length
-      );
-      return;
-    }
-
-    if (key.rightArrow && aktivPanel === "nevek" && aktualisNevek.length > 0) {
-      setKijeloltNevIndex((elozo) => (elozo + 1) % aktualisNevek.length);
-      return;
-    }
-
-    if (input === "r") {
+    if (
+      aktualisTab === "szemelyes" &&
+      aktivPanel === "nevek" &&
+      input === " " &&
+      aktualisSor &&
+      aktualisNev &&
+      aktualisNev.localSelectable !== false
+    ) {
       setFolyamatban(true);
       try {
-        const friss = await betoltPrimerNelkulMaradoNevekSzerkesztoAdata();
-        setSzerkesztoAdat(friss);
-        setUzenetTipus("info");
-        setUzenet("A riport és a helyi jelölések frissítve.");
-      } catch (error) {
-        setUzenetTipus("hiba");
-        setUzenet(error?.message ?? String(error));
-      } finally {
-        setFolyamatban(false);
-      }
-      return;
-    }
+        const eredmeny = aktualisNev.localSelected
+          ? await torolHelyiPrimerKiegeszitest({
+              monthDay: aktualisSor.monthDay,
+              name: aktualisNev.name,
+            })
+          : await hozzaadHelyiPrimerKiegeszitest({
+              monthDay: aktualisSor.monthDay,
+              name: aktualisNev.name,
+            });
 
-    if (input === "g") {
-      setFolyamatban(true);
-      try {
-        const utvonalak = await generalKimenetet("ics");
-        setUzenetTipus("siker");
-        setUzenet(
-          `Naptárak újragenerálva: ${utvonalak.map((utvonal) => relativUtvonal(utvonal)).join(", ")}`
-        );
-      } catch (error) {
-        setUzenetTipus("hiba");
-        setUzenet(error?.message ?? String(error));
-      } finally {
-        setFolyamatban(false);
-      }
-      return;
-    }
-
-    if (input === " " && aktivPanel === "nevek" && aktualisSor && aktualisNev) {
-      setFolyamatban(true);
-      try {
-        const eredmeny = await kapcsolPrimerNelkuliHelyiKiegeszitest({
-          month: aktualisSor.month,
-          day: aktualisSor.day,
-          monthDay: aktualisSor.monthDay,
-          name: aktualisNev.name,
-        });
-
-        setSzerkesztoAdat((elozo) =>
-          frissitHelyiKijelolest(elozo, aktualisSor.monthDay, aktualisNev.name, eredmeny.selected)
+        setPrimerAuditAdat((elozo) =>
+          frissitPrimerAuditHelyiKijelolest(
+            elozo,
+            aktualisSor.monthDay,
+            aktualisNev.name,
+            eredmeny.selected
+          )
         );
         setUzenetTipus("siker");
         setUzenet(
           eredmeny.selected
-            ? `Hozzáadva a saját primerkiegészítésekhez: ${aktualisSor.monthDay} / ${aktualisNev.name}`
-            : `Eltávolítva a saját primerkiegészítések közül: ${aktualisSor.monthDay} / ${aktualisNev.name}`
+            ? `Hozzáadva a személyes primerhez: ${aktualisSor.monthDay} / ${aktualisNev.name}`
+            : `Eltávolítva a személyes primerből: ${aktualisSor.monthDay} / ${aktualisNev.name}`
         );
       } catch (error) {
         setUzenetTipus("hiba");
@@ -1134,43 +1413,33 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
     return e(
       Box,
       { flexDirection: "column" },
-      e(Text, { bold: true }, "Saját primer szerkesztő"),
+      e(Text, { bold: true }, "Primer audit"),
       e(Text, { dimColor: true }, "Esc vagy v: vissza a menübe • q: kilépés"),
-      e(
-        Text,
-        { dimColor: true, marginTop: 1 },
-        `Személyes primerforrás: ${sajatPrimerForrasCimke(
-          szerkesztoAdat?.localSettings?.primarySource ?? "default"
-        )} • Normalizált: ${
-          szerkesztoAdat?.localSettings?.modifiers?.normalized ? "be" : "ki"
-        } • Rangsor: ${szerkesztoAdat?.localSettings?.modifiers?.ranking ? "be" : "ki"}`
-      ),
-      e(Text, { marginTop: 1 }, "A riport jelenleg nem tartalmaz szerkeszthető napokat.")
+      e(Text, { marginTop: 1 }, "A primer audit jelenleg nem tartalmaz böngészhető napokat.")
     );
   }
 
   return e(
     Box,
     { flexDirection: "column" },
-    e(Text, { bold: true }, "Saját primer szerkesztő"),
+    e(Text, { bold: true }, "Primer audit"),
     e(
       Text,
       { dimColor: true },
-      "↑/↓: nap vagy beállítás • Tab vagy p: panelváltás • ←/→: név vagy beállítás • Space: kapcsolás • g: mentett ICS profil szerinti generálás • r: frissítés • Esc vagy v: vissza • q: kilépés"
+      "↑/↓: nap • Tab vagy 1-4: fülváltás • p: személyes panelváltás • ←/→: név vagy beállítás • Space: helyi kapcsolás / állítás • r: frissítés • g: generálás • Esc vagy v: vissza • q: kilépés"
     ),
     e(
       Text,
       { dimColor: true },
-      `Riport: ${relativUtvonal(szerkesztoAdat.reportPath)} • Helyi konfig: ${relativUtvonal(szerkesztoAdat.localOverridesPath)}`
+      `Riport: ${relativUtvonal(primerAuditAdat.reportPath)} • Generálva: ${primerAuditAdat.generatedAt ?? "—"}`
+    ),
+    ...primerAuditOsszegzesSorok(primerAuditAdat).map((sor, index) =>
+      e(Text, { key: `primer-audit-summary-${index}`, dimColor: true }, sor)
     ),
     e(
       Text,
       { dimColor: true },
-      `Érintett napok: ${szerkesztoAdat.summary?.rowCount ?? 0} • Helyben kijelölt nevek: ${szerkesztoAdat.summary?.localSelectedCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
-        szerkesztoAdat.localSettings?.primarySource ?? "default"
-      )} • Normalizált: ${
-        szerkesztoAdat.localSettings?.modifiers?.normalized ? "be" : "ki"
-      } • Rangsor: ${szerkesztoAdat.localSettings?.modifiers?.ranking ? "be" : "ki"}`
+      `Aktív fül: ${PRIMER_AUDIT_TABOK[kijeloltTabIndex]?.cimke ?? "Összkép"}`
     ),
     folyamatban
       ? e(Box, { marginTop: 1 }, e(Spinner, { label: "Művelet folyamatban..." }))
@@ -1194,36 +1463,20 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
       { marginTop: 1 },
       e(
         Box,
-        { flexDirection: "column", width: 52, marginRight: 2 },
-        e(Text, { bold: true }, "Érintett napok"),
-        ...lathatoSorok.map((row) => {
-          const helyiDarab = (row.combinedMissing ?? []).filter(
-            (entry) => entry.localSelected === true
-          ).length;
-
-          return e(
+        { flexDirection: "column", width: 58, marginRight: 2 },
+        e(Text, { bold: true }, "Böngészhető napok"),
+        ...lathatoSorok.map((row) =>
+          e(
             Box,
-            { key: `${row.monthDay}-${row.globalIndex}` },
+            { key: `primer-audit-row-${row.monthDay}-${row.globalIndex}` },
             e(
               Text,
               { color: row.globalIndex === kijeloltSorIndex ? "cyan" : undefined },
               row.globalIndex === kijeloltSorIndex ? "❯ " : "  "
             ),
-            e(
-              Text,
-              {
-                bold: true,
-                color: primerNapSzine(row.finalPrimaryCount),
-              },
-              row.monthDay
-            ),
-            e(
-              Text,
-              null,
-              ` • ${formataltNevek(row.finalPrimaryNames, 3)} • közös: ${(row.combinedMissing ?? []).length}${helyiDarab > 0 ? ` • helyi: ${helyiDarab}` : ""}`
-            )
-          );
-        })
+            renderPrimerAuditBalOldaliSor(row)
+          )
+        )
       ),
       e(
         Box,
@@ -1231,454 +1484,22 @@ function PrimerSzerkesztoNezet({ adat, visszaMenu }) {
         e(
           Text,
           { bold: true },
-          `Aktív panel: ${aktivPanel === "nevek" ? "helyi névkijelölés" : "személyes primerbeállítások"}`
+          PRIMER_AUDIT_TABOK.map((tab, index) =>
+            index === kijeloltTabIndex ? `[${tab.cimke}]` : tab.cimke
+          ).join(" • ")
         ),
-        e(Text, { bold: true }, `${aktualisSor.monthName} • ${aktualisSor.monthDay}`),
-        e(Text, null, `Végső primerek: ${formataltNevek(aktualisSor.finalPrimaryNames, 6)}`),
-        e(
-          Text,
-          { dimColor: true },
-          `Normalizált hiányok: ${formataltNevek(
-            (aktualisSor.normalizedMissing ?? []).map((entry) => entry.name),
-            6
-          )}`
-        ),
-        e(
-          Text,
-          { dimColor: true },
-          `Rangsorolt hiányok: ${formataltNevek(
-            (aktualisSor.rankingMissing ?? []).map((entry) => entry.name),
-            6
-          )}`
-        ),
-        e(Text, { bold: true }, ""),
-        e(Text, { bold: true }, "Közös jelöltek"),
-        ...(aktualisNevek.length > 0
-          ? aktualisNevek.map((entry, index) => {
-              const prefix = index === kijeloltNevIndex ? "❯" : " ";
-              const checkbox = entry.localSelected ? "[x]" : "[ ]";
-              const color = entry.localSelected
-                ? "green"
-                : entry.highlight
-                  ? "blue"
-                  : index === kijeloltNevIndex && aktivPanel === "nevek"
-                    ? "cyan"
-                    : undefined;
-
-              return e(
-                Text,
-                { key: `${aktualisSor.monthDay}-${entry.name}`, color },
-                `${prefix} ${checkbox} ${entry.name} ${formatForrasJelzo(entry.sources)}${
-                  aktivPanel === "nevek" && index === kijeloltNevIndex ? "  ←" : ""
-                }`
-              );
-            })
-          : [e(Text, { key: "ures-nevek", dimColor: true }, "Nincs szerkeszthető jelölt.")]),
-        e(Text, { bold: true }, ""),
-        e(Text, { bold: true }, "Személyes primerbeállítások"),
-        ...SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK.map((definicio, index) =>
-          e(
-            Text,
-            {
-              key: `beallitas-${definicio.kulcs}`,
-              color:
-                aktivPanel === "beallitasok" && index === kijeloltBeallitasIndex
-                  ? "cyan"
-                  : definicio.kulcs === "primarySource" &&
-                      szerkesztoAdat.localSettings?.primarySource !== "default"
-                    ? "green"
-                    : definicio.kulcs === "modifiers.normalized" &&
-                        szerkesztoAdat.localSettings?.modifiers?.normalized
-                      ? "green"
-                      : definicio.kulcs === "modifiers.ranking" &&
-                          szerkesztoAdat.localSettings?.modifiers?.ranking
-                        ? "green"
-                        : undefined,
-            },
-            `${aktivPanel === "beallitasok" && index === kijeloltBeallitasIndex ? "❯ " : "  "}${
-              definicio.cimke
-            }: ${szemelyesBeallitasCimke(definicio, szerkesztoAdat.localSettings ?? {})}`
-          )
-        ),
-        e(
-          Text,
-          { dimColor: true },
-          aktualisBeallitasDefinicio
-            ? szemelyesBeallitasLeiras(
-                aktualisBeallitasDefinicio,
-                szerkesztoAdat.localSettings ?? {}
-              )
-            : sajatPrimerForrasLeiras(szerkesztoAdat.localSettings?.primarySource ?? "default")
-        ),
-        e(Text, { bold: true }, ""),
-        aktualisNev
-          ? e(
-              Box,
-              { flexDirection: "column" },
-              e(Text, { bold: true }, `Kiválasztott név: ${aktualisNev.name}`),
-              e(Text, null, `Forrás: ${formatForrasJelzo(aktualisNev.sources)}`),
-              e(
-                Text,
-                null,
-                `Kapcsolódás aznapi végső primerekhez: ${aktualisNev.highlight ? "igen" : "nem"}`
-              ),
-              e(
-                Text,
-                { dimColor: !aktualisNev.highlight },
-                aktualisNev.highlight
-                  ? `Hasonló primer(ek): ${formataltNevek(
-                      (aktualisNev.similarPrimaries ?? []).map(
-                        (entry) => `${entry.primaryName} (${entry.relation})`
-                      ),
-                      6
-                    )}`
-                  : "Nincs közvetlen névkapcsolati jelölés az aznapi végső primerhez."
-              )
-            )
-          : null
+        renderPrimerAuditTab({
+          adat: primerAuditAdat,
+          row: aktualisSor,
+          aktivTab: aktualisTab,
+          aktualisNev,
+          kijeloltNevIndex,
+          aktualisBeallitasDefinicio,
+          kijeloltBeallitasIndex,
+          aktivPanel,
+        })
       )
     )
-  );
-}
-
-/**
- * Az `AuditInspectorNezet` böngészhető, napi részletező nézetet ad a kiemelt auditokhoz.
- */
-function AuditInspectorNezet({ adat, visszaMenu }) {
-  const { exit } = useApp();
-  const [inspectorAdat, setInspectorAdat] = useState(adat);
-  const [kijeloltSorIndex, setKijeloltSorIndex] = useState(0);
-  const [kijeloltReszletIndex, setKijeloltReszletIndex] = useState(0);
-  const [folyamatban, setFolyamatban] = useState(false);
-  const [uzenet, setUzenet] = useState(null);
-  const [uzenetTipus, setUzenetTipus] = useState("info");
-
-  useEffect(() => {
-    setInspectorAdat(adat);
-    setKijeloltSorIndex(0);
-    setKijeloltReszletIndex(0);
-    setUzenet(null);
-    setUzenetTipus("info");
-  }, [adat]);
-
-  const sorok = useMemo(() => lapitottAuditSorok(inspectorAdat?.months), [inspectorAdat]);
-  const aktualisSor = sorok[kijeloltSorIndex] ?? null;
-  const lathatoSorok = kijeloltAblak(sorok, kijeloltSorIndex, 12);
-  const reszletLista =
-    inspectorAdat?.audit === "primer-nelkul-marado-nevek"
-      ? aktualisSor?.combinedMissing ?? []
-      : aktualisSor?.hidden ?? [];
-  const aktualisReszlet = reszletLista[kijeloltReszletIndex] ?? null;
-
-  useEffect(() => {
-    if (sorok.length === 0) {
-      setKijeloltSorIndex(0);
-      return;
-    }
-
-    if (kijeloltSorIndex >= sorok.length) {
-      setKijeloltSorIndex(sorok.length - 1);
-    }
-  }, [kijeloltSorIndex, sorok.length]);
-
-  useEffect(() => {
-    if (reszletLista.length === 0) {
-      setKijeloltReszletIndex(0);
-      return;
-    }
-
-    if (kijeloltReszletIndex >= reszletLista.length) {
-      setKijeloltReszletIndex(reszletLista.length - 1);
-    }
-  }, [kijeloltReszletIndex, reszletLista.length]);
-
-  useInput(async (input, key) => {
-    if (input === "q") {
-      exit();
-      return;
-    }
-
-    if (folyamatban) {
-      return;
-    }
-
-    if (key.escape || input === "v") {
-      visszaMenu();
-      return;
-    }
-
-    if (sorok.length === 0) {
-      return;
-    }
-
-    if (key.upArrow) {
-      setKijeloltSorIndex((elozo) => (elozo - 1 + sorok.length) % sorok.length);
-      return;
-    }
-
-    if (key.downArrow) {
-      setKijeloltSorIndex((elozo) => (elozo + 1) % sorok.length);
-      return;
-    }
-
-    if (reszletLista.length > 0 && key.leftArrow) {
-      setKijeloltReszletIndex((elozo) => (elozo - 1 + reszletLista.length) % reszletLista.length);
-      return;
-    }
-
-    if (reszletLista.length > 0 && key.rightArrow) {
-      setKijeloltReszletIndex((elozo) => (elozo + 1) % reszletLista.length);
-      return;
-    }
-
-    if (input === "r") {
-      setFolyamatban(true);
-
-      try {
-        const friss = await betoltAuditInspectorAdata(inspectorAdat.audit);
-        setInspectorAdat(friss);
-        setUzenetTipus("info");
-        setUzenet("Az audit-inspector friss riporttal újratöltve.");
-      } catch (error) {
-        setUzenetTipus("hiba");
-        setUzenet(error?.message ?? String(error));
-      } finally {
-        setFolyamatban(false);
-      }
-    }
-  });
-
-  if (sorok.length === 0) {
-    return e(
-      Box,
-      { flexDirection: "column" },
-      e(Text, { bold: true }, "Audit inspector"),
-      e(Text, { dimColor: true }, "Esc vagy v: vissza a menübe • q: kilépés"),
-      e(Text, { marginTop: 1 }, "Az audit jelenleg nem tartalmaz böngészhető napi sorokat.")
-    );
-  }
-
-  return e(
-    Box,
-    { flexDirection: "column" },
-    e(
-      Text,
-      { bold: true },
-      inspectorAdat.audit === "vegso-primer"
-        ? "Végső primer audit inspector"
-        : "Primer nélkül maradó nevek inspector"
-    ),
-    e(
-      Text,
-      { dimColor: true },
-      "↑/↓: nap • ←/→: részlet • r: riportfrissítés • Esc vagy v: vissza • q: kilépés"
-    ),
-    e(
-      Text,
-      { dimColor: true },
-      `Riport: ${relativUtvonal(inspectorAdat.reportPath)} • Generálva: ${inspectorAdat.generatedAt ?? "—"}`
-    ),
-    ...auditInspectorOsszegzesSorok(inspectorAdat).map((sor, index) =>
-      e(Text, { key: `audit-summary-${index}`, dimColor: true }, sor)
-    ),
-    folyamatban
-      ? e(Box, { marginTop: 1 }, e(Spinner, { label: "Riport frissítése..." }))
-      : null,
-    uzenet
-      ? e(
-          Text,
-          {
-            color:
-              uzenetTipus === "hiba"
-                ? "red"
-                : uzenetTipus === "siker"
-                  ? "green"
-                  : "cyan",
-          },
-          uzenet
-        )
-      : null,
-    e(
-      Box,
-      { marginTop: 1 },
-      e(
-        Box,
-        { flexDirection: "column", width: 52, marginRight: 2 },
-        e(Text, { bold: true }, "Böngészhető napok"),
-        ...lathatoSorok.map((row) =>
-          e(
-            Box,
-            { key: `${inspectorAdat.audit}-${row.monthDay}-${row.globalIndex}` },
-            e(
-              Text,
-              { color: row.globalIndex === kijeloltSorIndex ? "cyan" : undefined },
-              row.globalIndex === kijeloltSorIndex ? "❯ " : "  "
-            ),
-            renderAuditInspectorBalOldaliSor(inspectorAdat.audit, row)
-          )
-        )
-      ),
-      e(
-        Box,
-        { flexDirection: "column", flexGrow: 1 },
-        renderAuditInspectorReszletek(inspectorAdat, aktualisSor, aktualisReszlet, kijeloltReszletIndex)
-      )
-    )
-  );
-}
-
-/**
- * Az `auditInspectorOsszegzesSorok` rövid státuszsort készít az inspector fejléce alá.
- */
-function auditInspectorOsszegzesSorok(adat) {
-  if (adat?.audit === "vegso-primer") {
-    return [
-      `Napok: ${adat.summary?.rowCount ?? 0} • Kemény hibák: ${adat.summary?.hardFailureCount ?? 0} • Felülírt napok: ${adat.summary?.overrideDayCount ?? 0}`,
-      `Primer nélkül maradó nevek: ${adat.summary?.neverPrimaryCount ?? 0} • Ebből hasonló primerrel: ${adat.summary?.neverPrimaryWithSimilarPrimaryCount ?? 0}`,
-    ];
-  }
-
-  return [
-    `Érintett napok: ${adat.summary?.rowCount ?? 0} • Közös hiányzó nevek: ${adat.summary?.combinedMissingCount ?? 0} • Egyedi nevek: ${adat.summary?.uniqueMissingNameCount ?? 0}`,
-    `Helyben kijelölt nevek: ${adat.summary?.localSelectedCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
-      adat.localSettings?.primarySource ?? "default"
-    )} • Normalizált: ${adat.localSettings?.modifiers?.normalized ? "be" : "ki"} • Rangsor: ${
-      adat.localSettings?.modifiers?.ranking ? "be" : "ki"
-    }`,
-  ];
-}
-
-/**
- * A `renderAuditInspectorBalOldaliSor` a bal oldali napi lista egyetlen sorát rajzolja ki.
- */
-function renderAuditInspectorBalOldaliSor(auditAzonosito, row) {
-  if (auditAzonosito === "vegso-primer") {
-    return e(
-      Text,
-      null,
-      e(Text, { bold: true, color: vegsoPrimerForrasSzine(row) }, row.monthDay),
-      e(
-        Text,
-        null,
-        ` • ${vegsoPrimerForrasCimke(row.source)} • primerek: ${formataltNevek(
-          row.preferredNames,
-          3
-        )} • rejtett: ${(row.hidden ?? []).length}${row.warning ? " • figyelmeztetés" : ""}`
-      )
-    );
-  }
-
-  return e(
-    Text,
-    null,
-    e(Text, { bold: true, color: primerNapSzine(row.finalPrimaryCount) }, row.monthDay),
-    e(
-      Text,
-      null,
-      ` • ${formataltNevek(row.finalPrimaryNames, 3)} • közös: ${(row.combinedMissing ?? []).length}`
-    )
-  );
-}
-
-/**
- * A `renderAuditInspectorReszletek` a kiválasztott napi sor jobb oldali, részletes paneljét rajzolja ki.
- */
-function renderAuditInspectorReszletek(adat, row, aktualisReszlet, kijeloltReszletIndex) {
-  if (!row) {
-    return e(Text, null, "Nincs kijelölt sor.");
-  }
-
-  if (adat.audit === "vegso-primer") {
-    return e(
-      Box,
-      { flexDirection: "column" },
-      e(Text, { bold: true }, `${row.monthName} • ${row.monthDay}`),
-      e(
-        Text,
-        { color: vegsoPrimerForrasSzine(row) },
-        `Forrás: ${vegsoPrimerForrasCimke(row.source)}${row.warning ? " • figyelmeztetéses nap" : ""}`
-      ),
-      e(Text, null, `Végső primerek: ${formataltNevek(row.preferredNames, 8)}`),
-      e(Text, { dimColor: true }, `Legacy: ${formataltNevek(row.legacy, 8)}`),
-      e(Text, { dimColor: true }, `Wiki: ${formataltNevek(row.wiki, 8)}`),
-      e(Text, { dimColor: true }, `Normalizált: ${formataltNevek(row.normalized, 8)}`),
-      e(Text, { dimColor: true }, `Rangsorolt: ${formataltNevek(row.ranking, 8)}`),
-      e(
-        Text,
-        { color: (row.hidden ?? []).length > 0 ? "red" : undefined },
-        `Rejtett: ${formataltNevek(row.hidden, 8)}`
-      ),
-      e(
-        Text,
-        { dimColor: true },
-        `Összes aznapi név: ${formataltNevek(row.names, 8)}`
-      ),
-      e(Text, { bold: true }, ""),
-      e(Text, { bold: true }, "Rejtett nevek ezen a napon"),
-      ...((row.hidden ?? []).length > 0
-        ? row.hidden.map((name, index) =>
-            e(
-              Text,
-              {
-                key: `vegso-hidden-${row.monthDay}-${name}`,
-                color: index === kijeloltReszletIndex ? "cyan" : "red",
-              },
-              `${index === kijeloltReszletIndex ? "❯ " : "  "}${name}`
-            )
-          )
-        : [e(Text, { key: "vegso-hidden-ures", dimColor: true }, "Nincs rejtett név ezen a napon.")])
-    );
-  }
-
-  return e(
-    Box,
-    { flexDirection: "column" },
-    e(Text, { bold: true }, `${row.monthName} • ${row.monthDay}`),
-    e(Text, { color: primerNapSzine(row.finalPrimaryCount) }, `Végső primerek: ${formataltNevek(row.finalPrimaryNames, 8)}`),
-    e(Text, { dimColor: true }, `Közös hiányok: ${formataltNevek((row.combinedMissing ?? []).map((entry) => `${entry.name} ${formatForrasJelzo(entry.sources)}`), 8)}`),
-    e(Text, { dimColor: true }, `Normalizált hiányok: ${formataltNevek((row.normalizedMissing ?? []).map((entry) => entry.name), 8)}`),
-    e(Text, { dimColor: true }, `Rangsorolt hiányok: ${formataltNevek((row.rankingMissing ?? []).map((entry) => entry.name), 8)}`),
-    e(Text, { bold: true }, ""),
-    e(Text, { bold: true }, "Közös hiányzó nevek"),
-    ...((row.combinedMissing ?? []).length > 0
-      ? row.combinedMissing.map((entry, index) =>
-          e(
-            Text,
-            {
-              key: `primer-nelkul-combined-${row.monthDay}-${entry.name}`,
-              color: entry.localSelected ? "green" : entry.highlight ? "blue" : index === kijeloltReszletIndex ? "cyan" : undefined,
-            },
-            `${index === kijeloltReszletIndex ? "❯ " : "  "}${entry.name} ${formatForrasJelzo(entry.sources)}${
-              entry.localSelected ? " [helyi]" : ""
-            }`
-          )
-        )
-      : [e(Text, { key: "primer-nelkul-combined-ures", dimColor: true }, "Nincs közös hiányzó név.")]),
-    e(Text, { bold: true }, ""),
-    aktualisReszlet
-      ? e(
-          Box,
-          { flexDirection: "column" },
-          e(Text, { bold: true }, `Kiválasztott név: ${aktualisReszlet.name}`),
-          e(Text, null, `Forrásjelölés: ${formatForrasJelzo(aktualisReszlet.sources)}`),
-          e(Text, null, `Kapcsolódik aznapi primerhez: ${aktualisReszlet.highlight ? "igen" : "nem"}`),
-          e(
-            Text,
-            { dimColor: !aktualisReszlet.highlight },
-            aktualisReszlet.highlight
-              ? `Hasonló primerek: ${formataltKapcsolodoPrimerek(
-                  aktualisReszlet.similarPrimaries,
-                  6
-                )}`
-              : "Nincs közvetlen névkapcsolati jelölés az aznapi végső primerhez."
-          ),
-          e(
-            Text,
-            { dimColor: true },
-            `Személyes primerben: ${aktualisReszlet.localSelected ? "igen" : "nem"}`
-          )
-        )
-      : null
   );
 }
 
@@ -1757,10 +1578,7 @@ function formataltErtek(ertek) {
 function TuiAlkalmazas({ kezdoNezet = "menu" }) {
   const { exit } = useApp();
   const kezdoAzonosito =
-    kezdoNezet === "primer-szerkeszto" ||
-    kezdoNezet === "ics" ||
-    kezdoNezet === "audit-vegso-primer-inspector" ||
-    kezdoNezet === "audit-primer-nelkul-inspector"
+    kezdoNezet === "primer-audit" || kezdoNezet === "ics"
       ? kezdoNezet
       : kezdoNezet === "ics-beallitasok"
         ? "ics"
@@ -1794,12 +1612,10 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
 
         setEredmeny(valasz);
         setAllapot(
-          valasz.tipus === "primer-szerkeszto"
-            ? "primer-szerkeszto"
+          valasz.tipus === "primer-audit"
+            ? "primer-audit"
             : valasz.tipus === "ics-beallitasok"
               ? "ics-beallitasok"
-              : valasz.tipus === "audit-inspector"
-                ? "audit-inspector"
               : "eredmeny"
         );
       } catch (error) {
@@ -1819,9 +1635,8 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
 
   useInput(async (input, key) => {
     if (
-      allapot === "primer-szerkeszto" ||
-      allapot === "ics-beallitasok" ||
-      allapot === "audit-inspector"
+      allapot === "primer-audit" ||
+      allapot === "ics-beallitasok"
     ) {
       return;
     }
@@ -1851,12 +1666,10 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
           }
           setEredmeny(valasz);
           setAllapot(
-            valasz.tipus === "primer-szerkeszto"
-              ? "primer-szerkeszto"
+            valasz.tipus === "primer-audit"
+              ? "primer-audit"
               : valasz.tipus === "ics-beallitasok"
                 ? "ics-beallitasok"
-                : valasz.tipus === "audit-inspector"
-                  ? "audit-inspector"
                 : "eredmeny"
           );
         } catch (error) {
@@ -1893,8 +1706,8 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
       return e(HibaNezet, { hiba });
     }
 
-    if (allapot === "primer-szerkeszto") {
-      return e(PrimerSzerkesztoNezet, {
+    if (allapot === "primer-audit") {
+      return e(PrimerAuditNezet, {
         adat: eredmeny?.adat ?? eredmeny,
         visszaMenu: () => {
           setAllapot("menu");
@@ -1906,17 +1719,6 @@ function TuiAlkalmazas({ kezdoNezet = "menu" }) {
 
     if (allapot === "ics-beallitasok") {
       return e(ICSBeallitasNezet, {
-        adat: eredmeny?.adat ?? eredmeny,
-        visszaMenu: () => {
-          setAllapot("menu");
-          setEredmeny(null);
-          setHiba(null);
-        },
-      });
-    }
-
-    if (allapot === "audit-inspector") {
-      return e(AuditInspectorNezet, {
         adat: eredmeny?.adat ?? eredmeny,
         visszaMenu: () => {
           setAllapot("menu");

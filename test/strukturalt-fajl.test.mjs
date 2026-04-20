@@ -7,6 +7,7 @@ import path from "node:path";
 import {
   betoltStrukturaltFajl,
   mentStrukturaltFajl,
+  szerializalStrukturaltAdat,
 } from "../kozos/strukturalt-fajl.mjs";
 
 test("strukturált fájl mentése és visszatöltése YAML-ban", async () => {
@@ -35,4 +36,34 @@ test("strukturált fájl mentése és visszatöltése JSON-ban", async () => {
   const visszatoltott = await betoltStrukturaltFajl(utvonal);
 
   assert.deepEqual(visszatoltott, adat);
+});
+
+test("a YAML szerializálás nem ír anchor vagy alias hivatkozásokat ismételt objektumokra", () => {
+  const kozosObjektum = {
+    name: "Ábel",
+    sources: ["normalized"],
+  };
+  const adat = {
+    version: 1,
+    rows: [kozosObjektum, kozosObjektum],
+  };
+
+  const yaml = szerializalStrukturaltAdat(adat, "yaml");
+
+  assert.doesNotMatch(yaml, /&a\d+/u);
+  assert.doesNotMatch(yaml, /\*a\d+/u);
+});
+
+test("a strukturált YAML olvasás visszafelé kompatibilisen be tud tölteni aliasokkal mentett régi artifactot", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-yaml-alias-"));
+  const utvonal = path.join(ideiglenesKonyvtar, "regi-artifact.yaml");
+  const aliasSorok = Array.from({ length: 120 }, () => "  - *a1").join("\n");
+  const nyers = `shared: &a1\n  name: Ábel\nrows:\n${aliasSorok}\n`;
+
+  await fs.writeFile(utvonal, nyers, "utf8");
+  const visszatoltott = await betoltStrukturaltFajl(utvonal);
+
+  assert.equal(visszatoltott.shared.name, "Ábel");
+  assert.equal(visszatoltott.rows.length, 120);
+  assert.equal(visszatoltott.rows[0].name, "Ábel");
 });

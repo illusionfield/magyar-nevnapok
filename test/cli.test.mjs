@@ -97,7 +97,7 @@ test("az új részletes ICS kapcsoló is célzott hibával áll le", async () =>
   }
 });
 
-test("az audit súgó tartalmazza a primer nélkül maradó nevek auditot", async () => {
+test("az audit súgó az egységes primer auditot listázza", async () => {
   const { stdout } = await execFileAsync(
     process.execPath,
     [binUtvonal, "audit", "futtat", "--help"],
@@ -106,15 +106,59 @@ test("az audit súgó tartalmazza a primer nélkül maradó nevek auditot", asyn
     }
   );
 
-  assert.match(stdout, /primer-nelkul-marado-nevek/);
+  assert.match(stdout, /primer-audit/);
+  assert.doesNotMatch(stdout, /primer-nelkul-marado-nevek/);
 });
 
-test("a TUI súgó tartalmazza a primer szerkesztő kezdőnézetét", async () => {
+test("a régi külön primer audit azonosító célzott hibával áll le", async () => {
+  try {
+    await execFileAsync(process.execPath, [binUtvonal, "audit", "futtat", "vegso-primer"], {
+      cwd: gyoker,
+    });
+    assert.fail("A megszűnt audit azonosítónak hibára kellett volna futnia.");
+  } catch (error) {
+    assert.match(
+      `${error.stdout ?? ""}\n${error.stderr ?? ""}`,
+      /vegso-primer külön publikus audit megszűnt.*primer-audit/us
+    );
+  }
+});
+
+test("a primer audit CLI súgó tartalmazza az új részletes és helyi műveleteket", async () => {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [binUtvonal, "audit", "primer", "--help"],
+    {
+      cwd: gyoker,
+    }
+  );
+
+  assert.match(stdout, /reszletek/);
+  assert.match(stdout, /helyi/);
+  assert.doesNotMatch(stdout, /primer-szerkeszto/);
+});
+
+test("a primer audit részletek súgó tartalmazza a snapshot opciót", async () => {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [binUtvonal, "audit", "primer", "reszletek", "--help"],
+    {
+      cwd: gyoker,
+    }
+  );
+
+  assert.match(stdout, /snapshot/);
+  assert.match(stdout, /--nap/);
+  assert.match(stdout, /--resz/);
+});
+
+test("a TUI súgó az egységes primer audit kezdőnézetét tartalmazza", async () => {
   const { stdout } = await execFileAsync(process.execPath, [binUtvonal, "tui", "--help"], {
     cwd: gyoker,
   });
 
-  assert.match(stdout, /primer-szerkeszto/);
-  assert.match(stdout, /audit-vegso-primer-inspector/);
-  assert.match(stdout, /audit-primer-nelkul-inspector/);
+  assert.match(stdout, /primer-audit/);
+  assert.doesNotMatch(stdout, /primer-szerkeszto/);
+  assert.doesNotMatch(stdout, /audit-vegso-primer-inspector/);
+  assert.doesNotMatch(stdout, /audit-primer-nelkul-inspector/);
 });

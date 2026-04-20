@@ -80,16 +80,20 @@ A régi `.local/primary-registry-overrides.local.yaml` és
 ```bash
   npm run cli -- audit futtat mind
   npm run cli -- audit futtat hivatalos-nevjegyzek
-  npm run cli -- audit futtat vegso-primer
-  npm run cli -- audit futtat primer-nelkul-marado-nevek
+  npm run cli -- audit futtat primer-audit
+  npm run cli -- audit primer
+  npm run cli -- audit primer reszletek --nap 04-18 --resz forrasok
+  npm run cli -- audit primer helyi hozzaad 04-18 Andrea
+  npm run cli -- audit primer helyi torol 04-18 Andrea
+  npm run cli -- audit primer helyi forras legacy
+  npm run cli -- audit primer helyi modosito normalized be
 ```
 
 ## TUI közvetlen nézetindítás
 
 ```bash
-  npm run cli -- tui --nezet primer-szerkeszto
-  npm run cli -- tui --nezet audit-vegso-primer-inspector
-  npm run cli -- tui --nezet audit-primer-nelkul-inspector
+  npm run cli -- tui --nezet primer-audit
+  npm run cli -- tui --nezet ics
 ```
 
 ## Integráció

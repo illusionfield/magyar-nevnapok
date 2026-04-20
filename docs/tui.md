@@ -15,9 +15,7 @@ Indítás:
 - ICS generálás,
 - ICS-beállítás szerkesztő,
 - összes audit futtatása,
-- végső primer audit inspector,
-- primer nélkül maradó nevek audit inspector,
-- saját primer szerkesztő.
+- primer audit.
 
 ## ICS-beállítás szerkesztő
 
@@ -42,36 +40,41 @@ A módosítások azonnal a nem követett `.local/nevnapok.local.yaml` fájlba me
 A jobb oldali panel már nem parancselőnézetet, hanem a mentett profil összegzését és a YAML-részletet mutatja.
 A generálás csak az aktív kimenet módhoz tartozó ICS-fájlokat hagyja meg.
 
-## Audit inspector nézetek
+## Primer audit
 
-Két böngészhető inspector nézet érhető el:
+Az egységes `Primer audit` nézet egyetlen workspace-ben adja össze
 
-- `audit-vegso-primer-inspector`
-- `audit-primer-nelkul-inspector`
+- a végső primer forrásnézetet,
+- a közös hiányzó neveket,
+- és a személyes primer kezelést.
 
-Mindkettő napi bontásban mutatja a riportot, külön bal oldali listával és jobb oldali
-részletes panellel. A riport `r` billentyűvel helyben frissíthető.
+A nézet bal oldalán a napi lista látható rövid auditstátusszal.
+A jobb oldalon négy fül váltogatható:
 
-## Saját primer szerkesztő
+- `Összkép`
+- `Források`
+- `Hiányzók`
+- `Személyes`
 
-Az új szerkesztő a `primer-nelkul-marado-nevek` audit közös oszlopára épül.
+A `Személyes` fülön:
 
-- a bal oldali listában a napok között lehet mozogni,
-- a jobb oldalon a közös hiányzó névjelöltek jelennek meg,
-- `Space` billentyűvel egy név helyi primerkiegészítésként ki-be kapcsolható,
+- a napi helyi kijelölések `Space` billentyűvel kapcsolhatók,
 - a mentés a nem követett `.local/nevnapok.local.yaml` `personalPrimary` blokkjába történik,
+- `p` billentyűvel a névlista és a személyes beállítások panelje között lehet váltani,
+- külön állítható a személyes primerforrás,
+- külön kapcsolható a `Normalizált` és a `Rangsor` módosító,
 - `g` billentyűvel az aktív, mentett ICS-profil szerinti kimenet azonnal újragenerálható,
-- külön panelben állítható a személyes primerforrás,
-- ugyanitt külön kapcsolható a `Normalizált` és a `Rangsor` módosító is.
+- `r` billentyűvel a teljes primer audit frissíthető.
 
 ## Billentyűk
 
 - `↑` / `↓` — választás vagy beállításváltás
 - `←` / `→` — néven belüli vagy beállításon belüli lépkedés
 - `Enter` — indítás
-- `Space` — helyi primerkiegészítés kapcsolása a szerkesztőben
-- `g` — az aktív, mentett ICS-profil szerinti generálás a szerkesztőben
-- `r` — riport és helyi kijelölések frissítése a szerkesztőben
-- `Tab` vagy `p` — panelváltás a saját primer szerkesztőben
+- `Space` — helyi primerkiegészítés vagy személyes beállítás kapcsolása
+- `g` — az aktív, mentett ICS-profil szerinti generálás
+- `r` — riportfrissítés
+- `Tab` vagy `1`–`4` — fülváltás a primer audit nézetben
+- `p` — panelváltás a `Személyes` fülön
 - `Esc` vagy `v` — vissza a menübe
 - `q` — kilépés

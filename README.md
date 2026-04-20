@@ -68,10 +68,10 @@ Excel export az elsődleges adatbázisból:
   npm run cli -- audit futtat mind
 ```
 
-Primer nélkül maradó nevek külön auditja:
+Primer audit összképe:
 
 ```bash
-  npm run cli -- audit futtat primer-nelkul-marado-nevek
+  npm run cli -- audit primer
 ```
 
 Interaktív TUI:
@@ -80,22 +80,10 @@ Interaktív TUI:
   npm run tui
 ```
 
-Közvetlen indítás a saját primer szerkesztő nézettel:
+Közvetlen indítás a primer audit nézettel:
 
 ```bash
-  npm run cli -- tui --nezet primer-szerkeszto
-```
-
-Közvetlen indítás a végső primer audit inspector nézettel:
-
-```bash
-  npm run cli -- tui --nezet audit-vegso-primer-inspector
-```
-
-Közvetlen indítás a primer nélkül maradó nevek inspector nézettel:
-
-```bash
-  npm run cli -- tui --nezet audit-primer-nelkul-inspector
+  npm run cli -- tui --nezet primer-audit
 ```
 
 Lint:
@@ -156,8 +144,7 @@ NPM audit:
 
 Kiemelt riportok:
 
-- `output/riportok/vegso-primer-riport.yaml`
-- `output/riportok/primer-nelkul-marado-nevek-riport.yaml`
+- `output/riportok/primer-audit.yaml`
 
 Helyi, nem követett személyes bemenet:
 
@@ -176,7 +163,7 @@ Helyi, nem követett személyes bemenet:
 - Az `ics.outputMode` egyszerre pontosan egy aktív ICS-kimenetet jelöl ki: közös, primer+további külön vagy személyes.
 - A scraper réteg Puppeteer 24-gyel is stabilan fut; a HUN-REN HTTP-forráshoz a projekt központi kompatibilitási launch-opciókat használ.
 - Az `ics` generálás publikus CLI-felülete már nem részletes kapcsolókkal dolgozik, hanem a mentett helyi YAML-profilt használja.
-- A TUI ICS nézete és a saját primer szerkesztő ugyanazt a helyi YAML-fájlt frissíti.
+- A TUI ICS nézete és a Primer audit `Személyes` füle ugyanazt a helyi YAML-fájlt frissíti.
 
 ## Dokumentáció
 

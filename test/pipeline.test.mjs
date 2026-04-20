@@ -118,9 +118,49 @@ test("az Excel export parancs létrehozza a több munkalapos xlsx fájlt", async
   assert.match(excelLatin1, /Meta/u);
 });
 
-test("a primer nélkül maradó nevek audit havi bontású riportot készít", async () => {
+test("az egységes primer audit riport tartalmazza a forrás, hiányzó és személyes nézetet", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-primer-nelkul-"));
   const vegsoPrimer = {
+    version: 1,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    days: [
+      {
+        month: 1,
+        day: 1,
+        monthDay: "01-01",
+        names: ["Álmos"],
+        preferredNames: ["Álmos"],
+      },
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Bori", "Cecil"],
+        preferredNames: ["Bori", "Cecil"],
+      },
+    ],
+  };
+  const legacyPrimer = {
+    version: 1,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    days: [
+      {
+        month: 1,
+        day: 1,
+        monthDay: "01-01",
+        names: ["Álmos"],
+        preferredNames: ["Álmos"],
+      },
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Bori", "Cecil"],
+        preferredNames: ["Bori", "Cecil"],
+      },
+    ],
+  };
+  const wikiPrimer = {
     version: 1,
     generatedAt: "2026-04-09T00:00:00.000Z",
     days: [
@@ -201,10 +241,64 @@ test("a primer nélkül maradó nevek audit havi bontású riportot készít", a
       },
     ],
   };
+  const primerFelulirasok = {
+    version: 1,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    days: [],
+  };
+  const helyiKonfig = {
+    version: 1,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    source: "helyi felhasználói beállítások",
+    ics: {
+      input: "output/adatbazis/nevnapok.yaml",
+      output: "output/naptar/nevnapok.ics",
+      primaryOutput: null,
+      restOutput: null,
+      personalOutput: "output/naptar/nevnapok-sajat.ics",
+      outputMode: "common",
+      scope: "all",
+      layout: "grouped",
+      restHandling: "hidden",
+      restLayout: null,
+      leapProfile: "off",
+      fromYear: 2026,
+      untilYear: 2040,
+      baseYear: 2024,
+      descriptionMode: "none",
+      descriptionFormat: "text",
+      ordinalDay: "none",
+      includeOtherDays: false,
+      calendarName: "Névnapok",
+    },
+    personalPrimary: {
+      primarySource: "legacy",
+      modifiers: {
+        normalized: true,
+        ranking: false,
+      },
+      days: [
+        {
+          month: 1,
+          day: 2,
+          monthDay: "01-02",
+          addedPreferredNames: ["Bella"],
+        },
+      ],
+    },
+  };
 
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
     vegsoPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "legacy-primer.yaml"),
+    legacyPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "wiki-primer.yaml"),
+    wikiPrimer
   );
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "primer", "normalizalo-riport.yaml"),
@@ -214,17 +308,43 @@ test("a primer nélkül maradó nevek audit havi bontású riportot készít", a
     path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"),
     nevadatbazis
   );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.yaml"),
+    primerFelulirasok
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml"),
+    helyiKonfig
+  );
 
   await execFileAsync(
     process.execPath,
-    [binUtvonal, "audit", "futtat", "primer-nelkul-marado-nevek"],
+    [
+      path.join(gyoker, "domainek", "auditok", "primer-audit.mjs"),
+      "--final",
+      path.join("output", "primer", "vegso-primer.yaml"),
+      "--legacy",
+      path.join("output", "primer", "legacy-primer.yaml"),
+      "--wiki",
+      path.join("output", "primer", "wiki-primer.yaml"),
+      "--normalized",
+      path.join("output", "primer", "normalizalo-riport.yaml"),
+      "--input",
+      path.join("output", "adatbazis", "nevnapok.yaml"),
+      "--overrides",
+      path.join("data", "primary-registry-overrides.yaml"),
+      "--local",
+      path.join(".local", "nevnapok.local.yaml"),
+      "--report",
+      path.join("output", "riportok", "primer-audit.yaml"),
+    ],
     {
       cwd: ideiglenesKonyvtar,
     }
   );
 
   const riport = await betoltStrukturaltFajl(
-    path.join(ideiglenesKonyvtar, "output", "riportok", "primer-nelkul-marado-nevek-riport.yaml")
+    path.join(ideiglenesKonyvtar, "output", "riportok", "primer-audit.yaml")
   );
   const januar = riport.months.find((honap) => honap.month === 1);
   const elsoNap = januar.rows.find((sor) => sor.monthDay === "01-01");
@@ -233,6 +353,7 @@ test("a primer nélkül maradó nevek audit havi bontású riportot készít", a
   assert.equal(riport.summary.rowCount, 2);
   assert.equal(riport.summary.combinedMissingCount, 3);
   assert.equal(riport.summary.uniqueMissingNameCount, 3);
+  assert.equal(riport.personal.settingsSnapshot.primarySource, "legacy");
   assert.deepEqual(elsoNap.finalPrimaryNames, ["Álmos"]);
   assert.equal(elsoNap.combinedMissing[0].name, "Aladár");
   assert.deepEqual(elsoNap.combinedMissing[0].sources, ["normalized", "ranking"]);
@@ -245,9 +366,222 @@ test("a primer nélkül maradó nevek audit havi bontású riportot készít", a
   assert.equal(elsoNap.rankingMissing[1].name, "Béla");
   assert.equal(elsoNap.rankingMissing[1].highlight, false);
   assert.equal(masodikNap.finalPrimaryCount, 2);
-  assert.equal(masodikNap.combinedMissing[0].localSelected, undefined);
+  assert.equal(masodikNap.sections.szemelyes.selectedNames[0], "Bella");
+  assert.equal(masodikNap.sections.szemelyes.entries[0].localSelected, true);
   assert.equal(masodikNap.normalizedMissing[0].name, "Bella");
   assert.equal(masodikNap.normalizedMissing[0].highlight, true);
+  assert.deepEqual(Object.keys(masodikNap.sections).sort(), [
+    "forrasok",
+    "hianyzok",
+    "osszefoglalo",
+    "szemelyes",
+  ]);
+});
+
+test("az audit primer CLI snapshot módban a meglévő unified riportból olvas", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-primer-audit-cli-"));
+  const riport = {
+    generatedAt: "2026-04-20T12:00:00.000Z",
+    summary: {
+      rowCount: 1,
+      combinedMissingCount: 1,
+      localSelectedCount: 1,
+      warningDayCount: 0,
+      hardFailureCount: 0,
+    },
+    personal: {
+      settingsSnapshot: {
+        primarySource: "legacy",
+        modifiers: {
+          normalized: true,
+          ranking: false,
+        },
+      },
+    },
+    months: [
+      {
+        month: 4,
+        monthName: "Április",
+        rows: [
+          {
+            month: 4,
+            day: 18,
+            monthDay: "04-18",
+            finalPrimaryNames: ["Ilma", "Andrea"],
+            source: "manual-override",
+            warning: false,
+            hidden: [],
+            combinedMissing: [
+              {
+                name: "Hermina",
+                sources: ["normalized"],
+                highlight: false,
+                similarPrimaries: [],
+              },
+            ],
+            localSelectedCount: 1,
+            sections: {
+              osszefoglalo: {
+                preferredNames: ["Ilma", "Andrea"],
+                source: "manual-override",
+                warning: false,
+                hiddenCount: 0,
+                combinedMissingCount: 1,
+                localSelectedCount: 1,
+                rawNameCount: 3,
+              },
+              forrasok: {
+                preferredNames: ["Ilma", "Andrea"],
+                legacy: ["Ilma"],
+                wiki: ["Ilma", "Andrea"],
+                normalized: ["Ilma", "Hermina"],
+                ranking: ["Ilma"],
+                hidden: [],
+                rawNames: ["Ilma", "Hermina", "Aladár"],
+                source: "manual-override",
+                warning: false,
+              },
+              hianyzok: {
+                combinedMissing: [
+                  {
+                    name: "Hermina",
+                    sources: ["normalized"],
+                    highlight: false,
+                    similarPrimaries: [],
+                  },
+                ],
+                normalizedMissing: [
+                  {
+                    name: "Hermina",
+                    sources: ["normalized"],
+                    highlight: false,
+                    similarPrimaries: [],
+                  },
+                ],
+                rankingMissing: [],
+              },
+              szemelyes: {
+                settingsSnapshot: {
+                  primarySource: "legacy",
+                  modifiers: {
+                    normalized: true,
+                    ranking: false,
+                  },
+                },
+                selectedNames: ["Hermina"],
+                entries: [
+                  {
+                    name: "Hermina",
+                    sources: ["normalized"],
+                    localSelected: true,
+                    localSelectable: true,
+                    highlight: false,
+                    similarPrimaries: [],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "riportok", "primer-audit.yaml"),
+    riport
+  );
+
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [binUtvonal, "audit", "primer", "reszletek", "--nap", "04-18", "--resz", "forrasok", "--snapshot"],
+    {
+      cwd: ideiglenesKonyvtar,
+    }
+  );
+
+  assert.match(stdout, /Primer audit – 04-18 – források/u);
+  assert.match(stdout, /Ilma, Andrea/u);
+  assert.match(stdout, /manual-override/u);
+});
+
+test("az audit primer helyi CLI műveletei csak a nem követett helyi konfigot írják", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-primer-audit-write-"));
+  const helyiKonfig = {
+    version: 1,
+    generatedAt: "2026-04-20T12:00:00.000Z",
+    source: "helyi felhasználói beállítások",
+    ics: {
+      input: "output/adatbazis/nevnapok.yaml",
+      output: "output/naptar/nevnapok.ics",
+      primaryOutput: null,
+      restOutput: null,
+      personalOutput: "output/naptar/nevnapok-sajat.ics",
+      outputMode: "common",
+      scope: "all",
+      layout: "grouped",
+      restHandling: "hidden",
+      restLayout: null,
+      leapProfile: "off",
+      fromYear: 2026,
+      untilYear: 2040,
+      baseYear: 2024,
+      descriptionMode: "none",
+      descriptionFormat: "text",
+      ordinalDay: "none",
+      includeOtherDays: false,
+      calendarName: "Névnapok",
+    },
+    personalPrimary: {
+      primarySource: "default",
+      modifiers: {
+        normalized: false,
+        ranking: false,
+      },
+      days: [],
+    },
+  };
+  const trackedOverrides = {
+    version: 1,
+    generatedAt: "2026-04-20T12:00:00.000Z",
+    days: [],
+  };
+
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml"),
+    helyiKonfig
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.yaml"),
+    trackedOverrides
+  );
+
+  await execFileAsync(
+    process.execPath,
+    [binUtvonal, "audit", "primer", "helyi", "hozzaad", "04-18", "Andrea"],
+    {
+      cwd: ideiglenesKonyvtar,
+    }
+  );
+  await execFileAsync(
+    process.execPath,
+    [binUtvonal, "audit", "primer", "helyi", "modosito", "normalized", "be"],
+    {
+      cwd: ideiglenesKonyvtar,
+    }
+  );
+
+  const frissHelyiKonfig = await betoltStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml")
+  );
+  const frissTrackedOverrides = await betoltStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.yaml")
+  );
+
+  assert.equal(frissHelyiKonfig.personalPrimary.days[0].monthDay, "04-18");
+  assert.deepEqual(frissHelyiKonfig.personalPrimary.days[0].addedPreferredNames, ["Andrea"]);
+  assert.equal(frissHelyiKonfig.personalPrimary.modifiers.normalized, true);
+  assert.deepEqual(frissTrackedOverrides, trackedOverrides);
 });
 
 test("a személyes kimenet mód kézi helyi kijelöléssel csak a saját ICS-t készíti el", async () => {
@@ -442,7 +776,6 @@ test("az ICS generálás az új unified helyi YAML ICS-blokkjából dolgozik", a
       days: [],
     },
   };
-
   await masolMappat(adatbazisForras, path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"));
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
@@ -677,7 +1010,6 @@ test("a közös split primeres pipeline kimenet a végső primerjegyzékhez igaz
       days: [],
     },
   };
-
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"),
     nevadatbazis
@@ -772,6 +1104,30 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
       },
     ],
   };
+  const legacyPrimer = {
+    version: 1,
+    days: [
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Ábel"],
+        preferredNames: ["Ábel"],
+      },
+    ],
+  };
+  const wikiPrimer = {
+    version: 1,
+    days: [
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Ábel", "Alpár"],
+        preferredNames: ["Ábel", "Alpár"],
+      },
+    ],
+  };
   const normalizaloRiport = {
     version: 1,
     days: [
@@ -782,6 +1138,11 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
         preferredNames: ["Ábel", "Alpár"],
       },
     ],
+  };
+  const primerFelulirasok = {
+    version: 1,
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    days: [],
   };
   const helyiFelulirasok = {
     version: 1,
@@ -817,10 +1178,73 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
       days: [],
     },
   };
+  const primerAuditRiport = {
+    generatedAt: "2026-04-09T00:00:00.000Z",
+    summary: {
+      rowCount: 1,
+      combinedMissingCount: 2,
+      localSelectedCount: 0,
+    },
+    personal: {
+      settingsSnapshot: helyiFelulirasok.personalPrimary,
+    },
+    months: [
+      {
+        month: 1,
+        monthName: "Január",
+        rows: [
+          {
+            month: 1,
+            day: 2,
+            monthDay: "01-02",
+            finalPrimaryNames: ["Ábel"],
+            normalizedMissing: [
+              {
+                name: "Alpár",
+                sources: ["normalized"],
+                highlight: false,
+                similarPrimaries: [],
+              },
+            ],
+            rankingMissing: [
+              {
+                name: "Béla",
+                sources: ["ranking"],
+                highlight: false,
+                similarPrimaries: [],
+              },
+            ],
+            combinedMissing: [
+              {
+                name: "Alpár",
+                sources: ["normalized"],
+                highlight: false,
+                similarPrimaries: [],
+              },
+              {
+                name: "Béla",
+                sources: ["ranking"],
+                highlight: false,
+                similarPrimaries: [],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
 
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"),
     nevadatbazis
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "legacy-primer.yaml"),
+    legacyPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "wiki-primer.yaml"),
+    wikiPrimer
   );
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
@@ -831,8 +1255,16 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
     normalizaloRiport
   );
   await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.yaml"),
+    primerFelulirasok
+  );
+  await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml"),
     helyiFelulirasok
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "riportok", "primer-audit.yaml"),
+    primerAuditRiport
   );
 
   await execFileAsync(process.execPath, [binUtvonal, "kimenet", "general", "ics"], {
