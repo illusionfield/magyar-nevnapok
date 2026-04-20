@@ -176,6 +176,7 @@ Helyi, nem követett személyes bemenet:
 - [Források és dokumentált kivételek](docs/forrasok-es-kivetelek.md)
 - [Migráció a régi scriptvilágból](docs/migracio.md)
 - [Változásnapló](CHANGELOG.md)
+- [0.6.3 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.3.md)
 - [0.6.2 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.2.md)
 - [0.6.1 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.1.md)
 - [0.6.0 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.0.md)

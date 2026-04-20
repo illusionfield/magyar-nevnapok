@@ -4,6 +4,10 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 
 ## [Unreleased]
 
+Jelenleg nincs külön, kiadásra előkészített új változás.
+
+## [0.6.3] - 2026-04-20
+
 ### ICS és személyes primerworkflow
 
 - Az ICS generálás mértékadó helyi profilja mostantól a nem követett `.local/nevnapok.local.yaml`.
@@ -19,6 +23,7 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 - Elkészült az audit-központú napi queue, a teljes névindex és a napi/név szerinti drill-down navigáció.
 - A régi négytabos, kontextusfüggő `p`-s panelváltás helyett egységes keresés, szűrés, rendezés és drawer-modell került be.
 - A primer audit riport napi `finalPrimaryNames` és `finalPrimaryCount` mezői mostantól hiánytalan napoknál is helyesek.
+- A primer audit nézet most már a terminál magasságához igazodik: az oldalsó listák ablakoltak, a részletek pedig kisebb viewporton tömörebb nézetre váltanak.
 
 ## [0.6.2] - 2026-04-09
 
