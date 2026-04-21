@@ -28,125 +28,6 @@ function relativUtvonal(utvonal) {
   return path.relative(process.cwd(), utvonal) || path.basename(utvonal);
 }
 
-function frissitPrimerAuditHelyiKijelolest(adat, monthDay, name, selected) {
-  let localSelectedCount = 0;
-  let localSelectedDayCount = 0;
-
-  const nextMonths = (adat.months ?? []).map((month) => ({
-    ...month,
-    rows: (month.rows ?? []).map((row) => {
-      if (row.monthDay !== monthDay) {
-        localSelectedCount += row.localSelectedCount ?? row.sections?.szemelyes?.selectedNames?.length ?? 0;
-        localSelectedDayCount += (row.localSelectedCount ?? row.sections?.szemelyes?.selectedNames?.length ?? 0) > 0 ? 1 : 0;
-        return row;
-      }
-
-      const nextPersonalEntries = (row.sections?.szemelyes?.entries ?? row.personalEntries ?? []).map((entry) =>
-        entry.name === name
-          ? {
-              ...entry,
-              localSelected: selected,
-            }
-          : entry
-      );
-      const nextCombinedMissing = (row.combinedMissing ?? []).map((entry) =>
-        entry.name === name
-          ? {
-              ...entry,
-              localSelected: selected,
-            }
-          : entry
-      );
-      const nextNormalizedMissing = (row.normalizedMissing ?? []).map((entry) =>
-        entry.name === name
-          ? {
-              ...entry,
-              localSelected: selected,
-            }
-          : entry
-      );
-      const nextRankingMissing = (row.rankingMissing ?? []).map((entry) =>
-        entry.name === name
-          ? {
-              ...entry,
-              localSelected: selected,
-            }
-          : entry
-      );
-      const localSelectedNames = nextPersonalEntries
-        .filter((entry) => entry.localSelected === true)
-        .map((entry) => entry.name);
-      const localSelectedForRow = localSelectedNames.length;
-
-      localSelectedCount += localSelectedForRow;
-      localSelectedDayCount += localSelectedForRow > 0 ? 1 : 0;
-
-      return {
-        ...row,
-        localSelectedNames,
-        localSelectedCount: localSelectedForRow,
-        combinedMissing: nextCombinedMissing,
-        normalizedMissing: nextNormalizedMissing,
-        rankingMissing: nextRankingMissing,
-        personalEntries: nextPersonalEntries,
-        sections: {
-          ...(row.sections ?? {}),
-          hianyzok: {
-            ...(row.sections?.hianyzok ?? {}),
-            combinedMissing: nextCombinedMissing,
-            normalizedMissing: nextNormalizedMissing,
-            rankingMissing: nextRankingMissing,
-          },
-          szemelyes: {
-            ...(row.sections?.szemelyes ?? {}),
-            selectedNames: localSelectedNames,
-            entries: nextPersonalEntries,
-          },
-          osszefoglalo: {
-            ...(row.sections?.osszefoglalo ?? {}),
-            localSelectedCount: localSelectedForRow,
-          },
-        },
-      };
-    }),
-  }));
-
-  return {
-    ...adat,
-    summary: {
-      ...(adat.summary ?? {}),
-      localSelectedCount,
-      localSelectedDayCount,
-    },
-    months: nextMonths,
-  };
-}
-
-function frissitPrimerAuditSzemelyesBeallitasokat(adat, settings) {
-  const nextMonths = (adat.months ?? []).map((month) => ({
-    ...month,
-    rows: (month.rows ?? []).map((row) => ({
-      ...row,
-      sections: {
-        ...(row.sections ?? {}),
-        szemelyes: {
-          ...(row.sections?.szemelyes ?? {}),
-          settingsSnapshot: settings,
-        },
-      },
-    })),
-  }));
-
-  return {
-    ...adat,
-    personal: {
-      ...(adat.personal ?? {}),
-      settingsSnapshot: settings,
-    },
-    months: nextMonths,
-  };
-}
-
 function modositSzemelyesBeallitast(settings, definicio, irany = 1) {
   return leptetSzemelyesPrimerBeallitast(settings, definicio, irany);
 }
@@ -316,7 +197,10 @@ export function PrimerAuditNezet({ adat, visszaMenu, szolgaltatasok }) {
 
         try {
           const eredmeny = await szolgaltatasok.allitSajatPrimerBeallitasokat(kovetkezo);
-          setPrimerAuditAdat((elozo) => frissitPrimerAuditSzemelyesBeallitasokat(elozo, eredmeny.settings));
+          const friss = await szolgaltatasok.betoltPrimerAuditAdata({
+            frissitRiport: false,
+          });
+          setPrimerAuditAdat(friss);
           setUzenetTipus("siker");
           setUzenet(
             `Személyes beállítás mentve: ${definicio.cimke} → ${szemelyesBeallitasCimke(
@@ -427,10 +311,10 @@ export function PrimerAuditNezet({ adat, visszaMenu, szolgaltatasok }) {
               monthDay: day.monthDay,
               name: personalEntry.name,
             });
-
-        setPrimerAuditAdat((elozo) =>
-          frissitPrimerAuditHelyiKijelolest(elozo, day.monthDay, personalEntry.name, eredmeny.selected)
-        );
+        const friss = await szolgaltatasok.betoltPrimerAuditAdata({
+          frissitRiport: false,
+        });
+        setPrimerAuditAdat(friss);
         setUzenetTipus("siker");
         setUzenet(
           eredmeny.selected

@@ -74,7 +74,8 @@ Ez az egységes primer audit havi bontásban együtt jeleníti meg
 - a végső primernap neveit,
 - a legacy / wiki / normalizált / rangsorolt forrásnézetet,
 - a közös hiányzó neveket,
-- valamint a személyes primerállapotot és a helyi kijelöléseket is.
+- a helyben feloldott és a helyben még nyitott hiányzókat,
+- valamint a személyes primerállapotot és a helyi overlayt is.
 
 ### Helyi primerkiegészítések
 
@@ -84,11 +85,13 @@ Ez az egységes primer audit havi bontásban együtt jeleníti meg
 
 Ez a fájl nem követett, személyes bemenet.
 Az itt tárolt `ics` blokk a közös naptárprofil mértékadó forrása.
+A közös, követett primerfelülírások mértékadó fájlja külön a
+`data/primary-registry-overrides.yaml`.
 Az `ics.outputMode` egyszerre pontosan egy aktív ICS-kimenetet jelöl ki.
 A `personalPrimary` blokk a személyes primerforrást, a `Normalizált` / `Rangsor`
 módosítókat és a kézi helyi primernapokat is együtt tárolja.
-Az itt rögzített nevek nem írják felül a közös primerjegyzéket, hanem a személyes primeres
-naptár generálásakor hozzáadódnak a közös primerlistához.
+Az itt rögzített adatok nem írják felül a közös primerjegyzéket, hanem helyi overlayként
+hozzáadódnak a közös primerlistához.
 
 ### Saját primeres naptár
 
@@ -99,3 +102,5 @@ naptár generálásakor hozzáadódnak a közös primerlistához.
 Ez a kimenet csak akkor készül el, ha az aktív `ics.outputMode` értéke `personal`.
 A személyes primerforrás, a `Normalizált` / `Rangsor` módosítók és a kézi helyi
 primernapok ekkor szólnak bele a generált tartalomba.
+Fontos, hogy a `Normalizált` / `Rangsor` módosítók véglegesítése a Primer auditban történik;
+az ICS-generálás már a kész audit snapshotból dolgozik.

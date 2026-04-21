@@ -15,7 +15,6 @@ import {
   alapertelmezettHelyiPrimerModositok as alapertelmezettHelyiPrimerModositokBlokk,
   betoltHelyiFelhasznaloiKonfigot,
   normalizalHelyiPrimerBeallitasokat as normalizalHelyiPrimerBlokkot,
-  uresHelyiFelhasznaloiKonfigPayload,
 } from "../helyi-konfig.mjs";
 import { dedupeKeepOrder, normalizeNameForMatch, parseMonthDay } from "./alap.mjs";
 
@@ -23,19 +22,108 @@ export const DEFAULT_LOCAL_PRIMARY_REGISTRY_OVERRIDES_PATH =
   DEFAULT_LOCAL_CONFIG_PATH;
 const ERVENYES_HELYI_PRIMER_FORRASOK = new Set(["default", "legacy", "ranked", "either"]);
 
-function extractLegacyPersonalPayload(payload) {
-  const personalPrimary = normalizalHelyiPrimerBlokkot(payload?.personalPrimary);
+/**
+ * Az `egyesitHelyiPrimerNeveket` normalizált névazonosítással, sorrendtartó módon egyesíti a listákat.
+ */
+export function egyesitHelyiPrimerNeveket(...nameLists) {
+  const merged = [];
+  const seen = new Set();
 
-  return {
-    version: 1,
-    generatedAt: payload?.generatedAt ?? new Date().toISOString(),
-    source: payload?.source ?? "helyi felhasználói beállítások",
-    settings: {
-      primarySource: personalPrimary.primarySource,
-      modifiers: personalPrimary.modifiers,
-    },
-    days: personalPrimary.days,
-  };
+  for (const lista of nameLists) {
+    for (const value of lista ?? []) {
+      const key = normalizeNameForMatch(value);
+
+      if (!key || seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      merged.push(value);
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * Az `egyesitHelyiPrimerMapokat` több helyi primer-napmapot unióz.
+ */
+export function egyesitHelyiPrimerMapokat(...maps) {
+  const merged = new Map();
+
+  for (const currentMap of maps) {
+    if (!(currentMap instanceof Map)) {
+      continue;
+    }
+
+    for (const day of currentMap.values()) {
+      const current = merged.get(day.monthDay) ?? {
+        month: day.month,
+        day: day.day,
+        monthDay: day.monthDay,
+        addedPreferredNames: [],
+      };
+
+      current.addedPreferredNames = egyesitHelyiPrimerNeveket(
+        current.addedPreferredNames,
+        day.addedPreferredNames ?? []
+      );
+
+      if (current.addedPreferredNames.length > 0) {
+        merged.set(day.monthDay, current);
+      }
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * Az `epitModositoPrimerMapot` a primer audit snapshotból felépíti a helyi módosítók által kért napi overlayt.
+ */
+export function epitModositoPrimerMapot(primerAuditRiport, modifiers = {}) {
+  const map = new Map();
+
+  for (const month of primerAuditRiport?.months ?? []) {
+    for (const row of month.rows ?? []) {
+      const names = [];
+
+      if (modifiers.normalized === true) {
+        names.push(...(row.normalizedMissing ?? []).map((entry) => entry.name));
+      }
+
+      if (modifiers.ranking === true) {
+        names.push(...(row.rankingMissing ?? []).map((entry) => entry.name));
+      }
+
+      const addedPreferredNames = egyesitHelyiPrimerNeveket(names);
+
+      if (addedPreferredNames.length === 0) {
+        continue;
+      }
+
+      map.set(row.monthDay, {
+        month: row.month,
+        day: row.day,
+        monthDay: row.monthDay,
+        addedPreferredNames,
+      });
+    }
+  }
+
+  return map;
+}
+
+function extractHelyiPrimerBlokk(payload) {
+  if (payload?.personalPrimary) {
+    return normalizalHelyiPrimerBlokkot(payload.personalPrimary);
+  }
+
+  if (payload?.primarySource || payload?.modifiers || Array.isArray(payload?.days)) {
+    return normalizalHelyiPrimerBlokkot(payload);
+  }
+
+  return alapertelmezettHelyiPrimerBeallitasBlokk();
 }
 
 /**
@@ -60,8 +148,8 @@ export function alapertelmezettHelyiPrimerBeallitasok() {
 /**
  * Az `uresHelyiPrimerFelulirasPayload` létrehozza az üres, de érvényes helyi felülírási payloadot.
  */
-export function uresHelyiPrimerFelulirasPayload(generatedAt = new Date().toISOString()) {
-  return extractLegacyPersonalPayload(uresHelyiFelhasznaloiKonfigPayload(generatedAt));
+export function uresHelyiPrimerFelulirasPayload() {
+  return alapertelmezettHelyiPrimerBeallitasBlokk();
 }
 
 /**
@@ -75,7 +163,7 @@ export async function betoltHelyiPrimerFelulirasokat(
   return {
     path: resolvedPath,
     sourcePath,
-    payload: extractLegacyPersonalPayload(payload),
+    payload: extractHelyiPrimerBlokk(payload),
   };
 }
 
@@ -119,7 +207,7 @@ export async function betoltHelyiPrimerBeallitasokat(
   return {
     path: resolvedPath,
     sourcePath,
-    settings: normalizalHelyiPrimerBeallitasokat(payload?.settings),
+    settings: normalizalHelyiPrimerBeallitasokat(payload),
     payload,
   };
 }
@@ -166,30 +254,28 @@ export async function allitHelyiPrimerBeallitasokat({
     },
     filePath
   );
-  const nextPayload = extractLegacyPersonalPayload(eredmeny.payload);
+  const nextPayload = extractHelyiPrimerBlokk(eredmeny.payload);
 
   return {
     path: eredmeny.path,
     payload: nextPayload,
-    settings: normalizalHelyiPrimerBeallitasokat(nextPayload.settings),
+    settings: normalizalHelyiPrimerBeallitasokat(nextPayload),
   };
 }
 
 /**
  * A `buildHelyiPrimerFelulirasMap` gyors lookup formára alakítja a helyi kiegészítéseket.
- *
- * A kézi szerkeszthetőség miatt két kulcsot is elfogadunk:
- * - `addedPreferredNames` az ajánlott, egyértelmű új séma
- * - `preferredNames` kompatibilitási okból továbbra is beolvasható
  */
 export function buildHelyiPrimerFelulirasMap(payload) {
-  if (!Array.isArray(payload?.days)) {
+  const primerBlokk = extractHelyiPrimerBlokk(payload);
+
+  if (!Array.isArray(primerBlokk?.days)) {
     throw new Error("A helyi primerkiegészítések payloadból hiányzik a days tömb.");
   }
 
   const map = new Map();
 
-  for (const day of payload.days) {
+  for (const day of primerBlokk.days) {
     if (!day || typeof day !== "object") {
       throw new Error("Érvénytelen napi bejegyzés a helyi primerkiegészítésekben.");
     }
@@ -200,9 +286,7 @@ export function buildHelyiPrimerFelulirasMap(payload) {
       throw new Error(`Érvénytelen helyi felülírás monthDay érték: ${day.monthDay}`);
     }
 
-    const addedPreferredNames = dedupeKeepOrder(
-      day.addedPreferredNames ?? day.preferredNames ?? []
-    );
+    const addedPreferredNames = dedupeKeepOrder(day.addedPreferredNames ?? []);
 
     if (addedPreferredNames.length === 0) {
       continue;
@@ -299,13 +383,13 @@ export async function kapcsolHelyiPrimerKiegeszitest({
   );
   const eredmeny = await allitHelyiPrimerBlokkot(
     {
-      primarySource: payload?.settings?.primarySource,
-      modifiers: payload?.settings?.modifiers,
+      primarySource: payload?.primarySource,
+      modifiers: payload?.modifiers,
       days: nextDays,
     },
     filePath
   );
-  const nextPayload = extractLegacyPersonalPayload(eredmeny.payload);
+  const nextPayload = extractHelyiPrimerBlokk(eredmeny.payload);
 
   return {
     path: resolvedPath,

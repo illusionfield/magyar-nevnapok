@@ -6,6 +6,29 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 
 Jelenleg nincs külön, kiadásra előkészített új változás.
 
+## [0.6.4] - 2026-04-20
+
+### Primer audit mint véglegesítő réteg
+
+- A közös, követett primerfelülírások mértékadó alapja továbbra is a `data/primary-registry-overrides.yaml`.
+- A helyi, személyes beállítások egyetlen nem követett forrása a `.local/nevnapok.local.yaml`, de ez most már kifejezetten helyi overlayként működik a közös alap fölött.
+- A `Normalizált` és `Rangsor` módosítók véglegesítése átkerült a Primer auditba: az audit most közös alapot, helyi overlayt és eredő helyi primerlistát is előállít.
+- Az `output/riportok/primer-audit.yaml` új effektív mezőket is tárol, így külön látszik a közös hiány, a helyben feloldott hiány és a helyben továbbra is nyitott hiány.
+
+### ICS generálás egyszerűsítése
+
+- Az ICS-generálás már nem számolja újra a `Normalizált` / `Rangsor` módosítók hatását.
+- Személyes módban a generálás a Primer audit véglegesített snapshotját olvassa, ezért az audit lett a személyes primerlogika számolófelülete, az ICS pedig tisztán konfigurációs és kimeneti felület maradt.
+- Ha a személyes módosítók aktívak, de még nincs friss Primer audit snapshot, az ICS-generálás célzott hibával kéri a `nevnapok audit primer` futtatását.
+- Kikerült a régi `.local/primary-registry-overrides.local.yaml` és `data/primary-registry-overrides.local.yaml` fallback és kompatibilitási beolvasása.
+
+### Primer audit TUI stabilizáció
+
+- A primer audit napi és névnézete most már az effektív helyi állapotot mutatja: közös alap, helyi overlay és eredő helyi primerek együtt látszanak.
+- A primer audit nézet magasságszámítása stabilabb lett: a wrap miatt kilógó sorok helyett tömörített, egysoros megjelenítés kerül előtérbe.
+- A `Napok` és `Nevek` mód visszakapta a kártyás queue/szűrő összefoglalót, így a fő kategóriák nem csak az áttekintő nézetben látszanak.
+- A hosszú fejléc- és részletsorok most már kis terminálon is kontrolláltan rövidülnek, ezért a nézet jobban illeszkedik kisebb viewportokra is.
+
 ## [0.6.3] - 2026-04-20
 
 ### ICS és személyes primerworkflow

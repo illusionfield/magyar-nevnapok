@@ -78,7 +78,7 @@ function primerAuditKiemeltNapSorok(adat) {
     .flatMap((month) => month.rows ?? [])
     .filter(
       (row) =>
-        (row.combinedMissing ?? []).length > 0 ||
+        (row.effectiveMissing ?? row.combinedMissing ?? []).length > 0 ||
         (row.localSelectedCount ?? 0) > 0 ||
         row.warning === true ||
         (row.hidden ?? []).length > 0
@@ -86,9 +86,12 @@ function primerAuditKiemeltNapSorok(adat) {
     .slice(0, 12)
     .map((row) => ({
       nap: row.monthDay,
-      primerek: formataltLista(row.finalPrimaryNames ?? row.preferredNames ?? [], 4),
+      primerek: formataltLista(
+        row.effectivePreferredNames ?? row.finalPrimaryNames ?? row.preferredNames ?? [],
+        4
+      ),
       forras: row.source ?? "—",
-      hianyzo: (row.combinedMissing ?? []).length,
+      hianyzo: (row.effectiveMissing ?? row.combinedMissing ?? []).length,
       helyi: row.localSelectedCount ?? 0,
     }));
 }
@@ -111,12 +114,15 @@ function nyomtatPrimerAuditReszleteket(row, resz) {
       `Primer audit – ${row.monthDay} – összkép`,
       [
         ["Hónap", row.monthName ?? "—"],
-        ["Végső primerek", formataltLista(szakasz.preferredNames ?? [])],
+        ["Közös alap", formataltLista(szakasz.commonPreferredNames ?? szakasz.preferredNames ?? [])],
+        ["Helyi overlay", formataltLista(szakasz.localAddedPreferredNames ?? [])],
+        ["Eredő helyi", formataltLista(szakasz.effectivePreferredNames ?? [])],
         ["Forrás", szakasz.source ?? "—"],
         ["Figyelmeztetés", szakasz.warning ? "igen" : "nem"],
         ["Rejtett név", szakasz.hiddenCount ?? 0],
         ["Közös hiányzó", szakasz.combinedMissingCount ?? 0],
-        ["Helyi kijelölt", szakasz.localSelectedCount ?? 0],
+        ["Helyben feloldott", szakasz.locallyResolvedMissingCount ?? 0],
+        ["Helyben nyitott", szakasz.effectiveMissingCount ?? 0],
         ["Nyers aznapi név", szakasz.rawNameCount ?? 0],
       ],
       {
@@ -131,7 +137,9 @@ function nyomtatPrimerAuditReszleteket(row, resz) {
     printKeyValueTable(
       `Primer audit – ${row.monthDay} – források`,
       [
-        ["Végső primerek", formataltLista(szakasz.preferredNames ?? [])],
+        ["Közös alap", formataltLista(szakasz.commonPreferredNames ?? szakasz.preferredNames ?? [])],
+        ["Helyi overlay", formataltLista(szakasz.localAddedPreferredNames ?? [])],
+        ["Eredő helyi", formataltLista(szakasz.effectivePreferredNames ?? [])],
         ["Legacy", formataltLista(szakasz.legacy ?? [])],
         ["Wiki", formataltLista(szakasz.wiki ?? [])],
         ["Normalizált", formataltLista(szakasz.normalized ?? [])],
@@ -151,7 +159,49 @@ function nyomtatPrimerAuditReszleteket(row, resz) {
 
   if (resz === "hianyzok") {
     printDataTable(
-      `Primer audit – ${row.monthDay} – hiányzók`,
+      `Primer audit – ${row.monthDay} – helyben nyitott hiányzók`,
+      [
+        { key: "nev", title: "Név", width: 22 },
+        { key: "forras", title: "Forrás", width: 18 },
+        { key: "kiemelt", title: "Kiemelt", width: 10 },
+        { key: "hasonlo", title: "Hasonló primerek", width: 42 },
+      ],
+      (szakasz.effectiveMissing ?? szakasz.combinedMissing ?? []).map((entry) => ({
+        nev: entry.name,
+        forras: formataltLista(entry.sources ?? [], 3),
+        kiemelt: entry.highlight ? "igen" : "nem",
+        hasonlo: formataltLista(
+          (entry.similarPrimaries ?? []).map(
+            (item) => `${item.primaryName}${item.relation ? ` (${item.relation})` : ""}`
+          ),
+          4
+        ),
+      }))
+    );
+
+    printDataTable(
+      `Primer audit – ${row.monthDay} – helyben feloldott hiányzók`,
+      [
+        { key: "nev", title: "Név", width: 22 },
+        { key: "forras", title: "Forrás", width: 18 },
+        { key: "kiemelt", title: "Kiemelt", width: 10 },
+        { key: "hasonlo", title: "Hasonló primerek", width: 42 },
+      ],
+      (szakasz.locallyResolvedMissing ?? []).map((entry) => ({
+        nev: entry.name,
+        forras: formataltLista(entry.sources ?? [], 3),
+        kiemelt: entry.highlight ? "igen" : "nem",
+        hasonlo: formataltLista(
+          (entry.similarPrimaries ?? []).map(
+            (item) => `${item.primaryName}${item.relation ? ` (${item.relation})` : ""}`
+          ),
+          4
+        ),
+      }))
+    );
+
+    printDataTable(
+      `Primer audit – ${row.monthDay} – közös hiányzók`,
       [
         { key: "nev", title: "Név", width: 22 },
         { key: "forras", title: "Forrás", width: 18 },
@@ -170,8 +220,24 @@ function nyomtatPrimerAuditReszleteket(row, resz) {
         ),
       }))
     );
+
     return;
   }
+
+  printKeyValueTable(
+    `Primer audit – ${row.monthDay} – személyes overlay`,
+    [
+      ["Közös alap", formataltLista(row.commonPreferredNames ?? row.finalPrimaryNames ?? [])],
+      ["Helyi overlay", formataltLista(szakasz.localAddedPreferredNames ?? row.localAddedPreferredNames ?? [])],
+      ["Eredő helyi", formataltLista(row.effectivePreferredNames ?? [])],
+      ["Kézzel kért", formataltLista(szakasz.selectedNames ?? [])],
+      ["Fel nem oldott kézi", formataltLista(szakasz.unresolvedLocalNames ?? row.unresolvedLocalNames ?? [])],
+    ],
+    {
+      keyWidth: 18,
+      valueWidth: 72,
+    }
+  );
 
   printDataTable(
     `Primer audit – ${row.monthDay} – személyes`,
@@ -203,13 +269,15 @@ function nyomtatPrimerAuditReszleteket(row, resz) {
         szakasz.settingsSnapshot?.modifiers?.normalized ? "be" : "ki",
       ],
       ["Rangsor", szakasz.settingsSnapshot?.modifiers?.ranking ? "be" : "ki"],
-      ["Helyi kijelölt", formataltLista(szakasz.selectedNames ?? [])],
+      ["Kézi kérések", formataltLista(szakasz.selectedNames ?? [])],
     ],
     {
       keyWidth: 18,
       valueWidth: 50,
     }
   );
+
+  return;
 }
 
 class MagyarHelp extends Help {
@@ -354,7 +422,11 @@ Elérhető formátumok:
 Megjegyzés:
   Az ICS generálás a nem követett .local/nevnapok.local.yaml fájl mentett profiljából dolgozik.
   Ugyanebben a helyi YAML-ban él a személyes primerprofil és a kézi helyi primerkiegészítés is.
+  A közös, követett primerfelülírások mértékadó fájlja a data/primary-registry-overrides.yaml.
+  A helyi, személyes overlay kizárólag a .local/nevnapok.local.yaml.
   A TUI ICS nézete és a Primer audit személyes beállítási drawerje ezt a közös helyi YAML-t írja.
+  A Normalizált és a Rangsor módosító a Primer auditban véglegesül; az ICS generálás ezeket már nem számolja újra, hanem a véglegesített audit snapshotot olvassa.
+  Ha ezeket kézzel, közvetlenül a YAML-ban módosítod, futtasd újra: nevnapok audit primer
   Egyszerre pontosan egy aktív ICS kimenet mód él: közös, primer+további külön vagy személyes.
   A személyes primerprofil csak akkor hat a generálásra, ha a mentett profil személyes ICS módra van állítva.
 
@@ -434,7 +506,7 @@ Elérhető auditok:
 
   const primerAuditParancs = auditParancs
     .command("primer")
-    .description("Az egységes primer audit összképe és helyi személyes műveletei.");
+    .description("Az egységes primer audit összképe és a helyi primer overlay véglegesítése.");
 
   primerAuditParancs
     .action(async () => {
@@ -448,9 +520,11 @@ Elérhető auditok:
           ["Generálva", adat.generatedAt ?? "—"],
           ["Napok", adat.summary?.rowCount ?? 0],
           ["Közös hiányzó nevek", adat.summary?.combinedMissingCount ?? 0],
-          ["Hiányzós napok", adat.summary?.combinedMissingDayCount ?? 0],
-          ["Helyi kijelölt nevek", adat.summary?.localSelectedCount ?? 0],
-          ["Helyi-only nevek", adat.summary?.localOnlySelectedCount ?? 0],
+          ["Helyben nyitott hiányzók", adat.summary?.effectiveMissingCount ?? 0],
+          ["Helyben nyitott napok", adat.summary?.effectiveMissingDayCount ?? 0],
+          ["Helyben feloldott hiányzók", adat.summary?.locallyResolvedMissingCount ?? 0],
+          ["Helyi overlay nevek", adat.summary?.localSelectedCount ?? 0],
+          ["Fel nem oldott kézi nevek", adat.summary?.localOnlySelectedCount ?? 0],
           ["Figyelmeztetéses napok", adat.summary?.warningDayCount ?? 0],
           ["Kemény hibák", adat.summary?.hardFailureCount ?? 0],
           ["Személyes primerforrás", adat.personal?.settingsSnapshot?.primarySource ?? "default"],

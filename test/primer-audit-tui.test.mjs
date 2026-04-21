@@ -16,6 +16,8 @@ function createSampleReport() {
     summary: {
       rowCount: 3,
       combinedMissingCount: 2,
+      effectiveMissingCount: 1,
+      locallyResolvedMissingCount: 1,
       localSelectedCount: 1,
       overrideDayCount: 1,
       mismatchDayCount: 1,
@@ -42,6 +44,8 @@ function createSampleReport() {
             month: 1,
             day: 1,
             monthDay: "01-01",
+            commonPreferredNames: ["Ábel"],
+            effectivePreferredNames: ["Ábel"],
             finalPrimaryNames: ["Ábel"],
             finalPrimaryCount: 1,
             source: "legacy-wiki-exact",
@@ -61,15 +65,23 @@ function createSampleReport() {
             sections: {
               osszefoglalo: {
                 preferredNames: ["Ábel"],
+                commonPreferredNames: ["Ábel"],
+                localAddedPreferredNames: [],
+                effectivePreferredNames: ["Ábel"],
                 source: "legacy-wiki-exact",
                 warning: false,
                 hiddenCount: 1,
                 combinedMissingCount: 0,
+                locallyResolvedMissingCount: 0,
+                effectiveMissingCount: 0,
                 localSelectedCount: 0,
                 rawNameCount: 2,
               },
               forrasok: {
                 preferredNames: ["Ábel"],
+                commonPreferredNames: ["Ábel"],
+                localAddedPreferredNames: [],
+                effectivePreferredNames: ["Ábel"],
                 legacy: ["Ábel"],
                 wiki: ["Ábel"],
                 normalized: ["Ábel"],
@@ -83,6 +95,8 @@ function createSampleReport() {
                 combinedMissing: [],
                 normalizedMissing: [],
                 rankingMissing: [],
+                locallyResolvedMissing: [],
+                effectiveMissing: [],
               },
               szemelyes: {
                 settingsSnapshot: {
@@ -101,6 +115,10 @@ function createSampleReport() {
             month: 1,
             day: 2,
             monthDay: "01-02",
+            commonPreferredNames: ["Bori"],
+            localAddedPreferredNames: ["Cili"],
+            effectivePreferredNames: ["Bori", "Cili"],
+            effectivePreferredCount: 2,
             finalPrimaryNames: ["Bori"],
             finalPrimaryCount: 1,
             source: "manual-override",
@@ -138,6 +156,16 @@ function createSampleReport() {
                 localSelected: true,
               },
             ],
+            locallyResolvedMissing: [
+              {
+                name: "Cili",
+                sources: ["normalized", "ranking"],
+                highlight: false,
+                similarPrimaries: [],
+                localSelected: true,
+              },
+            ],
+            effectiveMissing: [],
             localSelectedNames: ["Cili"],
             localSelectedCount: 1,
             personalEntries: [
@@ -153,15 +181,23 @@ function createSampleReport() {
             sections: {
               osszefoglalo: {
                 preferredNames: ["Bori"],
+                commonPreferredNames: ["Bori"],
+                localAddedPreferredNames: ["Cili"],
+                effectivePreferredNames: ["Bori", "Cili"],
                 source: "manual-override",
                 warning: false,
                 hiddenCount: 2,
                 combinedMissingCount: 1,
+                locallyResolvedMissingCount: 1,
+                effectiveMissingCount: 0,
                 localSelectedCount: 1,
                 rawNameCount: 3,
               },
               forrasok: {
                 preferredNames: ["Bori"],
+                commonPreferredNames: ["Bori"],
+                localAddedPreferredNames: ["Cili"],
+                effectivePreferredNames: ["Bori", "Cili"],
                 legacy: ["Bori"],
                 wiki: ["Bori"],
                 normalized: ["Cili"],
@@ -183,6 +219,16 @@ function createSampleReport() {
                 ],
                 normalizedMissing: [],
                 rankingMissing: [],
+                locallyResolvedMissing: [
+                  {
+                    name: "Cili",
+                    sources: ["normalized", "ranking"],
+                    highlight: false,
+                    similarPrimaries: [],
+                    localSelected: true,
+                  },
+                ],
+                effectiveMissing: [],
               },
               szemelyes: {
                 settingsSnapshot: {
@@ -210,6 +256,8 @@ function createSampleReport() {
             month: 1,
             day: 3,
             monthDay: "01-03",
+            commonPreferredNames: ["Dóra"],
+            effectivePreferredNames: ["Dóra"],
             finalPrimaryNames: ["Dóra"],
             finalPrimaryCount: 1,
             source: "legacy-wiki-exact",
@@ -231,6 +279,16 @@ function createSampleReport() {
             ],
             normalizedMissing: [],
             rankingMissing: [],
+            locallyResolvedMissing: [],
+            effectiveMissing: [
+              {
+                name: "Dorka",
+                sources: ["normalized"],
+                highlight: false,
+                similarPrimaries: [],
+                localSelected: false,
+              },
+            ],
             localSelectedNames: [],
             localSelectedCount: 0,
             personalEntries: [
@@ -246,15 +304,23 @@ function createSampleReport() {
             sections: {
               osszefoglalo: {
                 preferredNames: ["Dóra"],
+                commonPreferredNames: ["Dóra"],
+                localAddedPreferredNames: [],
+                effectivePreferredNames: ["Dóra"],
                 source: "legacy-wiki-exact",
                 warning: false,
                 hiddenCount: 1,
                 combinedMissingCount: 1,
+                locallyResolvedMissingCount: 0,
+                effectiveMissingCount: 1,
                 localSelectedCount: 0,
                 rawNameCount: 2,
               },
               forrasok: {
                 preferredNames: ["Dóra"],
+                commonPreferredNames: ["Dóra"],
+                localAddedPreferredNames: [],
+                effectivePreferredNames: ["Dóra"],
                 legacy: ["Dóra"],
                 wiki: ["Dóra"],
                 normalized: ["Dóra", "Dorka"],
@@ -276,6 +342,16 @@ function createSampleReport() {
                 ],
                 normalizedMissing: [],
                 rankingMissing: [],
+                locallyResolvedMissing: [],
+                effectiveMissing: [
+                  {
+                    name: "Dorka",
+                    sources: ["normalized"],
+                    highlight: false,
+                    similarPrimaries: [],
+                    localSelected: false,
+                  },
+                ],
               },
               szemelyes: {
                 settingsSnapshot: {
@@ -313,13 +389,15 @@ test("a primer audit view-model felépíti az akciózható napi queue-kat és a 
   const dorka = viewModel.nameMap.get("Dorka");
 
   assert.equal(akciozhatoQueue.count, 2);
-  assert.equal(missingQueue.count, 2);
-  assert.equal(viewModel.dayMap.get("01-01").finalPrimaryNames[0], "Ábel");
+  assert.equal(missingQueue.count, 1);
+  assert.equal(viewModel.dayMap.get("01-01").commonPreferredNames[0], "Ábel");
+  assert.deepEqual(viewModel.dayMap.get("01-02").effectivePreferredNames, ["Bori", "Cili"]);
   assert.deepEqual(cili.sources, ["normalized", "ranking", "raw", "hidden", "local"]);
-  assert.equal(cili.counts.missing, 1);
+  assert.equal(cili.counts.missing, 0);
   assert.equal(cili.counts.local, 1);
   assert.equal(cili.occurrences[0].monthDay, "01-02");
   assert.deepEqual(dorka.sources, ["normalized", "raw", "hidden"]);
+  assert.equal(dorka.counts.missing, 1);
 });
 
 test("a primer audit TUI állapotgépe kezeli a módváltást, szűrést, keresést és a drawer állapotát", () => {
@@ -332,19 +410,19 @@ test("a primer audit TUI állapotgépe kezeli a módváltást, szűrést, keres�
 
   state = reducePrimerAuditState(state, { type: "cycle_filter", irany: 1 }, viewModel);
   assert.equal(state.dayFilterId, "hianyzos");
-  assert.equal(visiblePrimerAuditNapok(viewModel, state).length, 2);
+  assert.equal(visiblePrimerAuditNapok(viewModel, state).length, 1);
 
   state = reducePrimerAuditState(state, { type: "start_search" }, viewModel);
   state = reducePrimerAuditState(state, { type: "append_search", char: "0" }, viewModel);
   state = reducePrimerAuditState(state, { type: "append_search", char: "1" }, viewModel);
   state = reducePrimerAuditState(state, { type: "append_search", char: "-" }, viewModel);
   state = reducePrimerAuditState(state, { type: "append_search", char: "0" }, viewModel);
-  state = reducePrimerAuditState(state, { type: "append_search", char: "2" }, viewModel);
+  state = reducePrimerAuditState(state, { type: "append_search", char: "3" }, viewModel);
   state = reducePrimerAuditState(state, { type: "confirm_search" }, viewModel);
 
   const szurtNapok = visiblePrimerAuditNapok(viewModel, state);
   assert.equal(szurtNapok.length, 1);
-  assert.equal(szurtNapok[0].monthDay, "01-02");
+  assert.equal(szurtNapok[0].monthDay, "01-03");
 
   state = reducePrimerAuditState(state, { type: "toggle_drawer" }, viewModel);
   assert.equal(state.settingsDrawerOpen, true);

@@ -66,14 +66,26 @@ Ebben a fájlban él:
 - a `Normalizált` / `Rangsor` módosítók állapota,
 - és a kézi helyi primernapok listája.
 
+A közös, követett primerfelülírások mértékadó fájlja továbbra is a
+`data/primary-registry-overrides.yaml`.
+A helyi, személyes overlay kizárólag a `.local/nevnapok.local.yaml`.
+
+A `Normalizált` / `Rangsor` módosítók véglegesítése a `Primer audit` felületén történik.
+Az ICS-generálás ezeket már nem számolja újra, hanem a véglegesített
+`output/riportok/primer-audit.yaml` snapshotot használja.
+
+Ha a helyi YAML-t kézzel szerkeszted, és ezzel a módosítókat vagy a kézi helyi napokat
+megváltoztatod, utána futtasd újra:
+
+```bash
+  npm run cli -- audit primer
+```
+
 A személyes primerprofil csak akkor hat a generálásra, ha az aktív mód `personal`.
 
 A `nevnapok kimenet general ics` publikus felületén a részletes ICS-kapcsolók megszűntek.
 Ha valaki ilyet használ, a CLI célzott hibával jelzi, hogy az ICS-profilt mostantól a
 `.local/nevnapok.local.yaml` kezeli.
-
-A régi `.local/primary-registry-overrides.local.yaml` és
-`data/primary-registry-overrides.local.yaml` fájlok csak beolvasási kompatibilitásként maradnak.
 
 ## Auditok
 

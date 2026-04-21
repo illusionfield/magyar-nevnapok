@@ -20,6 +20,9 @@ import {
   betoltHelyiPrimerBeallitasokat,
   betoltHelyiPrimerFelulirasokat,
   buildHelyiPrimerFelulirasMap,
+  egyesitHelyiPrimerMapokat,
+  egyesitHelyiPrimerNeveket,
+  epitModositoPrimerMapot,
 } from "../primer/helyi-primer-felulirasok.mjs";
 import {
   betoltStrukturaltFajl,
@@ -76,32 +79,18 @@ export async function buildPrimerAuditReport({
       reportPath: inputs.reportPath ?? DEFAULT_REPORT_PATH,
     },
   });
-  const localOverrideMap = buildHelyiPrimerFelulirasMap(localOverridesPayload);
   const finalRowMap = indexRowsByMonthDay(finalReport.months);
   const missingRowMap = indexRowsByMonthDay(missingReport.months);
   const rawDayMap = buildRawDayMap(inputPayload);
   const months = epitHonapVazat();
   const allMonthDays = Array.from(
-    new Set([...finalRowMap.keys(), ...missingRowMap.keys(), ...rawDayMap.keys(), ...localOverrideMap.keys()])
+    new Set([...finalRowMap.keys(), ...missingRowMap.keys(), ...rawDayMap.keys()])
   ).sort(compareMonthDays);
-  let rowCount = 0;
-  let warningDayCount = 0;
-  let hiddenNameCount = 0;
-  let localSelectedCount = 0;
-  let localSelectedDayCount = 0;
-  let localOnlySelectedCount = 0;
 
   for (const monthDay of allMonthDays) {
     const finalRow = finalRowMap.get(monthDay) ?? createEmptyFinalRow(monthDay);
     const missingRow = missingRowMap.get(monthDay) ?? createEmptyMissingRow(monthDay);
     const rawDay = rawDayMap.get(monthDay) ?? createRawEmptyDayEntry(monthDay);
-    const localDay = localOverrideMap.get(monthDay) ?? null;
-    const selectedNames = [...(localDay?.addedPreferredNames ?? [])];
-    const selectedNameSet = new Set(selectedNames.map((name) => normalizeNameForMatch(name)));
-    const combinedMissing = withLocalSelection(missingRow.combinedMissing ?? [], selectedNameSet);
-    const normalizedMissing = withLocalSelection(missingRow.normalizedMissing ?? [], selectedNameSet);
-    const rankingMissing = withLocalSelection(missingRow.rankingMissing ?? [], selectedNameSet);
-    const personalEntries = buildPersonalEntries(combinedMissing, selectedNames);
     const finalPrimaryNames =
       finalRow.preferredNames?.length > 0
         ? [...finalRow.preferredNames]
@@ -113,6 +102,7 @@ export async function buildPrimerAuditReport({
       preferredNames: finalPrimaryNames,
       finalPrimaryNames,
       finalPrimaryCount: finalPrimaryNames.length,
+      commonPreferredNames: finalPrimaryNames,
       source: finalRow.source ?? null,
       warning: Boolean(finalRow.warning),
       names: [...(finalRow.names ?? [])],
@@ -122,24 +112,33 @@ export async function buildPrimerAuditReport({
       normalized: [...(finalRow.normalized ?? [])],
       ranking: [...(finalRow.ranking ?? [])],
       hidden: [...(finalRow.hidden ?? [])],
-      combinedMissing,
-      normalizedMissing,
-      rankingMissing,
-      localSelectedNames: selectedNames,
-      localSelectedCount: selectedNames.length,
-      personalEntries,
+      combinedMissing: [...(missingRow.combinedMissing ?? [])],
+      normalizedMissing: [...(missingRow.normalizedMissing ?? [])],
+      rankingMissing: [...(missingRow.rankingMissing ?? [])],
+      localSelectedNames: [],
+      localSelectedCount: 0,
+      personalEntries: buildPersonalEntries(missingRow.combinedMissing ?? [], []),
       sections: {
         osszefoglalo: {
           preferredNames: finalPrimaryNames,
+          commonPreferredNames: finalPrimaryNames,
+          localAddedPreferredNames: [],
+          effectivePreferredNames: finalPrimaryNames,
+          effectivePreferredCount: finalPrimaryNames.length,
           source: finalRow.source ?? null,
           warning: Boolean(finalRow.warning),
           hiddenCount: (finalRow.hidden ?? []).length,
-          combinedMissingCount: combinedMissing.length,
-          localSelectedCount: selectedNames.length,
+          combinedMissingCount: (missingRow.combinedMissing ?? []).length,
+          locallyResolvedMissingCount: 0,
+          effectiveMissingCount: (missingRow.combinedMissing ?? []).length,
+          localSelectedCount: 0,
           rawNameCount: (rawDay.names ?? []).length,
         },
         forrasok: {
           preferredNames: finalPrimaryNames,
+          commonPreferredNames: finalPrimaryNames,
+          localAddedPreferredNames: [],
+          effectivePreferredNames: finalPrimaryNames,
           legacy: [...(finalRow.legacy ?? [])],
           wiki: [...(finalRow.wiki ?? [])],
           normalized: [...(finalRow.normalized ?? [])],
@@ -150,28 +149,24 @@ export async function buildPrimerAuditReport({
           warning: Boolean(finalRow.warning),
         },
         hianyzok: {
-          combinedMissing,
-          normalizedMissing,
-          rankingMissing,
+          combinedMissing: [...(missingRow.combinedMissing ?? [])],
+          normalizedMissing: [...(missingRow.normalizedMissing ?? [])],
+          rankingMissing: [...(missingRow.rankingMissing ?? [])],
+          locallyResolvedMissing: [],
+          effectiveMissing: [...(missingRow.combinedMissing ?? [])],
         },
         szemelyes: {
           settingsSnapshot: localSettings,
-          selectedNames,
-          entries: personalEntries,
+          selectedNames: [],
+          entries: buildPersonalEntries(missingRow.combinedMissing ?? [], []),
         },
       },
     };
 
     months[row.month - 1].rows.push(row);
-    rowCount += 1;
-    warningDayCount += row.warning ? 1 : 0;
-    hiddenNameCount += row.hidden.length;
-    localSelectedCount += selectedNames.length;
-    localSelectedDayCount += selectedNames.length > 0 ? 1 : 0;
-    localOnlySelectedCount += personalEntries.filter((entry) => entry.localSelected && entry.sources.length === 0).length;
   }
 
-  return {
+  const baseReport = {
     version: 1,
     generatedAt: new Date().toISOString(),
     report: "primer-audit",
@@ -186,9 +181,15 @@ export async function buildPrimerAuditReport({
       localConfigSourcePath: path.relative(process.cwd(), inputs.localConfigSourcePath),
     },
     summary: {
-      rowCount,
-      warningDayCount,
-      hiddenNameCount,
+      rowCount: allMonthDays.length,
+      warningDayCount: months.reduce(
+        (sum, month) => sum + month.rows.filter((row) => row.warning === true).length,
+        0
+      ),
+      hiddenNameCount: months.reduce(
+        (sum, month) => sum + month.rows.reduce((monthSum, row) => monthSum + row.hidden.length, 0),
+        0
+      ),
       combinedMissingCount: missingReport.summary?.combinedMissingCount ?? 0,
       normalizedMissingCount: missingReport.summary?.normalizedMissingCount ?? 0,
       rankingMissingCount: missingReport.summary?.rankingMissingCount ?? 0,
@@ -197,9 +198,15 @@ export async function buildPrimerAuditReport({
         (sum, month) => sum + month.rows.filter((row) => row.combinedMissing.length > 0).length,
         0
       ),
-      localSelectedCount,
-      localSelectedDayCount,
-      localOnlySelectedCount,
+      locallyResolvedMissingCount: 0,
+      effectiveMissingCount: missingReport.summary?.combinedMissingCount ?? 0,
+      effectiveMissingDayCount: months.reduce(
+        (sum, month) => sum + month.rows.filter((row) => row.combinedMissing.length > 0).length,
+        0
+      ),
+      localSelectedCount: 0,
+      localSelectedDayCount: 0,
+      localOnlySelectedCount: 0,
       hardFailureCount: finalReport.validations?.hardFailureCount ?? 0,
       mismatchDayCount: finalReport.validations?.mismatchMonthDays?.length ?? 0,
       overrideDayCount: finalReport.validations?.overrideDayCount ?? 0,
@@ -215,6 +222,11 @@ export async function buildPrimerAuditReport({
     },
     months,
   };
+
+  return alkalmazHelyiPrimerOverlaytPrimerAuditRiporton(baseReport, {
+    localSettings,
+    localOverridesPayload,
+  });
 }
 
 function indexRowsByMonthDay(months) {
@@ -266,11 +278,314 @@ function createEmptyMissingRow(monthDay) {
   };
 }
 
+function normalizeMissingEntries(entries) {
+  return (entries ?? []).map((entry) => ({
+    ...entry,
+    sources: [...(entry.sources ?? [])],
+    similarPrimaries: [...(entry.similarPrimaries ?? [])],
+  }));
+}
+
 function withLocalSelection(entries, selectedNameSet) {
   return (entries ?? []).map((entry) => ({
     ...entry,
     localSelected: selectedNameSet.has(normalizeNameForMatch(entry.name)),
   }));
+}
+
+function buildNameSet(values = []) {
+  return new Set(
+    values
+      .map((value) => normalizeNameForMatch(value))
+      .filter(Boolean)
+  );
+}
+
+function pickCommonPreferredNames(row) {
+  return [
+    ...(row.commonPreferredNames ??
+      row.finalPrimaryNames ??
+      row.preferredNames ??
+      row.sections?.osszefoglalo?.commonPreferredNames ??
+      row.sections?.osszefoglalo?.preferredNames ??
+      []),
+  ];
+}
+
+function pickRequestedLocalNames(row, effectiveLocalMap) {
+  const localDay = effectiveLocalMap.get(row.monthDay) ?? null;
+
+  if (localDay) {
+    return [...(localDay.addedPreferredNames ?? [])];
+  }
+
+  return [
+    ...(row.localRequestedNames ??
+      row.sections?.szemelyes?.selectedNames ??
+      row.localSelectedNames ??
+      []),
+  ];
+}
+
+function buildAvailableNameSetForRow(row) {
+  return buildNameSet(
+    egyesitHelyiPrimerNeveket(
+      pickCommonPreferredNames(row),
+      row.names ?? [],
+      row.rawNames ?? row.sections?.forrasok?.rawNames ?? [],
+      row.legacy ?? row.sections?.forrasok?.legacy ?? [],
+      row.wiki ?? row.sections?.forrasok?.wiki ?? [],
+      row.normalized ?? row.sections?.forrasok?.normalized ?? [],
+      row.ranking ?? row.sections?.forrasok?.ranking ?? [],
+      row.hidden ?? row.sections?.forrasok?.hidden ?? [],
+      (row.combinedMissing ?? row.sections?.hianyzok?.combinedMissing ?? []).map((entry) => entry.name),
+      (row.normalizedMissing ?? row.sections?.hianyzok?.normalizedMissing ?? []).map(
+        (entry) => entry.name
+      ),
+      (row.rankingMissing ?? row.sections?.hianyzok?.rankingMissing ?? []).map(
+        (entry) => entry.name
+      )
+    )
+  );
+}
+
+function splitRequestedLocalNames(row, requestedLocalNames) {
+  const availableNameSet = buildAvailableNameSetForRow(row);
+  const commonNameSet = buildNameSet(pickCommonPreferredNames(row));
+  const localAddedPreferredNames = [];
+  const unresolvedLocalNames = [];
+  const seenAdded = new Set();
+  const seenUnresolved = new Set();
+
+  for (const name of requestedLocalNames ?? []) {
+    const normalized = normalizeNameForMatch(name);
+
+    if (!normalized) {
+      continue;
+    }
+
+    if (!availableNameSet.has(normalized)) {
+      if (!seenUnresolved.has(normalized)) {
+        seenUnresolved.add(normalized);
+        unresolvedLocalNames.push(name);
+      }
+      continue;
+    }
+
+    if (commonNameSet.has(normalized) || seenAdded.has(normalized)) {
+      continue;
+    }
+
+    seenAdded.add(normalized);
+    localAddedPreferredNames.push(name);
+  }
+
+  return {
+    localAddedPreferredNames,
+    unresolvedLocalNames,
+  };
+}
+
+function splitMissingByEffectiveSelection(entries, effectivePreferredNames) {
+  const effectiveNameSet = buildNameSet(effectivePreferredNames);
+  const locallyResolvedMissing = [];
+  const effectiveMissing = [];
+
+  for (const entry of entries ?? []) {
+    if (effectiveNameSet.has(normalizeNameForMatch(entry.name))) {
+      locallyResolvedMissing.push(entry);
+      continue;
+    }
+
+    effectiveMissing.push(entry);
+  }
+
+  return {
+    locallyResolvedMissing,
+    effectiveMissing,
+  };
+}
+
+function cloneReportMonthWithRows(month, rows) {
+  return {
+    ...month,
+    rows,
+  };
+}
+
+export function buildVeglegesitettHelyiPrimerMapotPrimerAuditRiportbol(report) {
+  const map = new Map();
+
+  for (const month of report?.months ?? []) {
+    for (const row of month.rows ?? []) {
+      const addedPreferredNames = [
+        ...(row.localAddedPreferredNames ??
+          row.sections?.osszefoglalo?.localAddedPreferredNames ??
+          []),
+      ];
+
+      if (addedPreferredNames.length === 0) {
+        continue;
+      }
+
+      map.set(row.monthDay, {
+        month: row.month,
+        day: row.day,
+        monthDay: row.monthDay,
+        addedPreferredNames,
+      });
+    }
+  }
+
+  return map;
+}
+
+export function alkalmazHelyiPrimerOverlaytPrimerAuditRiporton(
+  report,
+  { localSettings, localOverridesPayload } = {}
+) {
+  const settings = localSettings ?? report?.personal?.settingsSnapshot ?? {
+    primarySource: "default",
+    modifiers: {
+      normalized: false,
+      ranking: false,
+    },
+  };
+  const manualMap = localOverridesPayload
+    ? buildHelyiPrimerFelulirasMap(localOverridesPayload)
+    : new Map();
+  const modifierMap =
+    settings?.modifiers?.normalized === true || settings?.modifiers?.ranking === true
+      ? epitModositoPrimerMapot(report, settings.modifiers)
+      : new Map();
+  const effectiveLocalMap = egyesitHelyiPrimerMapokat(modifierMap, manualMap);
+
+  let localSelectedCount = 0;
+  let localSelectedDayCount = 0;
+  let localOnlySelectedCount = 0;
+  let locallyResolvedMissingCount = 0;
+  let effectiveMissingCount = 0;
+  let effectiveMissingDayCount = 0;
+
+  const nextMonths = (report?.months ?? []).map((month) => {
+    const nextRows = (month.rows ?? []).map((row) => {
+      const commonPreferredNames = pickCommonPreferredNames(row);
+      const requestedLocalNames = pickRequestedLocalNames(row, effectiveLocalMap);
+      const { localAddedPreferredNames, unresolvedLocalNames } = splitRequestedLocalNames(
+        row,
+        requestedLocalNames
+      );
+      const combinedMissing = withLocalSelection(
+        normalizeMissingEntries(row.combinedMissing ?? row.sections?.hianyzok?.combinedMissing ?? []),
+        buildNameSet(requestedLocalNames)
+      );
+      const normalizedMissing = withLocalSelection(
+        normalizeMissingEntries(
+          row.normalizedMissing ?? row.sections?.hianyzok?.normalizedMissing ?? []
+        ),
+        buildNameSet(requestedLocalNames)
+      );
+      const rankingMissing = withLocalSelection(
+        normalizeMissingEntries(row.rankingMissing ?? row.sections?.hianyzok?.rankingMissing ?? []),
+        buildNameSet(requestedLocalNames)
+      );
+      const effectivePreferredNames = egyesitHelyiPrimerNeveket(
+        commonPreferredNames,
+        localAddedPreferredNames
+      );
+      const { locallyResolvedMissing, effectiveMissing } = splitMissingByEffectiveSelection(
+        combinedMissing,
+        effectivePreferredNames
+      );
+      const personalEntries = buildPersonalEntries(combinedMissing, requestedLocalNames);
+
+      localSelectedCount += localAddedPreferredNames.length;
+      localSelectedDayCount += localAddedPreferredNames.length > 0 ? 1 : 0;
+      localOnlySelectedCount += unresolvedLocalNames.length;
+      locallyResolvedMissingCount += locallyResolvedMissing.length;
+      effectiveMissingCount += effectiveMissing.length;
+      effectiveMissingDayCount += effectiveMissing.length > 0 ? 1 : 0;
+
+      return {
+        ...row,
+        preferredNames: commonPreferredNames,
+        finalPrimaryNames: commonPreferredNames,
+        finalPrimaryCount: commonPreferredNames.length,
+        commonPreferredNames,
+        localRequestedNames: requestedLocalNames,
+        localAddedPreferredNames,
+        unresolvedLocalNames,
+        effectivePreferredNames,
+        effectivePreferredCount: effectivePreferredNames.length,
+        combinedMissing,
+        normalizedMissing,
+        rankingMissing,
+        locallyResolvedMissing,
+        effectiveMissing,
+        localSelectedNames: localAddedPreferredNames,
+        localSelectedCount: localAddedPreferredNames.length,
+        personalEntries,
+        sections: {
+          ...(row.sections ?? {}),
+          osszefoglalo: {
+            ...(row.sections?.osszefoglalo ?? {}),
+            preferredNames: commonPreferredNames,
+            commonPreferredNames,
+            localAddedPreferredNames,
+            effectivePreferredNames,
+            effectivePreferredCount: effectivePreferredNames.length,
+            combinedMissingCount: combinedMissing.length,
+            locallyResolvedMissingCount: locallyResolvedMissing.length,
+            effectiveMissingCount: effectiveMissing.length,
+            localSelectedCount: localAddedPreferredNames.length,
+          },
+          forrasok: {
+            ...(row.sections?.forrasok ?? {}),
+            preferredNames: commonPreferredNames,
+            commonPreferredNames,
+            localAddedPreferredNames,
+            effectivePreferredNames,
+          },
+          hianyzok: {
+            ...(row.sections?.hianyzok ?? {}),
+            combinedMissing,
+            normalizedMissing,
+            rankingMissing,
+            locallyResolvedMissing,
+            effectiveMissing,
+          },
+          szemelyes: {
+            ...(row.sections?.szemelyes ?? {}),
+            settingsSnapshot: settings,
+            selectedNames: requestedLocalNames,
+            localAddedPreferredNames,
+            unresolvedLocalNames,
+            entries: personalEntries,
+          },
+        },
+      };
+    });
+
+    return cloneReportMonthWithRows(month, nextRows);
+  });
+
+  return {
+    ...report,
+    summary: {
+      ...(report?.summary ?? {}),
+      localSelectedCount,
+      localSelectedDayCount,
+      localOnlySelectedCount,
+      locallyResolvedMissingCount,
+      effectiveMissingCount,
+      effectiveMissingDayCount,
+    },
+    personal: {
+      ...(report?.personal ?? {}),
+      settingsSnapshot: settings,
+    },
+    months: nextMonths,
+  };
 }
 
 function buildPersonalEntries(combinedMissing, selectedNames) {
@@ -322,7 +637,9 @@ function printReport(report) {
       ["Figyelmeztetéses napok", report.summary?.warningDayCount ?? 0],
       ["Rejtett nevek összesen", report.summary?.hiddenNameCount ?? 0],
       ["Közös hiányzó nevek", report.summary?.combinedMissingCount ?? 0],
-      ["Helyi kijelölt nevek", report.summary?.localSelectedCount ?? 0],
+      ["Helyben feloldott hiányzók", report.summary?.locallyResolvedMissingCount ?? 0],
+      ["Helyben nyitott hiányzók", report.summary?.effectiveMissingCount ?? 0],
+      ["Helyi overlay nevek", report.summary?.localSelectedCount ?? 0],
       ["Kemény hibák", report.summary?.hardFailureCount ?? 0],
     ],
     {
@@ -333,13 +650,18 @@ function printReport(report) {
 
   const mintaSorok = (report.months ?? [])
     .flatMap((month) => month.rows ?? [])
-    .filter((row) => row.warning || row.combinedMissing.length > 0 || row.localSelectedCount > 0)
+    .filter(
+      (row) =>
+        row.warning ||
+        (row.effectiveMissing ?? row.combinedMissing ?? []).length > 0 ||
+        row.localSelectedCount > 0
+    )
     .slice(0, 12)
     .map((row) => ({
       nap: row.monthDay,
-      primerek: row.preferredNames.join(", ") || "—",
+      primerek: (row.effectivePreferredNames ?? row.preferredNames ?? []).join(", ") || "—",
       forras: row.source ?? "—",
-      hianyzo: row.combinedMissing.length,
+      hianyzo: (row.effectiveMissing ?? row.combinedMissing ?? []).length,
       helyi: row.localSelectedCount,
     }));
 

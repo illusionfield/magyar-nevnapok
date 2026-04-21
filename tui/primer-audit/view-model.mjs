@@ -18,12 +18,12 @@ export const PRIMER_AUDIT_NAP_SZUROK = [
   {
     azonosito: "akciozhato",
     cimke: "Akciózható",
-    leiras: "Hiányzós, helyi, override-os vagy eltéréses napok.",
+    leiras: "Helyben nyitott hiányzós, overlayes, override-os vagy eltéréses napok.",
   },
   {
     azonosito: "hianyzos",
     cimke: "Hiányzós napok",
-    leiras: "Legalább egy közös hiányzó névvel rendelkező napok.",
+    leiras: "Legalább egy helyben még nyitott hiányzó névvel rendelkező napok.",
   },
   {
     azonosito: "manual-override",
@@ -33,7 +33,7 @@ export const PRIMER_AUDIT_NAP_SZUROK = [
   {
     azonosito: "helyi",
     cimke: "Helyi kijelölések",
-    leiras: "Olyan napok, ahol van helyi személyes kijelölés.",
+    leiras: "Olyan napok, ahol a helyi overlay ténylegesen hozzáad nevet a közös alaphoz.",
   },
   {
     azonosito: "elteres",
@@ -424,7 +424,10 @@ function ensureOccurrence(node, day) {
       localSelectable: false,
       similarPrimaries: [],
       missingSources: [],
-      finalPrimaryNames: [...(day.finalPrimaryNames ?? [])],
+      finalPrimaryNames: [...(day.commonPreferredNames ?? day.finalPrimaryNames ?? [])],
+      effectivePreferredNames: [
+        ...(day.effectivePreferredNames ?? day.commonPreferredNames ?? day.finalPrimaryNames ?? []),
+      ],
       daySource: day.source ?? null,
     });
   }
@@ -547,14 +550,36 @@ export function buildPrimerAuditViewModel(report) {
   const overrideDays = new Set(report?.validations?.overrideMonthDays ?? []);
   const days = (report?.months ?? []).flatMap((month) =>
     (month.rows ?? []).map((row) => {
-      const finalPrimaryNames =
-        row.finalPrimaryNames?.length > 0
-          ? [...row.finalPrimaryNames]
-          : [...(row.sections?.osszefoglalo?.preferredNames ?? [])];
+      const commonPreferredNames =
+        row.commonPreferredNames?.length > 0
+          ? [...row.commonPreferredNames]
+          : row.finalPrimaryNames?.length > 0
+            ? [...row.finalPrimaryNames]
+            : [...(row.sections?.osszefoglalo?.commonPreferredNames ?? row.sections?.osszefoglalo?.preferredNames ?? [])];
+      const effectivePreferredNames =
+        row.effectivePreferredNames?.length > 0
+          ? [...row.effectivePreferredNames]
+          : [...(row.sections?.osszefoglalo?.effectivePreferredNames ?? commonPreferredNames)];
+      const effectiveMissing =
+        row.effectiveMissing?.length >= 0
+          ? [...(row.effectiveMissing ?? [])]
+          : [...(row.sections?.hianyzok?.effectiveMissing ?? row.combinedMissing ?? [])];
+      const locallyResolvedMissing =
+        row.locallyResolvedMissing?.length >= 0
+          ? [...(row.locallyResolvedMissing ?? [])]
+          : [...(row.sections?.hianyzok?.locallyResolvedMissing ?? [])];
+      const localAddedPreferredNames =
+        row.localAddedPreferredNames?.length >= 0
+          ? [...(row.localAddedPreferredNames ?? [])]
+          : [...(row.sections?.osszefoglalo?.localAddedPreferredNames ?? row.localSelectedNames ?? [])];
       const counts = {
-        final: finalPrimaryNames.length,
-        missing: row.combinedMissing?.length ?? row.sections?.hianyzok?.combinedMissing?.length ?? 0,
-        local: row.localSelectedCount ?? row.sections?.szemelyes?.selectedNames?.length ?? 0,
+        final: effectivePreferredNames.length,
+        commonFinal: commonPreferredNames.length,
+        missing: effectiveMissing.length,
+        commonMissing:
+          row.combinedMissing?.length ?? row.sections?.hianyzok?.combinedMissing?.length ?? 0,
+        resolved: locallyResolvedMissing.length,
+        local: localAddedPreferredNames.length,
         hidden: row.hidden?.length ?? row.sections?.forrasok?.hidden?.length ?? 0,
         raw: row.rawNames?.length ?? row.sections?.forrasok?.rawNames?.length ?? 0,
       };
@@ -569,11 +594,17 @@ export function buildPrimerAuditViewModel(report) {
       const item = {
         ...row,
         monthName: month.monthName,
-        finalPrimaryNames,
-        finalPrimaryCount: finalPrimaryNames.length,
+        commonPreferredNames,
+        finalPrimaryNames: effectivePreferredNames,
+        finalPrimaryCount: effectivePreferredNames.length,
+        effectivePreferredNames,
+        effectivePreferredCount: effectivePreferredNames.length,
+        effectiveMissing,
+        locallyResolvedMissing,
+        localAddedPreferredNames,
         counts,
         flags,
-        summaryText: formataltNevek(finalPrimaryNames, 4),
+        summaryText: formataltNevek(effectivePreferredNames, 4),
         relevanceScore: 0,
       };
 
@@ -599,7 +630,7 @@ export function buildPrimerAuditViewModel(report) {
       }
     }
 
-    for (const name of day.finalPrimaryNames ?? []) {
+    for (const name of day.commonPreferredNames ?? day.finalPrimaryNames ?? []) {
       const node = ensureNameNode(nameMap, name);
 
       if (!node) {
@@ -609,7 +640,7 @@ export function buildPrimerAuditViewModel(report) {
       markOccurrenceSource(node, day, name, "final");
     }
 
-    for (const name of day.localSelectedNames ?? []) {
+    for (const name of day.localAddedPreferredNames ?? day.localSelectedNames ?? []) {
       const node = ensureNameNode(nameMap, name);
 
       if (!node) {
@@ -621,7 +652,7 @@ export function buildPrimerAuditViewModel(report) {
       occurrence.statusFlags.local = true;
     }
 
-    for (const entry of day.combinedMissing ?? day.sections?.hianyzok?.combinedMissing ?? []) {
+    for (const entry of day.effectiveMissing ?? day.combinedMissing ?? day.sections?.hianyzok?.combinedMissing ?? []) {
       const node = ensureNameNode(nameMap, entry.name);
 
       if (!node) {
@@ -669,7 +700,12 @@ export function buildPrimerAuditViewModel(report) {
         ranking: false,
       },
     },
-    summary: report?.summary ?? {},
+    summary: {
+      ...(report?.summary ?? {}),
+      effectiveMissingCount:
+        report?.summary?.effectiveMissingCount ?? report?.summary?.combinedMissingCount ?? 0,
+      locallyResolvedMissingCount: report?.summary?.locallyResolvedMissingCount ?? 0,
+    },
     validations: report?.validations ?? {},
     days,
     dayMap: new Map(days.map((day) => [day.monthDay, day])),
@@ -811,8 +847,8 @@ export function visiblePrimerAuditNevek(viewModel, allapot) {
 
 export function buildPrimerAuditOsszegzesSorok(viewModel) {
   return [
-    `Napok: ${viewModel.summary?.rowCount ?? 0} • Közös hiányzók: ${viewModel.summary?.combinedMissingCount ?? 0} • Helyi kijelölt nevek: ${viewModel.summary?.localSelectedCount ?? 0}`,
-    `Validációs eltérések: ${viewModel.summary?.mismatchDayCount ?? 0} • Kézi override napok: ${viewModel.summary?.overrideDayCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
+    `Napok: ${viewModel.summary?.rowCount ?? 0} • Közös hiányzók: ${viewModel.summary?.combinedMissingCount ?? 0} • Helyben nyitott hiányzók: ${viewModel.summary?.effectiveMissingCount ?? 0}`,
+    `Helyi feloldások: ${viewModel.summary?.locallyResolvedMissingCount ?? 0} • Kézi override napok: ${viewModel.summary?.overrideDayCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
       viewModel.personalSettings?.primarySource ?? "default"
     )}`,
   ];

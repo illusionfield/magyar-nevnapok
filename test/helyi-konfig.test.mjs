@@ -3,18 +3,12 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import { pathToFileURL } from "node:url";
 
 import {
   allitHelyiIcsBeallitasokat,
   betoltHelyiFelhasznaloiKonfigot,
 } from "../domainek/helyi-konfig.mjs";
 import { betoltStrukturaltFajl, mentStrukturaltFajl } from "../kozos/strukturalt-fajl.mjs";
-
-const execFileAsync = promisify(execFile);
-const gyoker = process.cwd();
 
 test("a hiányzó unified helyi YAML stabil default ICS- és személyes blokkot ad", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-helyi-konfig-"));
@@ -74,15 +68,20 @@ test("az ICS blokk mentése unified helyi YAML-ba írja a teljes profilt", async
   assert.deepEqual(payload.personalPrimary.days, []);
 });
 
-test("legacy helyi override fallbackből töltődik, és első íráskor már az új unified YAML frissül", async () => {
-  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-helyi-migracio-"));
-  const legacyFajl = path.join(
+test("a régi külön helyi override fájlokat a loader figyelmen kívül hagyja", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-helyi-legacy-ignore-"));
+  const legacyHelyiFajl = path.join(
     ideiglenesKonyvtar,
     ".local",
     "primary-registry-overrides.local.yaml"
   );
+  const legacyDataFajl = path.join(
+    ideiglenesKonyvtar,
+    "data",
+    "primary-registry-overrides.local.yaml"
+  );
   const ujFajl = path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml");
-  const moduleUrl = pathToFileURL(path.join(gyoker, "domainek", "helyi-konfig.mjs")).href;
+
   const legacyPayload = {
     version: 1,
     generatedAt: "2026-04-20T12:00:00.000Z",
@@ -104,31 +103,12 @@ test("legacy helyi override fallbackből töltődik, és első íráskor már az
     ],
   };
 
-  await mentStrukturaltFajl(legacyFajl, legacyPayload);
-  await execFileAsync(
-    process.execPath,
-    [
-      "--input-type=module",
-      "-e",
-      `import { betoltHelyiFelhasznaloiKonfigot, allitHelyiIcsBeallitasokat } from ${JSON.stringify(moduleUrl)};
-       const betoltott = await betoltHelyiFelhasznaloiKonfigot();
-       if (betoltott.payload.personalPrimary.primarySource !== "legacy") {
-         throw new Error("A legacy fallback nem töltődött be.");
-       }
-       await allitHelyiIcsBeallitasokat({ calendarName: "Teszt migráció" });`,
-    ],
-    {
-      cwd: ideiglenesKonyvtar,
-    }
-  );
+  await mentStrukturaltFajl(legacyHelyiFajl, legacyPayload);
+  await mentStrukturaltFajl(legacyDataFajl, legacyPayload);
 
-  const ujPayload = await betoltStrukturaltFajl(ujFajl);
-  const megmaradtLegacyPayload = await betoltStrukturaltFajl(legacyFajl);
+  const betoltott = await betoltHelyiFelhasznaloiKonfigot(ujFajl);
 
-  assert.equal(ujPayload.ics.calendarName, "Teszt migráció");
-  assert.equal(ujPayload.personalPrimary.primarySource, "legacy");
-  assert.equal(ujPayload.personalPrimary.modifiers.normalized, true);
-  assert.deepEqual(ujPayload.personalPrimary.days[0].addedPreferredNames, ["Alpár"]);
-  assert.equal(megmaradtLegacyPayload.settings.primarySource, "legacy");
-  assert.equal(megmaradtLegacyPayload.ics, undefined);
+  assert.equal(betoltott.sourcePath, ujFajl);
+  assert.equal(betoltott.payload.personalPrimary.primarySource, "default");
+  assert.deepEqual(betoltott.payload.personalPrimary.days, []);
 });

@@ -17,11 +17,12 @@ import {
   betoltHelyiPrimerFelulirasokat,
   buildHelyiPrimerFelulirasMap,
 } from "../primer/helyi-primer-felulirasok.mjs";
+import { DEFAULT_LOCAL_CONFIG_PATH } from "../helyi-konfig.mjs";
 
 const DEFAULT_INPUT_PATH = kanonikusUtvonalak.adatbazis.nevnapok;
 const DEFAULT_OUTPUT_PATH = kanonikusUtvonalak.naptar.alap;
 const DEFAULT_CALENDAR_NAME = "Névnapok";
-const DEFAULT_LOCAL_PRIMARY_OVERRIDES_PATH = kanonikusUtvonalak.kezi.primerFelulirasokHelyi;
+const DEFAULT_LOCAL_PRIMARY_OVERRIDES_PATH = DEFAULT_LOCAL_CONFIG_PATH;
 const CURRENT_YEAR = new Date().getFullYear();
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
 

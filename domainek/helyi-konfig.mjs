@@ -14,10 +14,6 @@ import {
 import { dedupeKeepOrder, parseMonthDay } from "./primer/alap.mjs";
 
 export const DEFAULT_LOCAL_CONFIG_PATH = kanonikusUtvonalak.helyi.nevnapokKonfig;
-export const LEGACY_LOCAL_PRIMARY_OVERRIDE_PATHS = [
-  kanonikusUtvonalak.helyi.primerFelulirasokLegacy,
-  kanonikusUtvonalak.kezi.primerFelulirasokHelyi,
-];
 
 const ERVENYES_HELYI_PRIMER_FORRASOK = new Set(["default", "legacy", "ranked", "either"]);
 /**
@@ -84,7 +80,7 @@ export function normalizalHelyiPrimerNapokat(days) {
         return null;
       }
 
-      const addedPreferredNames = dedupeKeepOrder(day?.addedPreferredNames ?? day?.preferredNames ?? []);
+      const addedPreferredNames = dedupeKeepOrder(day?.addedPreferredNames ?? []);
 
       if (addedPreferredNames.length === 0) {
         return null;
@@ -121,20 +117,6 @@ export function normalizalHelyiPrimerBeallitasokat(beallitasok) {
   };
 }
 
-function legacyPayloadbolHelyiKonfig(rawPayload) {
-  return {
-    version: 1,
-    generatedAt: rawPayload?.generatedAt ?? new Date().toISOString(),
-    source: "helyi felhasználói beállítások",
-    ics: alapertelmezettHelyiIcsBeallitasok(),
-    personalPrimary: normalizalHelyiPrimerBeallitasokat({
-      primarySource: rawPayload?.settings?.primarySource,
-      modifiers: rawPayload?.settings?.modifiers,
-      days: rawPayload?.days,
-    }),
-  };
-}
-
 /**
  * A `normalizalHelyiFelhasznaloiKonfigPayloadot` egységes helyi konfigpayloadot ad vissza.
  */
@@ -149,19 +131,14 @@ export function normalizalHelyiFelhasznaloiKonfigPayloadot(rawPayload) {
     };
   }
 
-  if (rawPayload?.settings || Array.isArray(rawPayload?.days)) {
-    return legacyPayloadbolHelyiKonfig(rawPayload);
-  }
-
   return uresHelyiFelhasznaloiKonfigPayload(rawPayload?.generatedAt ?? new Date().toISOString());
 }
 
 /**
- * A `betoltHelyiFelhasznaloiKonfigot` az egységes helyi YAML-konfigot tölti be, legacy fallbackkel.
+ * A `betoltHelyiFelhasznaloiKonfigot` az egységes helyi YAML-konfigot tölti be.
  */
 export async function betoltHelyiFelhasznaloiKonfigot(filePath = DEFAULT_LOCAL_CONFIG_PATH) {
   const resolvedPath = path.resolve(process.cwd(), filePath);
-  const defaultResolvedPath = path.resolve(process.cwd(), DEFAULT_LOCAL_CONFIG_PATH);
 
   if (await letezik(resolvedPath)) {
     const rawPayload = await betoltStrukturaltFajl(resolvedPath);
@@ -171,24 +148,6 @@ export async function betoltHelyiFelhasznaloiKonfigot(filePath = DEFAULT_LOCAL_C
       payload: normalizalHelyiFelhasznaloiKonfigPayloadot(rawPayload),
       sourcePath: resolvedPath,
     };
-  }
-
-  if (resolvedPath === defaultResolvedPath) {
-    for (const legacyPath of LEGACY_LOCAL_PRIMARY_OVERRIDE_PATHS) {
-      const resolvedLegacyPath = path.resolve(process.cwd(), legacyPath);
-
-      if (!(await letezik(resolvedLegacyPath))) {
-        continue;
-      }
-
-      const rawPayload = await betoltStrukturaltFajl(resolvedLegacyPath);
-
-      return {
-        path: resolvedPath,
-        payload: normalizalHelyiFelhasznaloiKonfigPayloadot(rawPayload),
-        sourcePath: resolvedLegacyPath,
-      };
-    }
   }
 
   return {

@@ -550,7 +550,7 @@ test("az audit primer CLI snapshot módban hiánytalan napnál is a helyes végs
     summary: {
       rowCount: 1,
       combinedMissingCount: 0,
-      localSelectedCount: 0,
+      localSelectedCount: 2,
       warningDayCount: 0,
       hardFailureCount: 0,
     },
@@ -820,10 +820,10 @@ test("a személyes kimenet mód kézi helyi kijelöléssel csak a saját ICS-t k
   await assert.rejects(fs.access(kozosIcsUtvonal));
 });
 
-test("a legacy személyes profil önmagában már nem készít saját ICS-t", async () => {
+test("a régi külön helyi override fájl önmagában már nem hat az ICS-generálásra", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-helyi-source-only-"));
   const adatbazisForras = path.join(gyoker, "test", "fixtures", "nevadatbazis-minta.yaml");
-  const helyiFelulirasok = {
+  const legacyHelyiFelulirasok = {
     version: 1,
     generatedAt: "2026-04-09T00:00:00.000Z",
     source: "helyi egyedi primerkiegészítések",
@@ -840,7 +840,7 @@ test("a legacy személyes profil önmagában már nem készít saját ICS-t", as
   await masolMappat(adatbazisForras, path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"));
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.local.yaml"),
-    helyiFelulirasok
+    legacyHelyiFelulirasok
   );
 
   await execFileAsync(process.execPath, [binUtvonal, "kimenet", "general", "ics"], {
@@ -1319,6 +1319,8 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
     summary: {
       rowCount: 1,
       combinedMissingCount: 2,
+      effectiveMissingCount: 0,
+      locallyResolvedMissingCount: 2,
       localSelectedCount: 0,
     },
     personal: {
@@ -1333,7 +1335,11 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
             month: 1,
             day: 2,
             monthDay: "01-02",
+            commonPreferredNames: ["Ábel"],
             finalPrimaryNames: ["Ábel"],
+            localAddedPreferredNames: ["Alpár", "Béla"],
+            effectivePreferredNames: ["Ábel", "Alpár", "Béla"],
+            effectivePreferredCount: 3,
             normalizedMissing: [
               {
                 name: "Alpár",
@@ -1350,6 +1356,21 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
                 similarPrimaries: [],
               },
             ],
+            locallyResolvedMissing: [
+              {
+                name: "Alpár",
+                sources: ["normalized"],
+                highlight: false,
+                similarPrimaries: [],
+              },
+              {
+                name: "Béla",
+                sources: ["ranking"],
+                highlight: false,
+                similarPrimaries: [],
+              },
+            ],
+            effectiveMissing: [],
             combinedMissing: [
               {
                 name: "Alpár",

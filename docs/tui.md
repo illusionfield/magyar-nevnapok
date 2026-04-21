@@ -37,6 +37,8 @@ Minden kapcsolóhoz külön, részletes magyarázat jelenik meg a jobb oldali pa
 A kijelölés mozgatásakor és az érték váltásakor a felső infósor is azonnal leírja,
 hogy az aktuális állás mit jelent a gyakorlatban.
 A módosítások azonnal a nem követett `.local/nevnapok.local.yaml` fájlba mentődnek.
+A TUI kizárólag ezt az egységes helyi YAML-profilt kezeli; a régi külön helyi
+override fájlok már nem részei a működésnek.
 A jobb oldali panel már nem parancselőnézetet, hanem a mentett profil összegzését és a YAML-részletet mutatja.
 A generálás csak az aktív kimenet módhoz tartozó ICS-fájlokat hagyja meg.
 
@@ -73,7 +75,7 @@ A jobb oldalon egyetlen részletes panel jelenik meg fix blokkokkal:
 - `Nyers és rejtett nevek`,
 - `Személyes műveletek`.
 
-A napi helyi kijelölések `Space` billentyűvel kapcsolhatók, ha a fókusz a
+A napi kézi helyi kijelölések `Space` billentyűvel kapcsolhatók, ha a fókusz a
 személyes névlistán van.
 A mentés a nem követett `.local/nevnapok.local.yaml` `personalPrimary`
 blokkjába történik.
@@ -94,13 +96,15 @@ A `Nevek` mód a teljes névindexet adja:
 
 Ez a drawer ugyanazt a nem követett helyi YAML-profilt írja, mint az ICS
 nézet.
+A `Normalizált` / `Rangsor` módosítók véglegesítése a Primer audit része;
+az ICS-generálás ezeket már a véglegesített audit snapshotból olvassa vissza.
 
 ## Billentyűk
 
 - `↑` / `↓` — mozgás az aktív listában
 - `←` / `→` — panelváltás a napi vagy névnézetben
 - `Enter` — drill-down, kibontás vagy ugrás a kijelölt napra
-- `Space` — helyi primerkiegészítés kapcsolása a napi személyes listában
+- `Space` — kézi helyi primerkiegészítés kapcsolása a napi személyes listában
 - `g` — az aktív, mentett ICS-profil szerinti generálás
 - `r` — riportfrissítés
 - `Tab` vagy `1`–`3` — módváltás a primer audit nézetben

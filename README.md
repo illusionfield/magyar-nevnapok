@@ -158,8 +158,11 @@ Helyi, nem követett személyes bemenet:
 - A CLI és a TUI ugyanazt az alkalmazásszintű szolgáltatásréteget használja.
 - A pipeline lépései deklarált bemenetekkel és kimenetekkel működnek.
 - A hivatalos névjegyzék eltérései dokumentált kivétellistában vannak kezelve.
+- A közös, követett primerfelülírások mértékadó fájlja a `data/primary-registry-overrides.yaml`.
 - Az ICS-profil, a személyes primerprofil és a kézi helyi primernapok egy közös, nem követett helyi YAML-fájlban élnek: `.local/nevnapok.local.yaml`.
-- A helyi YAML `personalPrimary` blokkja a személyes primerforrást és a `Normalizált` / `Rangsor` módosítókat is tárolja.
+- A helyi YAML `personalPrimary` blokkja a személyes primerforrást, a `Normalizált` / `Rangsor` módosítókat és a kézi helyi primernapokat tárolja.
+- A közös alap továbbra is a `data/primary-registry-overrides.yaml`, erre ül rá a helyi overlay a `.local/nevnapok.local.yaml` alapján.
+- A `Normalizált` / `Rangsor` módosító a Primer auditban véglegesül; az ICS-generálás ezt a véglegesített audit snapshotot használja, nem számolja újra.
 - Az `ics.outputMode` egyszerre pontosan egy aktív ICS-kimenetet jelöl ki: közös, primer+további külön vagy személyes.
 - A scraper réteg Puppeteer 24-gyel is stabilan fut; a HUN-REN HTTP-forráshoz a projekt központi kompatibilitási launch-opciókat használ.
 - Az `ics` generálás publikus CLI-felülete már nem részletes kapcsolókkal dolgozik, hanem a mentett helyi YAML-profilt használja.
@@ -176,6 +179,7 @@ Helyi, nem követett személyes bemenet:
 - [Források és dokumentált kivételek](docs/forrasok-es-kivetelek.md)
 - [Migráció a régi scriptvilágból](docs/migracio.md)
 - [Változásnapló](CHANGELOG.md)
+- [0.6.4 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.4.md)
 - [0.6.3 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.3.md)
 - [0.6.2 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.2.md)
 - [0.6.1 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.1.md)
