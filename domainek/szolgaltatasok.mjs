@@ -29,13 +29,21 @@ import {
 } from "./primer/helyi-primer-felulirasok.mjs";
 import { exportalCsv, exportalExcel } from "./kimenetek/tabularis-export.mjs";
 import {
+  buildNameMapFromSourceDays,
+  buildSourceDaysFromPayload,
   epitIcsKimenetiTervet,
+  splitSourceDaysByPreferredRegistry,
   vegrehajtIcsKimenetiTervet,
 } from "./naptar/ics-generalas.mjs";
-import { epitIcsOutputProfilt, listazIcsMenedzseltKimeneteket } from "./naptar/ics-beallitasok.mjs";
+import {
+  egyesitIcsBeallitasokat,
+  epitIcsOutputProfilt,
+  listazIcsMenedzseltKimeneteket,
+  normalizalIcsBeallitasokat,
+} from "./naptar/ics-beallitasok.mjs";
 import {
   alkalmazHelyiPrimerOverlaytPrimerAuditRiporton,
-  buildVeglegesitettHelyiPrimerMapotPrimerAuditRiportbol,
+  buildPrimerAuditVeglegesitettPrimerPayload,
 } from "./auditok/primer-audit.mjs";
 
 const aktualisKonyvtar = path.dirname(fileURLToPath(import.meta.url));
@@ -123,9 +131,11 @@ async function futtatPrimerAuditFrissitest(opciok = {}) {
     },
   ];
 
-  await futtatPipelineCelt("portal-nevadatbazis-epites", {
-    force: opciok.force === true,
-  });
+  if (opciok.force === true || !(await letezik(kanonikusUtvonalak.adatbazis.nevnapok))) {
+    await futtatPipelineCelt("portal-nevadatbazis-epites", {
+      force: opciok.force === true,
+    });
+  }
 
   for (const lepes of primerAuditLepesek) {
     await futtatNodeFolyamat(modulUtvonal(lepes.modul), lepes.argumentumok, kozosFuttatasiOpciok);
@@ -135,44 +145,6 @@ async function futtatPrimerAuditFrissitest(opciok = {}) {
     audit: "primer-audit",
     sikeres: true,
     reportPath: kanonikusUtvonalak.riportok.primerAudit,
-  };
-}
-
-async function betoltSajatPrimerIcsBeallitasokat() {
-  const [helyiFelulirasok, helyiBeallitasok] = await Promise.all([
-    betoltHelyiPrimerFelulirasokat(),
-    betoltHelyiPrimerBeallitasokat(),
-  ]);
-  const manualMap = buildHelyiPrimerFelulirasMap(helyiFelulirasok.payload);
-  const modifiersActive =
-    helyiBeallitasok.settings.modifiers?.normalized === true ||
-    helyiBeallitasok.settings.modifiers?.ranking === true;
-  let effectiveOverrideMap = manualMap;
-
-  if (modifiersActive) {
-    const primerAuditUtvonal = kanonikusUtvonalak.riportok.primerAudit;
-
-    if (!(await letezik(primerAuditUtvonal))) {
-      throw new Error(
-        "A személyes Normalizált vagy Rangsor módosító használatához előbb véglegesítsd a Primer auditot: nevnapok audit primer"
-      );
-    }
-
-    const riport = await betoltStrukturaltFajl(primerAuditUtvonal);
-
-    if (!riport?.summary || !("effectiveMissingCount" in riport.summary)) {
-      throw new Error(
-        "A primer audit snapshot még nem tartalmaz véglegesített helyi overlayt. Futtasd újra: nevnapok audit primer"
-      );
-    }
-
-    effectiveOverrideMap = buildVeglegesitettHelyiPrimerMapotPrimerAuditRiportbol(riport);
-  }
-
-  return {
-    settings: helyiBeallitasok.settings,
-    manualMap,
-    effectiveOverrideMap,
   };
 }
 
@@ -350,61 +322,81 @@ export async function generalKimenetet(formatum, opciok = {}) {
   if (formatum === "ics") {
     const helyiIcsBeallitasok = await betoltHelyiIcsBeallitasokat();
     const helyiSzemelyesPrimer = helyiIcsBeallitasok.payload?.personalPrimary ?? null;
-    const kozpontiBeallitasok = {
-      ...helyiIcsBeallitasok.settings,
-      ...opciok,
-    };
-    const szemelyesProfil =
-      kozpontiBeallitasok.outputMode === "personal"
-        ? await betoltSajatPrimerIcsBeallitasokat()
-        : null;
-    const outputProfil = epitIcsOutputProfilt(kozpontiBeallitasok, {
-      personalPrimarySettings: szemelyesProfil?.settings,
-    });
+    const kozpontiBeallitasok = normalizalIcsBeallitasokat(
+      egyesitIcsBeallitasokat(helyiIcsBeallitasok.settings, opciok)
+    );
+    const outputProfil = epitIcsOutputProfilt(kozpontiBeallitasok);
+    const futasiTervek = [];
 
-    if (
-      outputProfil.settings.outputMode !== "personal" &&
-      (
+    if (outputProfil.partitionMode === "single") {
+      if (
         (helyiSzemelyesPrimer?.days?.length ?? 0) > 0 ||
         vanNemAlapertelmezettHelyiPrimerBeallitas(helyiSzemelyesPrimer)
-      )
-    ) {
-      console.log(
-        `Megjegyzés: a .local/nevnapok.local.yaml personalPrimary blokkja most inaktív, mert az aktív ICS mód ${outputProfil.settings.outputMode}. A személyes primerkiegészítések csak personal módban érvényesülnek.`
+      ) {
+        console.log(
+          "Megjegyzés: az egyfájlos ICS-ben nincs primerbontás, ezért a Primer audit helyi overlaye most nem módosítja a kimenetet."
+        );
+      }
+
+      futasiTervek.push(
+        await epitIcsKimenetiTervet(outputProfil.single.generatorOptions)
+      );
+    } else {
+      await futtatPrimerAuditFrissitest({
+        tukrozzStdout: false,
+        tukrozzStderr: false,
+      });
+
+      const [nevadatbazisPayload, primerAuditRiport] = await Promise.all([
+        betoltStrukturaltFajl(path.resolve(process.cwd(), kozpontiBeallitasok.shared.input)),
+        betoltStrukturaltFajl(kanonikusUtvonalak.riportok.primerAudit),
+      ]);
+      const primerAuditPayload = buildPrimerAuditVeglegesitettPrimerPayload(primerAuditRiport);
+      const sourceDays = buildSourceDaysFromPayload(nevadatbazisPayload);
+      const sourceNameMap = buildNameMapFromSourceDays(sourceDays);
+      const splitDays = splitSourceDaysByPreferredRegistry(
+        sourceDays,
+        primerAuditPayload,
+        nevadatbazisPayload
+      );
+
+      futasiTervek.push(
+        await epitIcsKimenetiTervet(outputProfil.split.primary.generatorOptions, {
+          payload: nevadatbazisPayload,
+          sourceDays: splitDays.primaryDays,
+          sourceNameMap,
+        })
+      );
+      futasiTervek.push(
+        await epitIcsKimenetiTervet(outputProfil.split.rest.generatorOptions, {
+          payload: nevadatbazisPayload,
+          sourceDays: splitDays.restDays,
+          sourceNameMap,
+        })
       );
     }
 
-    const terv = await epitIcsKimenetiTervet(outputProfil.generatorOptions, {
-      localPrimaryOverrideMap: outputProfil.usesPersonalPrimary
-        ? szemelyesProfil?.effectiveOverrideMap
-        : undefined,
-    });
-    const aktivKimenetek = new Set(terv.plannedOutputPaths.map((utvonal) => path.resolve(utvonal)));
+    const aktivKimenetek = new Set(
+      futasiTervek.flatMap((terv) => terv.plannedOutputPaths).map((utvonal) => path.resolve(utvonal))
+    );
     const torlendoKimenetek = listazIcsMenedzseltKimeneteket(kozpontiBeallitasok).filter(
       (utvonal) => !aktivKimenetek.has(path.resolve(utvonal))
     );
 
     await torolIcsKimeneteket(torlendoKimenetek);
+    const writtenPaths = [];
 
-    const eredmeny = await vegrehajtIcsKimenetiTervet(terv);
+    for (const terv of futasiTervek) {
+      const eredmeny = await vegrehajtIcsKimenetiTervet(terv);
 
-    for (const result of eredmeny.results) {
-      console.log(`Mentve: ${result.eventCount} esemény ide: ${result.outputPath}`);
-
-      if (result.skippedEmptyPrimaryDays > 0) {
-        const reszCimke =
-          result.options.calendarPartition === "primary"
-            ? "elsődleges naptár"
-            : result.options.calendarPartition === "rest"
-              ? "további névnapok naptára"
-              : "naptár";
-        console.log(
-          `${result.skippedEmptyPrimaryDays} nap kimaradt a(z) ${reszCimke} részből, mert a kiválasztott primerforrás nem adott elsődleges neveket.`
-        );
+      for (const result of eredmeny.results) {
+        console.log(`Mentve: ${result.eventCount} esemény ide: ${result.outputPath}`);
       }
+
+      writtenPaths.push(...eredmeny.writtenPaths);
     }
 
-    return eredmeny.writtenPaths;
+    return writtenPaths;
   }
 
   if (formatum === "json") {
@@ -536,7 +528,7 @@ export async function betoltPrimerAuditAdata(opciok = {}) {
 }
 
 /**
- * Az `allitSajatPrimerForrast` a személyes naptár primerforrási profilját módosítja.
+ * Az `allitSajatPrimerForrast` a helyi primerforrás profilját módosítja.
  */
 export async function allitSajatPrimerForrast(primarySource) {
   const eredmeny = await allitHelyiPrimerForrast({ primarySource });
@@ -549,7 +541,7 @@ export async function allitSajatPrimerForrast(primarySource) {
 }
 
 /**
- * Az `allitSajatPrimerBeallitasokat` a teljes személyes primerprofilt menti.
+ * Az `allitSajatPrimerBeallitasokat` a teljes helyi primerprofilt menti.
  */
 export async function allitSajatPrimerBeallitasokat(beallitasok = {}) {
   const eredmeny = await allitHelyiPrimerBeallitasokat(beallitasok);
@@ -562,11 +554,11 @@ export async function allitSajatPrimerBeallitasokat(beallitasok = {}) {
 }
 
 /**
- * Az `allitSajatPrimerModositot` a személyes primer egyik módosítóját kapcsolja.
+ * Az `allitSajatPrimerModositot` a helyi primer egyik módosítóját kapcsolja.
  */
 export async function allitSajatPrimerModositot(modosito, aktiv) {
   if (!["normalized", "ranking"].includes(modosito)) {
-    throw new Error("A személyes primer módosító csak normalized vagy ranking lehet.");
+    throw new Error("A helyi primer módosító csak normalized vagy ranking lehet.");
   }
 
   const jelenlegi = await betoltHelyiPrimerBeallitasokat();
@@ -615,7 +607,7 @@ async function allitHelyiPrimerKiegeszitest({ monthDay, name, selected }) {
 }
 
 /**
- * A `hozzaadHelyiPrimerKiegeszitest` hozzáad egy nevet a személyes primerhez az adott napon.
+ * A `hozzaadHelyiPrimerKiegeszitest` hozzáad egy nevet a helyi primerhez az adott napon.
  */
 export async function hozzaadHelyiPrimerKiegeszitest({ monthDay, name }) {
   return allitHelyiPrimerKiegeszitest({
@@ -626,7 +618,7 @@ export async function hozzaadHelyiPrimerKiegeszitest({ monthDay, name }) {
 }
 
 /**
- * A `torolHelyiPrimerKiegeszitest` töröl egy nevet a személyes primerből az adott napon.
+ * A `torolHelyiPrimerKiegeszitest` töröl egy nevet a helyi primerből az adott napon.
  */
 export async function torolHelyiPrimerKiegeszitest({ monthDay, name }) {
   return allitHelyiPrimerKiegeszitest({

@@ -6,20 +6,41 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 
 Jelenleg nincs külön, kiadásra előkészített új változás.
 
+## [0.6.5] - 2026-04-21
+
+### ICS-kimeneti modell egyszerűsítése
+
+- Az ICS-profil publikus modellje a korábbi `common / split / personal` felosztás helyett `single / split` működésre egyszerűsödött.
+- `single` módban egyetlen, minden nevet tartalmazó ICS készül, `split` módban pedig külön elsődleges és külön további naptár jön létre.
+- A helyi `.local/nevnapok.local.yaml` automatikusan migrálható az új sémára, és a writer most már csak az új, egyszerűsített struktúrát írja vissza.
+
+### Primer audit mint véglegesítő réteg
+
+- A `Normalizált` és `Rangsor` módosítók véglegesítése teljesen a Primer auditba került.
+- A bontott ICS már a Primer audit véglegesített snapshotját használja, és nem számolja újra a primerlogikát.
+- A helyi primerforrás, a kézi helyi napok és a módosítók együtt adják a bontott kimenet elsődleges névlistáját.
+
+### TUI, CLI és dokumentációs sweep
+
+- Az ICS és Primer audit felületek user-facing terminológiája egységes lett: a hangsúly mostantól a helyi overlayen, az audit-véglegesítésen és az egyfájlos vagy bontott naptárkimeneten van.
+- A README, a CLI/TUI dokumentáció és a kiadási jegyzetek az új `partitionMode`-ra és a Primer audit véglegesítő szerepére épülnek.
+- A help- és státuszszövegek már nem a régi külön személyes ICS-módot tekintik mértékadónak.
+
 ## [0.6.4] - 2026-04-20
 
 ### Primer audit mint véglegesítő réteg
 
 - A közös, követett primerfelülírások mértékadó alapja továbbra is a `data/primary-registry-overrides.yaml`.
-- A helyi, személyes beállítások egyetlen nem követett forrása a `.local/nevnapok.local.yaml`, de ez most már kifejezetten helyi overlayként működik a közös alap fölött.
+- A helyi beállítások egyetlen nem követett forrása a `.local/nevnapok.local.yaml`, de ez most már kifejezetten helyi overlayként működik a közös alap fölött.
 - A `Normalizált` és `Rangsor` módosítók véglegesítése átkerült a Primer auditba: az audit most közös alapot, helyi overlayt és eredő helyi primerlistát is előállít.
 - Az `output/riportok/primer-audit.yaml` új effektív mezőket is tárol, így külön látszik a közös hiány, a helyben feloldott hiány és a helyben továbbra is nyitott hiány.
 
 ### ICS generálás egyszerűsítése
 
 - Az ICS-generálás már nem számolja újra a `Normalizált` / `Rangsor` módosítók hatását.
-- Személyes módban a generálás a Primer audit véglegesített snapshotját olvassa, ezért az audit lett a személyes primerlogika számolófelülete, az ICS pedig tisztán konfigurációs és kimeneti felület maradt.
-- Ha a személyes módosítók aktívak, de még nincs friss Primer audit snapshot, az ICS-generálás célzott hibával kéri a `nevnapok audit primer` futtatását.
+- A publikus ICS-modell a korábbi `common / split / personal` helyett `single / split` felosztásra egyszerűsödött.
+- `single` módban egyetlen, minden nevet tartalmazó ICS készül; `split` módban a Primer audit véglegesített snapshotja alapján külön elsődleges és külön további naptár jön létre.
+- A helyi primerforrás és a `Normalizált` / `Rangsor` módosítók a Primer audit részei maradnak, az ICS pedig tisztán konfigurációs és kimeneti felület maradt.
 - Kikerült a régi `.local/primary-registry-overrides.local.yaml` és `data/primary-registry-overrides.local.yaml` fallback és kompatibilitási beolvasása.
 
 ### Primer audit TUI stabilizáció
@@ -35,10 +56,8 @@ Jelenleg nincs külön, kiadásra előkészített új változás.
 
 - Az ICS generálás mértékadó helyi profilja mostantól a nem követett `.local/nevnapok.local.yaml`.
 - Az ICS publikus CLI-felületéről kikerültek a részletes kapcsolók; a generálás a mentett helyi YAML-profilt használja.
-- Az új helyi YAML egy fájlban tárolja az `ics` blokkot, a személyes primerprofilt és a kézi helyi primernapokat.
-- Az ICS-generálás mostantól egyszerre pontosan egy aktív kimenet móddal dolgozik: közös, primer+további külön vagy személyes.
-- A személyes primerprofil már nem hoz létre automatikusan külön ICS-t; csak a `personal` kimenet módnál érvényesül.
-- A TUI ICS nézete és a Primer audit személyes beállítási drawerje ugyanazt a közös helyi YAML-fájlt szerkeszti.
+- Az új helyi YAML egy fájlban tárolja az `ics` blokkot, a helyi primerprofilt és a kézi helyi primernapokat.
+- A TUI ICS nézete és a Primer audit helyi beállítási drawerje ugyanazt a közös helyi YAML-fájlt szerkeszti.
 
 ### Primer audit TUI
 

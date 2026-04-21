@@ -440,6 +440,41 @@ export function buildVeglegesitettHelyiPrimerMapotPrimerAuditRiportbol(report) {
   return map;
 }
 
+export function buildPrimerAuditVeglegesitettPrimerPayload(report, opciok = {}) {
+  const mezokulcs = opciok.useCommon === true ? "commonPreferredNames" : "effectivePreferredNames";
+  const days = [];
+
+  for (const month of report?.months ?? []) {
+    for (const row of month.rows ?? []) {
+      const preferredNames = [
+        ...(row[mezokulcs] ??
+          row.sections?.osszefoglalo?.[mezokulcs] ??
+          row.finalPrimaryNames ??
+          row.preferredNames ??
+          []),
+      ];
+
+      days.push({
+        month: row.month,
+        day: row.day,
+        monthDay: row.monthDay,
+        names: preferredNames,
+        preferredNames,
+      });
+    }
+  }
+
+  return {
+    version: 1,
+    generatedAt: report?.generatedAt ?? new Date().toISOString(),
+    source:
+      mezokulcs === "commonPreferredNames"
+        ? "primer audit közös primer snapshot"
+        : "primer audit véglegesített primer snapshot",
+    days,
+  };
+}
+
 export function alkalmazHelyiPrimerOverlaytPrimerAuditRiporton(
   report,
   { localSettings, localOverridesPayload } = {}

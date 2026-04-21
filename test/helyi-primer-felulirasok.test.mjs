@@ -45,7 +45,7 @@ test("a helyi primerforrás mentése megmarad a napi kijelölések mellett is", 
   assert.equal(payload.personalPrimary.modifiers.normalized, false);
   assert.equal(payload.personalPrimary.modifiers.ranking, false);
   assert.deepEqual(payload.personalPrimary.days[0].addedPreferredNames, ["Alpár"]);
-  assert.equal(typeof payload.ics.output, "string");
+  assert.equal(typeof payload.ics.single.output, "string");
 });
 
 test("a személyes módosítók mentése is megmarad a napi kijelölések mellett", async () => {

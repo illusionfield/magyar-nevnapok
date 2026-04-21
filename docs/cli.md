@@ -51,24 +51,23 @@ Az `excel` export egy `.xlsx` munkafüzetet készít a következő lapokkal:
 - `Napok` — napi összegző nézet,
 - `Meta` — rövid exportmeta és darabszámok.
 
-Az `ics` generálás egyszerre pontosan egy aktív kimenet móddal dolgozik:
+Az `ics` generálás két egyszerű kimeneti modellel dolgozik:
 
-- `common` → csak `output/naptar/nevnapok.ics`
-- `split` → csak `output/naptar/nevnapok-primary.ics` és `output/naptar/nevnapok-rest.ics`
-- `personal` → csak `output/naptar/nevnapok-sajat.ics`
+- `single` → egyetlen `output/naptar/nevnapok.ics`, benne minden névnap
+- `split` → külön `output/naptar/nevnapok-primary.ics` és `output/naptar/nevnapok-rest.ics`
 
 Az ICS-generálás a nem követett `.local/nevnapok.local.yaml` mentett profiljából dolgozik.
 Ebben a fájlban él:
 
 - az `ics` blokk a teljes közös naptárprofillal,
-- az `ics.outputMode` az aktív ICS-kimenet kijelölésével,
-- a `personalPrimary` blokk a személyes primerforrással,
+- az `ics.partitionMode` az egyfájlos vagy bontott kimenet kijelölésével,
+- a `personalPrimary` blokk a helyi primerforrással,
 - a `Normalizált` / `Rangsor` módosítók állapota,
 - és a kézi helyi primernapok listája.
 
 A közös, követett primerfelülírások mértékadó fájlja továbbra is a
 `data/primary-registry-overrides.yaml`.
-A helyi, személyes overlay kizárólag a `.local/nevnapok.local.yaml`.
+A helyi overlay kizárólag a `.local/nevnapok.local.yaml`.
 
 A `Normalizált` / `Rangsor` módosítók véglegesítése a `Primer audit` felületén történik.
 Az ICS-generálás ezeket már nem számolja újra, hanem a véglegesített
@@ -80,8 +79,6 @@ megváltoztatod, utána futtasd újra:
 ```bash
   npm run cli -- audit primer
 ```
-
-A személyes primerprofil csak akkor hat a generálásra, ha az aktív mód `personal`.
 
 A `nevnapok kimenet general ics` publikus felületén a részletes ICS-kapcsolók megszűntek.
 Ha valaki ilyet használ, a CLI célzott hibával jelzi, hogy az ICS-profilt mostantól a

@@ -16,11 +16,13 @@ test("a hiányzó unified helyi YAML stabil default ICS- és személyes blokkot 
 
   const eredmeny = await betoltHelyiFelhasznaloiKonfigot(fajl);
 
-  assert.equal(eredmeny.payload.ics.outputMode, "common");
-  assert.equal(eredmeny.payload.ics.scope, "all");
-  assert.equal(eredmeny.payload.ics.layout, "grouped");
-  assert.equal(eredmeny.payload.ics.personalOutput, "output/naptar/nevnapok-sajat.ics");
-  assert.equal(eredmeny.payload.ics.calendarName, "Névnapok");
+  assert.equal(eredmeny.payload.ics.partitionMode, "single");
+  assert.equal(eredmeny.payload.ics.shared.input, "output/adatbazis/nevnapok.yaml");
+  assert.equal(eredmeny.payload.ics.single.layout, "grouped");
+  assert.equal(eredmeny.payload.ics.single.output, "output/naptar/nevnapok.ics");
+  assert.equal(eredmeny.payload.ics.split.primary.output, "output/naptar/nevnapok-primary.ics");
+  assert.equal(eredmeny.payload.ics.split.rest.output, "output/naptar/nevnapok-rest.ics");
+  assert.equal(eredmeny.payload.ics.single.calendarName, "Névnapok");
   assert.equal(eredmeny.payload.personalPrimary.primarySource, "default");
   assert.equal(eredmeny.payload.personalPrimary.modifiers.normalized, false);
   assert.equal(eredmeny.payload.personalPrimary.modifiers.ranking, false);
@@ -33,39 +35,92 @@ test("az ICS blokk mentése unified helyi YAML-ba írja a teljes profilt", async
 
   await allitHelyiIcsBeallitasokat(
     {
-      outputMode: "split",
-      scope: "primary",
-      layout: "separate",
-      restHandling: "split",
-      restLayout: "grouped",
-      leapProfile: "hungarian-b",
-      fromYear: 2027,
-      untilYear: 2040,
-      descriptionMode: "detailed",
-      descriptionFormat: "full",
-      ordinalDay: "description",
-      includeOtherDays: true,
-      calendarName: "Teszt naptár",
-      primaryOutput: "output/naptar/nevnapok-primary.ics",
-      restOutput: "output/naptar/nevnapok-rest.ics",
+      partitionMode: "split",
+      shared: {
+        leapProfile: "hungarian-b",
+        fromYear: 2027,
+        untilYear: 2040,
+      },
+      split: {
+        primary: {
+          layout: "separate",
+          descriptionMode: "detailed",
+          descriptionFormat: "full",
+          ordinalDay: "description",
+          includeOtherDays: true,
+          calendarName: "Teszt naptár — elsődleges",
+          output: "output/naptar/nevnapok-primary.ics",
+        },
+        rest: {
+          layout: "grouped",
+          descriptionMode: "compact",
+          descriptionFormat: "text",
+          ordinalDay: "summary",
+          includeOtherDays: false,
+          calendarName: "Teszt naptár — további",
+          output: "output/naptar/nevnapok-rest.ics",
+        },
+      },
     },
     fajl
   );
 
   const payload = await betoltStrukturaltFajl(fajl);
 
-  assert.equal(payload.ics.outputMode, "split");
-  assert.equal(payload.ics.scope, "primary");
-  assert.equal(payload.ics.layout, "separate");
-  assert.equal(payload.ics.restHandling, "split");
-  assert.equal(payload.ics.restLayout, "grouped");
-  assert.equal(payload.ics.leapProfile, "hungarian-b");
-  assert.equal(payload.ics.calendarName, "Teszt naptár");
-  assert.equal(payload.ics.primaryOutput, "output/naptar/nevnapok-primary.ics");
-  assert.equal(payload.ics.restOutput, "output/naptar/nevnapok-rest.ics");
-  assert.equal(payload.ics.personalOutput, "output/naptar/nevnapok-sajat.ics");
+  assert.equal(payload.ics.partitionMode, "split");
+  assert.equal(payload.ics.shared.leapProfile, "hungarian-b");
+  assert.equal(payload.ics.shared.fromYear, 2027);
+  assert.equal(payload.ics.split.primary.layout, "separate");
+  assert.equal(payload.ics.split.primary.descriptionMode, "detailed");
+  assert.equal(payload.ics.split.primary.output, "output/naptar/nevnapok-primary.ics");
+  assert.equal(payload.ics.split.rest.layout, "grouped");
+  assert.equal(payload.ics.split.rest.descriptionMode, "compact");
+  assert.equal(payload.ics.split.rest.output, "output/naptar/nevnapok-rest.ics");
   assert.equal(payload.personalPrimary.primarySource, "default");
   assert.deepEqual(payload.personalPrimary.days, []);
+});
+
+test("a legacy flat ICS-blokkot a loader visszafelé kompatibilisen az új sémára migrálja", async () => {
+  const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-helyi-migracio-"));
+  const fajl = path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml");
+
+  await mentStrukturaltFajl(fajl, {
+    version: 1,
+    generatedAt: "2026-04-21T09:00:00.000Z",
+    source: "helyi felhasználói beállítások",
+    ics: {
+      input: "output/adatbazis/nevnapok.yaml",
+      output: "output/naptar/nevnapok.ics",
+      personalOutput: "output/naptar/nevnapok-sajat.ics",
+      outputMode: "personal",
+      layout: "separate",
+      descriptionMode: "detailed",
+      descriptionFormat: "full",
+      ordinalDay: "description",
+      includeOtherDays: true,
+      leapProfile: "hungarian-b",
+      fromYear: 2027,
+      untilYear: 2040,
+      baseYear: 2024,
+      calendarName: "Teszt migráció",
+    },
+    personalPrimary: {
+      primarySource: "default",
+      modifiers: {
+        normalized: false,
+        ranking: false,
+      },
+      days: [],
+    },
+  });
+
+  const eredmeny = await betoltHelyiFelhasznaloiKonfigot(fajl);
+
+  assert.equal(eredmeny.payload.ics.partitionMode, "split");
+  assert.equal(eredmeny.payload.ics.shared.leapProfile, "hungarian-b");
+  assert.equal(eredmeny.payload.ics.split.primary.output, "output/naptar/nevnapok-sajat.ics");
+  assert.equal(eredmeny.payload.ics.split.primary.layout, "separate");
+  assert.equal(eredmeny.payload.ics.split.rest.output, "output/naptar/nevnapok-sajat-rest.ics");
 });
 
 test("a régi külön helyi override fájlokat a loader figyelmen kívül hagyja", async () => {

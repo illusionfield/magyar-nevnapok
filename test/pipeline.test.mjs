@@ -20,6 +20,73 @@ async function masolMappat(forras, cel) {
   await fs.copyFile(forras, cel);
 }
 
+function createIcsBeallitasok(overrides = {}) {
+  return {
+    partitionMode: overrides.partitionMode ?? "single",
+    shared: {
+      input: "output/adatbazis/nevnapok.yaml",
+      leapProfile: "off",
+      fromYear: 2026,
+      untilYear: 2040,
+      baseYear: 2024,
+      ...(overrides.shared ?? {}),
+    },
+    single: {
+      output: "output/naptar/nevnapok.ics",
+      layout: "grouped",
+      descriptionMode: "none",
+      descriptionFormat: "text",
+      ordinalDay: "none",
+      includeOtherDays: false,
+      calendarName: "Névnapok",
+      ...(overrides.single ?? {}),
+    },
+    split: {
+      primary: {
+        output: "output/naptar/nevnapok-primary.ics",
+        layout: "grouped",
+        descriptionMode: "none",
+        descriptionFormat: "text",
+        ordinalDay: "none",
+        includeOtherDays: false,
+        calendarName: "Névnapok — elsődleges",
+        ...(overrides.split?.primary ?? {}),
+      },
+      rest: {
+        output: "output/naptar/nevnapok-rest.ics",
+        layout: "grouped",
+        descriptionMode: "none",
+        descriptionFormat: "text",
+        ordinalDay: "none",
+        includeOtherDays: false,
+        calendarName: "Névnapok — további",
+        ...(overrides.split?.rest ?? {}),
+      },
+    },
+  };
+}
+
+function createHelyiKonfig({ generatedAt = "2026-04-20T12:00:00.000Z", ics = {}, personalPrimary = {} } = {}) {
+  return {
+    version: 1,
+    generatedAt,
+    source: "helyi felhasználói beállítások",
+    ics: createIcsBeallitasok(ics),
+    personalPrimary: {
+      primarySource: "default",
+      modifiers: {
+        normalized: false,
+        ranking: false,
+        ...(personalPrimary.modifiers ?? {}),
+      },
+      days: personalPrimary.days ?? [],
+      ...Object.fromEntries(
+        Object.entries(personalPrimary).filter(([kulcs]) => !["modifiers", "days"].includes(kulcs))
+      ),
+    },
+  };
+}
+
 test("a legacy primer építés létrehozza az elsődleges YAML artifactot és a manifestet", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-pipeline-"));
   const legacyIcsForras = path.join(gyoker, "data", "nevnapok_tisztitott_regi_nevkeszlet.ics");
@@ -55,11 +122,13 @@ test("az ICS generálás működik az elsődleges YAML adatbázisból", async ()
 
   const icsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok.ics");
   const ics = await fs.readFile(icsUtvonal, "utf8");
-  const sajatIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-sajat.ics");
+  const primerIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-primary.ics");
+  const restIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-rest.ics");
 
   assert.match(ics, /BEGIN:VCALENDAR/);
   assert.match(ics, /Ábel|Fruzsina/);
-  await assert.rejects(fs.access(sajatIcsUtvonal));
+  await assert.rejects(fs.access(primerIcsUtvonal));
+  await assert.rejects(fs.access(restIcsUtvonal));
 });
 
 test("a JSON export parancs létrehozza a JSON testvérartifactot", async () => {
@@ -280,31 +349,8 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
     generatedAt: "2026-04-09T00:00:00.000Z",
     days: [],
   };
-  const helyiKonfig = {
-    version: 1,
+  const helyiKonfig = createHelyiKonfig({
     generatedAt: "2026-04-09T00:00:00.000Z",
-    source: "helyi felhasználói beállítások",
-    ics: {
-      input: "output/adatbazis/nevnapok.yaml",
-      output: "output/naptar/nevnapok.ics",
-      primaryOutput: null,
-      restOutput: null,
-      personalOutput: "output/naptar/nevnapok-sajat.ics",
-      outputMode: "common",
-      scope: "all",
-      layout: "grouped",
-      restHandling: "hidden",
-      restLayout: null,
-      leapProfile: "off",
-      fromYear: 2026,
-      untilYear: 2040,
-      baseYear: 2024,
-      descriptionMode: "none",
-      descriptionFormat: "text",
-      ordinalDay: "none",
-      includeOtherDays: false,
-      calendarName: "Névnapok",
-    },
     personalPrimary: {
       primarySource: "legacy",
       modifiers: {
@@ -320,7 +366,7 @@ test("az egységes primer audit riport tartalmazza a forrás, hiányzó és szem
         },
       ],
     },
-  };
+  });
 
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
@@ -643,40 +689,7 @@ test("az audit primer CLI snapshot módban hiánytalan napnál is a helyes végs
 
 test("az audit primer helyi CLI műveletei csak a nem követett helyi konfigot írják", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-primer-audit-write-"));
-  const helyiKonfig = {
-    version: 1,
-    generatedAt: "2026-04-20T12:00:00.000Z",
-    source: "helyi felhasználói beállítások",
-    ics: {
-      input: "output/adatbazis/nevnapok.yaml",
-      output: "output/naptar/nevnapok.ics",
-      primaryOutput: null,
-      restOutput: null,
-      personalOutput: "output/naptar/nevnapok-sajat.ics",
-      outputMode: "common",
-      scope: "all",
-      layout: "grouped",
-      restHandling: "hidden",
-      restLayout: null,
-      leapProfile: "off",
-      fromYear: 2026,
-      untilYear: 2040,
-      baseYear: 2024,
-      descriptionMode: "none",
-      descriptionFormat: "text",
-      ordinalDay: "none",
-      includeOtherDays: false,
-      calendarName: "Névnapok",
-    },
-    personalPrimary: {
-      primarySource: "default",
-      modifiers: {
-        normalized: false,
-        ranking: false,
-      },
-      days: [],
-    },
-  };
+  const helyiKonfig = createHelyiKonfig();
   const trackedOverrides = {
     version: 1,
     generatedAt: "2026-04-20T12:00:00.000Z",
@@ -720,7 +733,7 @@ test("az audit primer helyi CLI műveletei csak a nem követett helyi konfigot �
   assert.deepEqual(frissTrackedOverrides, trackedOverrides);
 });
 
-test("a személyes kimenet mód kézi helyi kijelöléssel csak a saját ICS-t készíti el", async () => {
+test("a bontott kimenet kézi helyi kijelöléssel külön elsődleges és külön további ICS-t készít", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-helyi-primer-"));
   const nevadatbazis = {
     version: 6,
@@ -756,30 +769,51 @@ test("a személyes kimenet mód kézi helyi kijelöléssel csak a saját ICS-t k
       },
     ],
   };
-  const helyiFelulirasok = {
+  const legacyPrimer = {
+    version: 1,
+    days: [
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Ábel"],
+        preferredNames: ["Ábel"],
+      },
+    ],
+  };
+  const wikiPrimer = {
+    version: 1,
+    days: [
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Ábel", "Alpár"],
+        preferredNames: ["Ábel", "Alpár"],
+      },
+    ],
+  };
+  const vegsoPrimer = {
+    version: 1,
+    days: [
+      {
+        month: 1,
+        day: 2,
+        monthDay: "01-02",
+        names: ["Ábel"],
+        preferredNames: ["Ábel"],
+      },
+    ],
+  };
+  const primerFelulirasok = {
     version: 1,
     generatedAt: "2026-04-09T00:00:00.000Z",
-    source: "helyi felhasználói beállítások",
+    days: [],
+  };
+  const helyiFelulirasok = createHelyiKonfig({
+    generatedAt: "2026-04-09T00:00:00.000Z",
     ics: {
-      input: "output/adatbazis/nevnapok.yaml",
-      output: "output/naptar/nevnapok.ics",
-      primaryOutput: null,
-      restOutput: null,
-      personalOutput: "output/naptar/nevnapok-sajat.ics",
-      outputMode: "personal",
-      scope: "primary",
-      layout: "grouped",
-      restHandling: "hidden",
-      restLayout: null,
-      leapProfile: "off",
-      fromYear: 2026,
-      untilYear: 2040,
-      baseYear: 2024,
-      descriptionMode: "none",
-      descriptionFormat: "text",
-      ordinalDay: "none",
-      includeOtherDays: false,
-      calendarName: "Névnapok",
+      partitionMode: "split",
     },
     personalPrimary: {
       primarySource: "default",
@@ -796,11 +830,27 @@ test("a személyes kimenet mód kézi helyi kijelöléssel csak a saját ICS-t k
         },
       ],
     },
-  };
+  });
 
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"),
     nevadatbazis
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "legacy-primer.yaml"),
+    legacyPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "wiki-primer.yaml"),
+    wikiPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
+    vegsoPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.yaml"),
+    primerFelulirasok
   );
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml"),
@@ -812,11 +862,15 @@ test("a személyes kimenet mód kézi helyi kijelöléssel csak a saját ICS-t k
   });
 
   const kozosIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok.ics");
-  const sajatIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-sajat.ics");
-  const sajatIcs = await fs.readFile(sajatIcsUtvonal, "utf8");
+  const primerIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-primary.ics");
+  const restIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-rest.ics");
+  const primerIcs = await fs.readFile(primerIcsUtvonal, "utf8");
+  const restIcs = await fs.readFile(restIcsUtvonal, "utf8");
 
-  assert.match(sajatIcs, /X-WR-CALNAME:Névnapok — saját elsődleges/u);
-  assert.match(sajatIcs, /SUMMARY:Ábel\\, Alpár/u);
+  assert.match(primerIcs, /X-WR-CALNAME:Névnapok — elsődleges/u);
+  assert.match(primerIcs, /SUMMARY:Ábel\\, Alpár/u);
+  assert.match(restIcs, /BEGIN:VCALENDAR/u);
+  assert.doesNotMatch(restIcs, /SUMMARY:Ábel/u);
   await assert.rejects(fs.access(kozosIcsUtvonal));
 });
 
@@ -849,10 +903,12 @@ test("a régi külön helyi override fájl önmagában már nem hat az ICS-gener
 
   const kozosIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok.ics");
   const kozosIcs = await fs.readFile(kozosIcsUtvonal, "utf8");
-  const sajatIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-sajat.ics");
+  const primerIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-primary.ics");
+  const restIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-rest.ics");
 
   assert.match(kozosIcs, /BEGIN:VCALENDAR/u);
-  await assert.rejects(fs.access(sajatIcsUtvonal));
+  await assert.rejects(fs.access(primerIcsUtvonal));
+  await assert.rejects(fs.access(restIcsUtvonal));
 });
 
 test("az ICS generálás az új unified helyi YAML ICS-blokkjából dolgozik", async () => {
@@ -878,40 +934,13 @@ test("az ICS generálás az új unified helyi YAML ICS-blokkjából dolgozik", a
       },
     ],
   };
-  const helyiKonfig = {
-    version: 1,
-    generatedAt: "2026-04-20T12:00:00.000Z",
-    source: "helyi felhasználói beállítások",
+  const helyiKonfig = createHelyiKonfig({
     ics: {
-      input: "output/adatbazis/nevnapok.yaml",
-      output: "output/naptar/nevnapok.ics",
-      primaryOutput: null,
-      restOutput: null,
-      personalOutput: "output/naptar/nevnapok-sajat.ics",
-      outputMode: "common",
-      scope: "primary",
-      layout: "grouped",
-      restHandling: "hidden",
-      restLayout: null,
-      leapProfile: "off",
-      fromYear: 2026,
-      untilYear: 2040,
-      baseYear: 2024,
-      descriptionMode: "none",
-      descriptionFormat: "text",
-      ordinalDay: "none",
-      includeOtherDays: false,
-      calendarName: "Teszt helyi ICS",
-    },
-    personalPrimary: {
-      primarySource: "default",
-      modifiers: {
-        normalized: false,
-        ranking: false,
+      single: {
+        calendarName: "Teszt helyi ICS",
       },
-      days: [],
     },
-  };
+  });
   await masolMappat(adatbazisForras, path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"));
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
@@ -955,45 +984,51 @@ test("a kimenet mód váltása eltakarítja az inaktív, menedzselt ICS-fájloka
       },
     ],
   };
-  const helyiKonfig = {
+  const legacyPrimer = {
     version: 1,
     generatedAt: "2026-04-20T12:00:00.000Z",
-    source: "helyi felhasználói beállítások",
-    ics: {
-      input: "output/adatbazis/nevnapok.yaml",
-      output: "output/naptar/nevnapok.ics",
-      primaryOutput: null,
-      restOutput: null,
-      personalOutput: "output/naptar/nevnapok-sajat.ics",
-      outputMode: "split",
-      scope: "primary",
-      layout: "grouped",
-      restHandling: "split",
-      restLayout: "grouped",
-      leapProfile: "off",
-      fromYear: 2026,
-      untilYear: 2040,
-      baseYear: 2024,
-      descriptionMode: "none",
-      descriptionFormat: "text",
-      ordinalDay: "none",
-      includeOtherDays: false,
-      calendarName: "Teszt cleanup",
-    },
-    personalPrimary: {
-      primarySource: "default",
-      modifiers: {
-        normalized: false,
-        ranking: false,
-      },
-      days: [],
-    },
+    days: [...vegsoPrimer.days],
   };
+  const wikiPrimer = {
+    version: 1,
+    generatedAt: "2026-04-20T12:00:00.000Z",
+    days: [...vegsoPrimer.days],
+  };
+  const primerFelulirasok = {
+    version: 1,
+    generatedAt: "2026-04-20T12:00:00.000Z",
+    days: [],
+  };
+  const helyiKonfig = createHelyiKonfig({
+    ics: {
+      partitionMode: "split",
+      split: {
+        primary: {
+          calendarName: "Teszt cleanup — elsődleges",
+        },
+        rest: {
+          calendarName: "Teszt cleanup — további",
+        },
+      },
+    },
+  });
 
   await masolMappat(adatbazisForras, path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"));
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
     vegsoPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "legacy-primer.yaml"),
+    legacyPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "wiki-primer.yaml"),
+    wikiPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.yaml"),
+    primerFelulirasok
   );
   const helyiKonfigUtvonal = path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml");
 
@@ -1010,10 +1045,7 @@ test("a kimenet mód váltása eltakarítja az inaktív, menedzselt ICS-fájloka
   await fs.access(restIcsUtvonal);
   await assert.rejects(fs.access(kozosIcsUtvonal));
 
-  helyiKonfig.ics.outputMode = "common";
-  helyiKonfig.ics.scope = "all";
-  helyiKonfig.ics.restHandling = "hidden";
-  helyiKonfig.ics.restLayout = null;
+  helyiKonfig.ics.partitionMode = "single";
 
   await mentStrukturaltFajl(helyiKonfigUtvonal, helyiKonfig);
   await execFileAsync(process.execPath, [binUtvonal, "kimenet", "general", "ics"], {
@@ -1025,7 +1057,7 @@ test("a kimenet mód váltása eltakarítja az inaktív, menedzselt ICS-fájloka
   await assert.rejects(fs.access(restIcsUtvonal));
 });
 
-test("a közös split primeres pipeline kimenet a végső primerjegyzékhez igazodik", async () => {
+test("a bontott pipeline kimenet a Primer audit véglegesített elsődlegeseihez igazodik", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-ics-final-primary-"));
   const nevadatbazis = {
     version: 6,
@@ -1040,6 +1072,12 @@ test("a közös split primeres pipeline kimenet a végső primerjegyzékhez igaz
             day: 4,
             monthDay: "02-04",
             primary: true,
+          },
+          {
+            month: 4,
+            day: 18,
+            monthDay: "04-18",
+            primary: false,
           },
         ],
       },
@@ -1112,40 +1150,34 @@ test("a közös split primeres pipeline kimenet a végső primerjegyzékhez igaz
       },
     ],
   };
-  const helyiKonfig = {
+  const legacyPrimer = {
     version: 1,
     generatedAt: "2026-04-20T12:00:00.000Z",
-    source: "helyi felhasználói beállítások",
-    ics: {
-      input: "output/adatbazis/nevnapok.yaml",
-      output: "output/naptar/nevnapok.ics",
-      primaryOutput: null,
-      restOutput: null,
-      personalOutput: "output/naptar/nevnapok-sajat.ics",
-      outputMode: "split",
-      scope: "primary",
-      layout: "grouped",
-      restHandling: "split",
-      restLayout: "grouped",
-      leapProfile: "off",
-      fromYear: 2026,
-      untilYear: 2040,
-      baseYear: 2024,
-      descriptionMode: "none",
-      descriptionFormat: "text",
-      ordinalDay: "none",
-      includeOtherDays: false,
-      calendarName: "Teszt végső primer",
-    },
-    personalPrimary: {
-      primarySource: "default",
-      modifiers: {
-        normalized: false,
-        ranking: false,
-      },
-      days: [],
-    },
+    days: [...vegsoPrimer.days],
   };
+  const wikiPrimer = {
+    version: 1,
+    generatedAt: "2026-04-20T12:00:00.000Z",
+    days: [...vegsoPrimer.days],
+  };
+  const primerFelulirasok = {
+    version: 1,
+    generatedAt: "2026-04-20T12:00:00.000Z",
+    days: [],
+  };
+  const helyiKonfig = createHelyiKonfig({
+    ics: {
+      partitionMode: "split",
+      split: {
+        primary: {
+          calendarName: "Teszt végső primer — elsődleges",
+        },
+        rest: {
+          calendarName: "Teszt végső primer — további",
+        },
+      },
+    },
+  });
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"),
     nevadatbazis
@@ -1153,6 +1185,18 @@ test("a közös split primeres pipeline kimenet a végső primerjegyzékhez igaz
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "primer", "vegso-primer.yaml"),
     vegsoPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "legacy-primer.yaml"),
+    legacyPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "output", "primer", "wiki-primer.yaml"),
+    wikiPrimer
+  );
+  await mentStrukturaltFajl(
+    path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.yaml"),
+    primerFelulirasok
   );
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml"),
@@ -1179,7 +1223,7 @@ test("a közös split primeres pipeline kimenet a végső primerjegyzékhez igaz
   assert.doesNotMatch(restIcs, /SUMMARY:Andrea/u);
 });
 
-test("a személyes módosítók személyes kimenet módban érvényesülnek", async () => {
+test("a Normalizált és Rangsor módosítók a bontott kimenet elsődleges naptárában érvényesülnek", async () => {
   const ideiglenesKonyvtar = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-helyi-modifiers-"));
   const nevadatbazis = {
     version: 6,
@@ -1190,9 +1234,9 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
         gender: "male",
         days: [
           {
-            month: 1,
-            day: 2,
-            monthDay: "01-02",
+            month: 2,
+            day: 24,
+            monthDay: "02-24",
             primary: true,
             primaryLegacy: true,
             primaryRanked: false,
@@ -1200,13 +1244,13 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
         ],
       },
       {
-        name: "Alpár",
+        name: "Mátyás",
         gender: "male",
         days: [
           {
-            month: 1,
-            day: 2,
-            monthDay: "01-02",
+            month: 2,
+            day: 24,
+            monthDay: "02-24",
             primary: false,
             primaryLegacy: false,
             primaryRanked: false,
@@ -1218,9 +1262,9 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
         gender: "male",
         days: [
           {
-            month: 1,
-            day: 2,
-            monthDay: "01-02",
+            month: 2,
+            day: 24,
+            monthDay: "02-24",
             primary: false,
             primaryLegacy: false,
             primaryRanked: true,
@@ -1233,9 +1277,9 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
     version: 1,
     days: [
       {
-        month: 1,
-        day: 2,
-        monthDay: "01-02",
+        month: 2,
+        day: 24,
+        monthDay: "02-24",
         preferredNames: ["Ábel"],
       },
     ],
@@ -1244,9 +1288,9 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
     version: 1,
     days: [
       {
-        month: 1,
-        day: 2,
-        monthDay: "01-02",
+        month: 2,
+        day: 24,
+        monthDay: "02-24",
         names: ["Ábel"],
         preferredNames: ["Ábel"],
       },
@@ -1256,22 +1300,11 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
     version: 1,
     days: [
       {
-        month: 1,
-        day: 2,
-        monthDay: "01-02",
-        names: ["Ábel", "Alpár"],
-        preferredNames: ["Ábel", "Alpár"],
-      },
-    ],
-  };
-  const normalizaloRiport = {
-    version: 1,
-    days: [
-      {
-        month: 1,
-        day: 2,
-        monthDay: "01-02",
-        preferredNames: ["Ábel", "Alpár"],
+        month: 2,
+        day: 24,
+        monthDay: "02-24",
+        names: ["Ábel", "Mátyás"],
+        preferredNames: ["Ábel", "Mátyás"],
       },
     ],
   };
@@ -1280,30 +1313,10 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
     generatedAt: "2026-04-09T00:00:00.000Z",
     days: [],
   };
-  const helyiFelulirasok = {
-    version: 1,
+  const helyiFelulirasok = createHelyiKonfig({
     generatedAt: "2026-04-09T00:00:00.000Z",
-    source: "helyi felhasználói beállítások",
     ics: {
-      input: "output/adatbazis/nevnapok.yaml",
-      output: "output/naptar/nevnapok.ics",
-      primaryOutput: null,
-      restOutput: null,
-      personalOutput: "output/naptar/nevnapok-sajat.ics",
-      outputMode: "personal",
-      scope: "primary",
-      layout: "grouped",
-      restHandling: "hidden",
-      restLayout: null,
-      leapProfile: "off",
-      fromYear: 2026,
-      untilYear: 2040,
-      baseYear: 2024,
-      descriptionMode: "none",
-      descriptionFormat: "text",
-      ordinalDay: "none",
-      includeOtherDays: false,
-      calendarName: "Névnapok",
+      partitionMode: "split",
     },
     personalPrimary: {
       primarySource: "legacy",
@@ -1313,83 +1326,7 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
       },
       days: [],
     },
-  };
-  const primerAuditRiport = {
-    generatedAt: "2026-04-09T00:00:00.000Z",
-    summary: {
-      rowCount: 1,
-      combinedMissingCount: 2,
-      effectiveMissingCount: 0,
-      locallyResolvedMissingCount: 2,
-      localSelectedCount: 0,
-    },
-    personal: {
-      settingsSnapshot: helyiFelulirasok.personalPrimary,
-    },
-    months: [
-      {
-        month: 1,
-        monthName: "Január",
-        rows: [
-          {
-            month: 1,
-            day: 2,
-            monthDay: "01-02",
-            commonPreferredNames: ["Ábel"],
-            finalPrimaryNames: ["Ábel"],
-            localAddedPreferredNames: ["Alpár", "Béla"],
-            effectivePreferredNames: ["Ábel", "Alpár", "Béla"],
-            effectivePreferredCount: 3,
-            normalizedMissing: [
-              {
-                name: "Alpár",
-                sources: ["normalized"],
-                highlight: false,
-                similarPrimaries: [],
-              },
-            ],
-            rankingMissing: [
-              {
-                name: "Béla",
-                sources: ["ranking"],
-                highlight: false,
-                similarPrimaries: [],
-              },
-            ],
-            locallyResolvedMissing: [
-              {
-                name: "Alpár",
-                sources: ["normalized"],
-                highlight: false,
-                similarPrimaries: [],
-              },
-              {
-                name: "Béla",
-                sources: ["ranking"],
-                highlight: false,
-                similarPrimaries: [],
-              },
-            ],
-            effectiveMissing: [],
-            combinedMissing: [
-              {
-                name: "Alpár",
-                sources: ["normalized"],
-                highlight: false,
-                similarPrimaries: [],
-              },
-              {
-                name: "Béla",
-                sources: ["ranking"],
-                highlight: false,
-                similarPrimaries: [],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  };
+  });
 
   await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "output", "adatbazis", "nevnapok.yaml"),
@@ -1408,10 +1345,6 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
     vegsoPrimer
   );
   await mentStrukturaltFajl(
-    path.join(ideiglenesKonyvtar, "output", "primer", "normalizalo-riport.yaml"),
-    normalizaloRiport
-  );
-  await mentStrukturaltFajl(
     path.join(ideiglenesKonyvtar, "data", "primary-registry-overrides.yaml"),
     primerFelulirasok
   );
@@ -1419,19 +1352,17 @@ test("a személyes módosítók személyes kimenet módban érvényesülnek", as
     path.join(ideiglenesKonyvtar, ".local", "nevnapok.local.yaml"),
     helyiFelulirasok
   );
-  await mentStrukturaltFajl(
-    path.join(ideiglenesKonyvtar, "output", "riportok", "primer-audit.yaml"),
-    primerAuditRiport
-  );
-
   await execFileAsync(process.execPath, [binUtvonal, "kimenet", "general", "ics"], {
     cwd: ideiglenesKonyvtar,
   });
 
   const kozosIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok.ics");
-  const sajatIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-sajat.ics");
-  const sajatIcs = await fs.readFile(sajatIcsUtvonal, "utf8");
+  const primerIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-primary.ics");
+  const restIcsUtvonal = path.join(ideiglenesKonyvtar, "output", "naptar", "nevnapok-rest.ics");
+  const primerIcs = await fs.readFile(primerIcsUtvonal, "utf8");
+  const restIcs = await fs.readFile(restIcsUtvonal, "utf8");
 
-  assert.match(sajatIcs, /SUMMARY:Ábel\\, Alpár\\, Béla/u);
+  assert.match(primerIcs, /SUMMARY:Ábel\\, Mátyás\\, Béla/u);
+  assert.doesNotMatch(restIcs, /SUMMARY:Ábel/u);
   await assert.rejects(fs.access(kozosIcsUtvonal));
 });

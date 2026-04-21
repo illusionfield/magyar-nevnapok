@@ -75,7 +75,7 @@ Ez az egységes primer audit havi bontásban együtt jeleníti meg
 - a legacy / wiki / normalizált / rangsorolt forrásnézetet,
 - a közös hiányzó neveket,
 - a helyben feloldott és a helyben még nyitott hiányzókat,
-- valamint a személyes primerállapotot és a helyi overlayt is.
+- valamint a helyi primerállapotot és a helyi overlayt is.
 
 ### Helyi primerkiegészítések
 
@@ -83,24 +83,32 @@ Ez az egységes primer audit havi bontásban együtt jeleníti meg
   .local/nevnapok.local.yaml
 ```
 
-Ez a fájl nem követett, személyes bemenet.
+Ez a fájl nem követett, helyi bemenet.
 Az itt tárolt `ics` blokk a közös naptárprofil mértékadó forrása.
 A közös, követett primerfelülírások mértékadó fájlja külön a
 `data/primary-registry-overrides.yaml`.
-Az `ics.outputMode` egyszerre pontosan egy aktív ICS-kimenetet jelöl ki.
-A `personalPrimary` blokk a személyes primerforrást, a `Normalizált` / `Rangsor`
-módosítókat és a kézi helyi primernapokat is együtt tárolja.
+Az `ics.partitionMode` egyszerűen azt jelzi, hogy egyetlen naptár készüljön
+(`single`), vagy külön elsődleges és külön további naptár (`split`).
+A `personalPrimary` blokk a helyi primerforrást, a `Normalizált` / `Rangsor`
+módosítókat és a kézi helyi primernapokat együtt tárolja.
 Az itt rögzített adatok nem írják felül a közös primerjegyzéket, hanem helyi overlayként
 hozzáadódnak a közös primerlistához.
 
-### Saját primeres naptár
+### ICS kimenetek
 
 ```text
-  output/naptar/nevnapok-sajat.ics
+  output/naptar/nevnapok.ics
+  output/naptar/nevnapok-primary.ics
+  output/naptar/nevnapok-rest.ics
 ```
 
-Ez a kimenet csak akkor készül el, ha az aktív `ics.outputMode` értéke `personal`.
-A személyes primerforrás, a `Normalizált` / `Rangsor` módosítók és a kézi helyi
-primernapok ekkor szólnak bele a generált tartalomba.
-Fontos, hogy a `Normalizált` / `Rangsor` módosítók véglegesítése a Primer auditban történik;
-az ICS-generálás már a kész audit snapshotból dolgozik.
+Az egyfájlos `nevnapok.ics` a `single` mód alapértelmezett kimenete, és mindig
+minden névnapot tartalmaz.
+
+A bontott `nevnapok-primary.ics` és `nevnapok-rest.ics` a `split` mód alapértelmezett
+kimenetei. Ilyenkor:
+
+- a Primer audit automatikusan frissül,
+- a helyi primerforrás és a `Normalizált` / `Rangsor` módosítók ott véglegesülnek,
+- az ICS-generálás pedig már csak a kész audit snapshot alapján választja szét az
+  elsődleges és a további neveket.

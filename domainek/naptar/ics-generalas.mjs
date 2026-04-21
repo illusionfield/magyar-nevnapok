@@ -34,29 +34,34 @@ export async function epitIcsKimenetiTervet(rawOptions = {}, runtime = {}) {
   const inputPath = path.resolve(process.cwd(), options.input);
   const outputPath = path.resolve(process.cwd(), options.output);
   const payload = runtime.payload ?? (await betoltStrukturaltFajl(inputPath));
+  const runtimeSourceDays = Array.isArray(runtime.sourceDays) ? runtime.sourceDays : null;
   const localPrimaryOverrideMap =
-    runtime.localPrimaryOverrideMap instanceof Map
-      ? runtime.localPrimaryOverrideMap
+    runtimeSourceDays || runtime.localPrimaryOverrideMap instanceof Map
+      ? runtime.localPrimaryOverrideMap ?? new Map()
       : await loadLocalPrimaryOverrideMap(options.localPrimaryOverrides);
-  const rawSourceDays = applyLocalPrimaryOverridesToSourceDays(
-    Array.isArray(payload.days) ? normalizeSourceDays(payload.days) : buildDaysFromNames(payload.names),
-    localPrimaryOverrideMap
-  );
-  const primarySelectionModeResolved = resolvePrimarySelectionMode(options);
+  const rawSourceDays = runtimeSourceDays
+    ? runtimeSourceDays.map(cloneSourceDay)
+    : applyLocalPrimaryOverridesToSourceDays(buildSourceDaysFromPayload(payload), localPrimaryOverrideMap);
+  const primarySelectionModeResolved = runtimeSourceDays
+    ? "configured"
+    : resolvePrimarySelectionMode(options);
   options.primarySelectionModeResolved = primarySelectionModeResolved;
   const finalPrimaryLookup =
-    primarySelectionModeResolved === "canonical-final"
-      ? await loadFinalPrimaryLookup(runtime)
-      : null;
+    runtimeSourceDays || primarySelectionModeResolved !== "canonical-final"
+      ? null
+      : await loadFinalPrimaryLookup(runtime);
   const globalNameCatalog =
-    primarySelectionModeResolved === "canonical-final"
-      ? buildGlobalNameCatalogFromPayload(payload, rawSourceDays)
-      : null;
+    runtimeSourceDays || primarySelectionModeResolved !== "canonical-final"
+      ? null
+      : buildGlobalNameCatalogFromPayload(payload, rawSourceDays);
   const sourceDays =
     primarySelectionModeResolved === "canonical-final"
       ? applyFinalPrimaryOverlayToSourceDays(rawSourceDays, finalPrimaryLookup, globalNameCatalog)
       : rawSourceDays;
-  const sourceNameMap = buildNameMapFromSourceDays(sourceDays);
+  const sourceNameMap =
+    runtime.sourceNameMap instanceof Map
+      ? runtime.sourceNameMap
+      : buildNameMapFromSourceDays(sourceDays);
   const jobs = buildCalendarJobs(sourceDays, outputPath, options);
 
   return {
@@ -137,7 +142,7 @@ async function futtatCliModban(argv = process.argv.slice(2)) {
  * A `loadLocalPrimaryOverrideMap` opcionálisan betölti a helyi primerkiegészítéseket.
  *
  * A hívó dönt arról, hogy ezt a réteget kéri-e. Így a közös, repo-szintű kimenetek és a
- * személyes naptárak ugyanazt a generátort használhatják eltérő override-forrással.
+ * helyi overlayt használó futások ugyanazt a generátort használhatják eltérő override-forrással.
  */
 async function loadLocalPrimaryOverrideMap(localPrimaryOverridesPath) {
   if (!localPrimaryOverridesPath) {
@@ -146,6 +151,67 @@ async function loadLocalPrimaryOverrideMap(localPrimaryOverridesPath) {
 
   const { payload } = await betoltHelyiPrimerFelulirasokat(localPrimaryOverridesPath);
   return buildHelyiPrimerFelulirasMap(payload);
+}
+
+export function buildSourceDaysFromPayload(payload) {
+  return Array.isArray(payload?.days)
+    ? normalizeSourceDays(payload.days)
+    : buildDaysFromNames(payload?.names);
+}
+
+export function splitSourceDaysByPreferredRegistry(sourceDays, registryPayload, payload = null) {
+  const registryDays = Array.isArray(registryPayload?.days) ? registryPayload.days : registryPayload;
+  const filteredRegistryDays = filterPreferredRegistryDaysToSourceDays(sourceDays, registryDays ?? []);
+  const globalNameCatalog =
+    payload != null
+      ? buildGlobalNameCatalogFromPayload(payload, sourceDays)
+      : buildGlobalNameCatalog(sourceDays);
+  const overlaidSourceDays = applyFinalPrimaryOverlayToSourceDays(
+    sourceDays.map(cloneSourceDay),
+    buildPrimaryRegistryLookup(filteredRegistryDays),
+    globalNameCatalog
+  );
+
+  return splitSourceDaysByPrimary(overlaidSourceDays, {
+    primarySelectionModeResolved: "canonical-final",
+  });
+}
+
+function filterPreferredRegistryDaysToSourceDays(sourceDays, registryDays) {
+  const sourceDayNameSets = new Map(
+    sourceDays.map((sourceDay) => [
+      sourceDay.monthDay,
+      new Set(
+        (sourceDay.names ?? [])
+          .map((entry) => normalizeNameForMatch(entry?.name))
+          .filter(Boolean)
+      ),
+    ])
+  );
+
+  return registryDays
+    .map((registryDay) => {
+      const normalizedNames = sourceDayNameSets.get(registryDay?.monthDay) ?? null;
+
+      if (!normalizedNames) {
+        return null;
+      }
+
+      const preferredNames = (registryDay?.preferredNames ?? registryDay?.names ?? []).filter((name) =>
+        normalizedNames.has(normalizeNameForMatch(name))
+      );
+
+      if (preferredNames.length === 0) {
+        return null;
+      }
+
+      return {
+        ...registryDay,
+        names: preferredNames,
+        preferredNames,
+      };
+    })
+    .filter(Boolean);
 }
 
 async function loadFinalPrimaryLookup(runtime = {}) {
@@ -721,7 +787,7 @@ function buildDaysFromNames(names) {
  *
  * Itt nem mozgatunk neveket másik napra és nem írjuk át a közös adatbázist sem:
  * kizárólag egy futásidejű jelölést adunk (`primaryLocal`), amelyet később a primer-szétválasztó
- * logika figyelembe vesz. Így ugyanabból a bemeneti YAML-ból készülhet közös és személyes naptár is.
+ * logika figyelembe vesz. Így ugyanabból a bemeneti YAML-ból készülhet egyfájlos és bontott kimenet is.
  */
 function applyLocalPrimaryOverridesToSourceDays(sourceDays, localPrimaryOverrideMap) {
   if (!(localPrimaryOverrideMap instanceof Map) || localPrimaryOverrideMap.size === 0) {
@@ -765,7 +831,7 @@ function applyLocalPrimaryOverridesToSourceDays(sourceDays, localPrimaryOverride
 /**
  * A `buildNameMapFromSourceDays` felépíti a szükséges adatszerkezetet.
  */
-function buildNameMapFromSourceDays(sourceDays) {
+export function buildNameMapFromSourceDays(sourceDays) {
   const nameMap = new Map();
 
   for (const day of sourceDays) {
@@ -2748,7 +2814,7 @@ export function normalizeOptions(options = {}) {
   }
 
   if (!validPrimarySources.has(normalized.primarySource)) {
-    throw new Error("A személyes primerforrás ezek egyike lehet: default, legacy, ranked, either.");
+    throw new Error("A helyi primerforrás ezek egyike lehet: default, legacy, ranked, either.");
   }
 
   if (!validPrimarySelectionModes.has(normalized.primarySelectionMode)) {
@@ -2877,7 +2943,7 @@ export function parseArgs(argv = []) {
 
     if (arg === "--primary-source" || arg.startsWith("--primary-source=")) {
       throw new Error(
-        "A --primary-source megszűnt a publikus ICS-felületen. A személyes primerforrást a helyi beállítások kezelik."
+        "A --primary-source megszűnt a publikus ICS-felületen. A helyi primerforrást a Primer audit és a helyi beállítások kezelik."
       );
     }
 

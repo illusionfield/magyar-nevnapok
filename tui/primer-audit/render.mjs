@@ -202,7 +202,7 @@ function renderHelpOverlay(state) {
     "f: szűrőváltás",
     "s: rendezésváltás",
     "/: keresés",
-    "b: személyes primer-beállítások",
+    "b: helyi primer-beállítások",
     "?: súgó",
     "r: riportfrissítés",
     "g: ICS-generálás",
@@ -214,7 +214,7 @@ function renderHelpOverlay(state) {
       ? ["Enter: ugrás a kijelölt queue napi nézetére"]
       : state.aktivMod === "napok"
         ? [
-            "←/→: váltás a naplista és a személyes műveletek között",
+            "←/→: váltás a naplista és a helyi műveletek között",
             "Enter: nyers/rejtett blokk kibontása vagy összecsukása",
             "Space: kézi helyi kijelölés kapcsolása",
           ]
@@ -274,7 +274,7 @@ function renderSettingsDrawer(viewModel, state) {
       borderColor: "magenta",
       paddingX: 1,
     },
-    e(Text, { bold: true }, "Személyes primer-beállítások"),
+    e(Text, { bold: true }, "Helyi primer-beállítások"),
     e(
       Text,
       { dimColor: true },
@@ -295,7 +295,11 @@ function renderSettingsDrawer(viewModel, state) {
       { dimColor: true },
       definicio ? szemelyesBeallitasLeiras(definicio, viewModel.personalSettings ?? {}) : "Nincs kijelölt beállítás."
     ),
-    e(Text, { dimColor: true }, "↑/↓: kijelölés • ←/→ vagy Space: értékváltás • b: drawer bezárása")
+    e(
+      Text,
+      { dimColor: true },
+      "↑/↓: kijelölés • ←/→ vagy Space: értékváltás • b: drawer bezárása • a bontott ICS ezt a véglegesítést használja"
+    )
   );
 }
 
@@ -411,7 +415,7 @@ function renderDayDetail(day, state, bodyRows, width) {
               )
             );
           })
-        : [e(Text, { key: "day-personal-compact-empty", dimColor: true }, "Nincs személyes jelölt.")]),
+        : [e(Text, { key: "day-personal-compact-empty", dimColor: true }, "Nincs helyi jelölt.")]),
       personalEntry
         ? e(
             Text,
@@ -447,7 +451,7 @@ function renderDayDetail(day, state, bodyRows, width) {
     e(Text, null, egysorosSzoveg(`Nyers: ${rawPreview}`, detailWidth)),
     e(Text, { color: (day.hidden?.length ?? 0) > 0 ? "yellow" : undefined }, egysorosSzoveg(`Rejtett: ${hiddenPreview}`, detailWidth)),
     e(Text, { dimColor: true }, "Enter: hosszabb nyers/rejtett előnézet"),
-    e(Text, { bold: true }, "Személyes műveletek"),
+    e(Text, { bold: true }, "Helyi műveletek"),
     renderAblakJelzes("Felül", personalWindow.before, `day-personal-before-${day.monthDay}`),
     ...(personalWindow.elemek.length > 0
       ? personalWindow.elemek.map((entry, index) => {
@@ -467,9 +471,9 @@ function renderDayDetail(day, state, bodyRows, width) {
             )
           );
         })
-      : [e(Text, { key: "day-personal-empty", dimColor: true }, "Nincs személyes jelölt ezen a napon.")]),
+      : [e(Text, { key: "day-personal-empty", dimColor: true }, "Nincs helyi jelölt ezen a napon.")]),
     renderAblakJelzes("Alul", personalWindow.after, `day-personal-after-${day.monthDay}`),
-    e(Text, { dimColor: true }, egysorosSzoveg(`Aktív panel: ${state.dayPanel === "lista" ? "naplista" : "személyes műveletek"} • ←/→: panelváltás • Space: kézi helyi kapcsolás`, detailWidth)),
+    e(Text, { dimColor: true }, egysorosSzoveg(`Aktív panel: ${state.dayPanel === "lista" ? "naplista" : "helyi műveletek"} • ←/→: panelváltás • Space: kézi helyi kapcsolás`, detailWidth)),
     personalEntry
       ? e(
           Text,

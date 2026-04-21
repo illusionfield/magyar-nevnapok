@@ -208,14 +208,14 @@ export function leptetSzemelyesPrimerBeallitast(settings, definicio, irany = 1) 
 function szemelyesModifierLeiras(kulcs, aktiv) {
   if (kulcs === "modifiers.normalized") {
     return aktiv
-      ? "A normalizált hiányok személyes ICS módban automatikusan beleszólnak a kimenetbe."
-      : "A normalizált hiányok nem szólnak bele automatikusan a személyes ICS-be.";
+      ? "A normalizált hiányok a bontott ICS elsődleges naptárába automatikusan belekerülnek."
+      : "A normalizált hiányok nem kerülnek be automatikusan a bontott ICS elsődleges naptárába.";
   }
 
   if (kulcs === "modifiers.ranking") {
     return aktiv
-      ? "A rangsorolt hiányok személyes ICS módban automatikusan beleszólnak a kimenetbe."
-      : "A rangsorolt hiányok nem szólnak bele automatikusan a személyes ICS-be.";
+      ? "A rangsorolt hiányok a bontott ICS elsődleges naptárába automatikusan belekerülnek."
+      : "A rangsorolt hiányok nem kerülnek be automatikusan a bontott ICS elsődleges naptárába.";
   }
 
   return "";
@@ -235,13 +235,13 @@ export function sajatPrimerForrasCimke(ertek) {
 export function sajatPrimerForrasLeiras(ertek) {
   const leirasok = {
     default:
-      "Személyes ICS módban az alap primerlogika marad: a legacy elsődlegesekhez szükség esetén rangsorolt kiegészítés társul.",
+      "Bontott ICS-nél az audit alap primerlogikája marad: a legacy elsődlegesekhez szükség esetén rangsorolt kiegészítés társul.",
     legacy:
-      "Személyes ICS módban a primeres rész csak a legacy elsődleges kijelölésre támaszkodik. Akkor hasznos, ha a régi, hagyományos névnaprendhez akarsz közelebb maradni.",
+      "Bontott ICS-nél az elsődleges rész csak a legacy kijelölésre támaszkodik. Akkor hasznos, ha a régi, hagyományos névnaprendhez akarsz közelebb maradni.",
     ranked:
-      "Személyes ICS módban a primeres rész a rangsorolt névjelölésekre épül. Ez modernebb, gyakorisági alapú fókuszt adhat a naptárnak.",
+      "Bontott ICS-nél az elsődleges rész a rangsorolt névjelölésekre épül. Ez modernebb, gyakorisági alapú fókuszt adhat a naptárnak.",
     either:
-      "Személyes ICS módban a legacy és a rangsorolt primerjelölés uniója használható. Ez bővebb primerlistát eredményezhet, de zajosabb is lehet.",
+      "Bontott ICS-nél a legacy és a rangsorolt primerjelölés uniója használható. Ez bővebb primerlistát eredményezhet, de zajosabb is lehet.",
   };
 
   return leirasok[ertek] ?? String(ertek);

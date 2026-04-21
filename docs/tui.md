@@ -22,16 +22,13 @@ Indítás:
 Az `ICS generálás` menüpont most már nem azonnal fut, hanem egy külön nézetet nyit meg.
 Itt a mentett helyi YAML `ics` blokkja állítható kurzorból:
 
-- hatókör,
-- elrendezés,
-- további nevek kezelése,
-- split esetén a további naptár elrendezése,
+- egyfájlos vagy bontott naptárkimenet,
+- az egyfájlos vagy bontott naptárak elrendezése,
 - szökőéves profil,
 - évintervallum,
 - leírásmód és formátum,
 - év-napja megjelenítés,
 - további névnapok beemelése a leírásba.
-- az aktív ICS kimenet módot.
 
 Minden kapcsolóhoz külön, részletes magyarázat jelenik meg a jobb oldali panelen.
 A kijelölés mozgatásakor és az érték váltásakor a felső infósor is azonnal leírja,
@@ -40,7 +37,7 @@ A módosítások azonnal a nem követett `.local/nevnapok.local.yaml` fájlba me
 A TUI kizárólag ezt az egységes helyi YAML-profilt kezeli; a régi külön helyi
 override fájlok már nem részei a működésnek.
 A jobb oldali panel már nem parancselőnézetet, hanem a mentett profil összegzését és a YAML-részletet mutatja.
-A generálás csak az aktív kimenet módhoz tartozó ICS-fájlokat hagyja meg.
+A generálás `single` módban csak az egyetlen ömlesztett naptárat, `split` módban pedig csak az elsődleges és további naptárakat hagyja meg.
 
 ## Primer audit
 
@@ -73,10 +70,10 @@ A jobb oldalon egyetlen részletes panel jelenik meg fix blokkokkal:
 - `Végső döntés`,
 - `Forrásmátrix`,
 - `Nyers és rejtett nevek`,
-- `Személyes műveletek`.
+- `Helyi műveletek`.
 
 A napi kézi helyi kijelölések `Space` billentyűvel kapcsolhatók, ha a fókusz a
-személyes névlistán van.
+helyi névlistán van.
 A mentés a nem követett `.local/nevnapok.local.yaml` `personalPrimary`
 blokkjába történik.
 
@@ -89,29 +86,31 @@ A `Nevek` mód a teljes névindexet adja:
 - megmutatja az összes előforduló napot és az adott napi státuszt,
 - `Enter` billentyűvel a kijelölt előfordulás napi auditnézetére lehet ugrani.
 
-### Személyes primer-beállítások
+### Helyi primer-beállítások
 
-`b` billentyűvel külön drawer nyitható a személyes primerforrás és a
+`b` billentyűvel külön drawer nyitható a helyi primerforrás és a
 `Normalizált` / `Rangsor` módosítók állításához.
 
 Ez a drawer ugyanazt a nem követett helyi YAML-profilt írja, mint az ICS
 nézet.
 A `Normalizált` / `Rangsor` módosítók véglegesítése a Primer audit része;
-az ICS-generálás ezeket már a véglegesített audit snapshotból olvassa vissza.
+az ICS-generálás ezeket már a véglegesített audit snapshotból olvassa vissza a
+bontott naptárkimenethez. Az egyfájlos, minden nevet tartalmazó ICS-et ez nem
+alakítja át.
 
 ## Billentyűk
 
 - `↑` / `↓` — mozgás az aktív listában
 - `←` / `→` — panelváltás a napi vagy névnézetben
 - `Enter` — drill-down, kibontás vagy ugrás a kijelölt napra
-- `Space` — kézi helyi primerkiegészítés kapcsolása a napi személyes listában
+- `Space` — kézi helyi primerkiegészítés kapcsolása a napi helyi listában
 - `g` — az aktív, mentett ICS-profil szerinti generálás
 - `r` — riportfrissítés
 - `Tab` vagy `1`–`3` — módváltás a primer audit nézetben
 - `/` — keresés a `Napok` vagy `Nevek` módban
 - `f` — előre definiált szűrők váltása
 - `s` — rendezés váltása
-- `b` — személyes primer-beállítások drawer
+- `b` — helyi primer-beállítások drawer
 - `?` — helyi súgó
 - `Esc` vagy `v` — vissza a menübe
 - `q` — kilépés

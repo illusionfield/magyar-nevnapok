@@ -1,20 +1,13 @@
 /**
  * domainek/naptar/ics-beallitasok.mjs
- * Közös ICS-beállításmodell a helyi YAML-hoz, a TUI-hoz és az alkalmazásszintű szolgáltatásokhoz.
+ * Egységes ICS-beállításmodell a helyi YAML-hoz, a TUI-hoz és az alkalmazásszintű szolgáltatásokhoz.
  */
 
 import path from "node:path";
 import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
 
-const ERVENYES_ICS_OUTPUT_MODE_ERTEKEK = new Set(["common", "split", "personal"]);
-const ERVENYES_ICS_SCOPE_ERTEKEK = new Set(["all", "primary"]);
+const ERVENYES_ICS_PARTITION_MODE_ERTEKEK = new Set(["single", "split"]);
 const ERVENYES_ICS_LAYOUT_ERTEKEK = new Set(["grouped", "separate"]);
-const ERVENYES_ICS_REST_HANDLING_ERTEKEK = new Set([
-  "hidden",
-  "description",
-  "daily-event",
-  "split",
-]);
 const ERVENYES_ICS_LEAP_PROFILE_ERTEKEK = new Set([
   "off",
   "hungarian-a",
@@ -24,10 +17,8 @@ const ERVENYES_ICS_LEAP_PROFILE_ERTEKEK = new Set([
 const ERVENYES_ICS_DESCRIPTION_MODE_ERTEKEK = new Set(["none", "compact", "detailed"]);
 const ERVENYES_ICS_DESCRIPTION_FORMAT_ERTEKEK = new Set(["text", "html", "full"]);
 const ERVENYES_ICS_ORDINAL_DAY_ERTEKEK = new Set(["none", "summary", "description"]);
+const ERVENYES_ICS_OUTPUT_MODE_ERTEKEK = new Set(["common", "split", "personal"]);
 
-/**
- * A `projektRelativUtvonal` projektgyökérhez viszonyított, stabilan menthető útvonalat készít.
- */
 function projektRelativUtvonal(utvonal) {
   const normalizalt = path.normalize(String(utvonal ?? "").trim());
 
@@ -56,14 +47,6 @@ function normalizalBeallitasiUtvonal(ertek, alapertelmezett) {
   return projektRelativUtvonal(ertek);
 }
 
-function normalizalOpcionisBeallitasiUtvonal(ertek, alapertelmezett = null) {
-  if (ertek == null || String(ertek).trim() === "") {
-    return alapertelmezett;
-  }
-
-  return projektRelativUtvonal(ertek);
-}
-
 function normalizalSzamErteket(ertek, alapertelmezett) {
   return Number.isInteger(ertek) ? ertek : alapertelmezett;
 }
@@ -72,130 +55,326 @@ function normalizalEnumErteket(ertek, ervenyesErtekek, alapertelmezett) {
   return ervenyesErtekek.has(ertek) ? ertek : alapertelmezett;
 }
 
-/**
- * A `szarmaztatottKimenetiUtvonal` utótagot illeszt a fájlnévhez.
- */
 export function szarmaztatottKimenetiUtvonal(utvonal, utotag) {
   const parsed = path.parse(utvonal);
   const ext = parsed.ext || ".ics";
   return path.join(parsed.dir, `${parsed.name}-${utotag}${ext}`);
 }
 
-/**
- * Az `alapertelmezettIcsBeallitasok` a teljes, közös ICS-blokk alapértékeit adja.
- */
-export function alapertelmezettIcsBeallitasok() {
+function alapertelmezettIcsNaptarBeallitasok({
+  output,
+  calendarName,
+  layout = "grouped",
+  descriptionMode = "none",
+  descriptionFormat = "text",
+  ordinalDay = "none",
+  includeOtherDays = false,
+} = {}) {
+  return {
+    output,
+    layout,
+    descriptionMode,
+    descriptionFormat,
+    ordinalDay,
+    includeOtherDays,
+    calendarName,
+  };
+}
+
+function alapertelmezettMegosztottIcsBeallitasok() {
   return {
     input: projektRelativUtvonal(kanonikusUtvonalak.adatbazis.nevnapok),
-    output: projektRelativUtvonal(kanonikusUtvonalak.naptar.alap),
+    leapProfile: "off",
+    fromYear: new Date().getFullYear(),
+    untilYear: 2040,
+    baseYear: 2024,
+  };
+}
+
+export function alapertelmezettIcsBeallitasok() {
+  const singleOutput = projektRelativUtvonal(kanonikusUtvonalak.naptar.alap);
+  const splitPrimaryOutput = szarmaztatottKimenetiUtvonal(singleOutput, "primary");
+  const splitRestOutput = szarmaztatottKimenetiUtvonal(singleOutput, "rest");
+
+  return {
+    partitionMode: "single",
+    shared: alapertelmezettMegosztottIcsBeallitasok(),
+    single: alapertelmezettIcsNaptarBeallitasok({
+      output: singleOutput,
+      calendarName: "Névnapok",
+    }),
+    split: {
+      primary: alapertelmezettIcsNaptarBeallitasok({
+        output: splitPrimaryOutput,
+        calendarName: "Névnapok — elsődleges",
+      }),
+      rest: alapertelmezettIcsNaptarBeallitasok({
+        output: splitRestOutput,
+        calendarName: "Névnapok — további",
+      }),
+    },
+  };
+}
+
+function alapertelmezettLegacyIcsBeallitasok() {
+  const alap = alapertelmezettIcsBeallitasok();
+
+  return {
+    input: alap.shared.input,
+    output: alap.single.output,
     primaryOutput: null,
     restOutput: null,
     personalOutput: projektRelativUtvonal(kanonikusUtvonalak.naptar.sajat),
     outputMode: "common",
     scope: "all",
-    layout: "grouped",
+    layout: alap.single.layout,
     restHandling: "hidden",
     restLayout: null,
-    leapProfile: "off",
-    fromYear: new Date().getFullYear(),
-    untilYear: 2040,
-    baseYear: 2024,
-    descriptionMode: "none",
-    descriptionFormat: "text",
-    ordinalDay: "none",
-    includeOtherDays: false,
-    calendarName: "Névnapok",
+    leapProfile: alap.shared.leapProfile,
+    fromYear: alap.shared.fromYear,
+    untilYear: alap.shared.untilYear,
+    baseYear: alap.shared.baseYear,
+    descriptionMode: alap.single.descriptionMode,
+    descriptionFormat: alap.single.descriptionFormat,
+    ordinalDay: alap.single.ordinalDay,
+    includeOtherDays: alap.single.includeOtherDays,
+    calendarName: alap.single.calendarName,
   };
 }
 
-/**
- * A `normalizalIcsBeallitasokat` stabil, menthető és felhasználóbarát ICS-profilt ad vissza.
- */
-export function normalizalIcsBeallitasokat(beallitasok = {}) {
-  const alap = alapertelmezettIcsBeallitasok();
-  const normalizalt = {
-    input: normalizalBeallitasiUtvonal(beallitasok?.input, alap.input),
-    output: normalizalBeallitasiUtvonal(beallitasok?.output, alap.output),
-    primaryOutput: normalizalOpcionisBeallitasiUtvonal(beallitasok?.primaryOutput),
-    restOutput: normalizalOpcionisBeallitasiUtvonal(beallitasok?.restOutput),
-    personalOutput: normalizalBeallitasiUtvonal(
-      beallitasok?.personalOutput,
-      alap.personalOutput
-    ),
-    outputMode: normalizalEnumErteket(
-      beallitasok?.outputMode,
-      ERVENYES_ICS_OUTPUT_MODE_ERTEKEK,
-      alap.outputMode
-    ),
-    scope: normalizalEnumErteket(beallitasok?.scope, ERVENYES_ICS_SCOPE_ERTEKEK, alap.scope),
+function normalizalIcsNaptarBeallitasokat(naptarBeallitasok = {}, alap = {}) {
+  return {
+    output: normalizalBeallitasiUtvonal(naptarBeallitasok?.output, alap.output),
     layout: normalizalEnumErteket(
-      beallitasok?.layout,
+      naptarBeallitasok?.layout,
       ERVENYES_ICS_LAYOUT_ERTEKEK,
       alap.layout
     ),
-    restHandling: normalizalEnumErteket(
-      beallitasok?.restHandling,
-      ERVENYES_ICS_REST_HANDLING_ERTEKEK,
-      alap.restHandling
-    ),
-    restLayout:
-      beallitasok?.restLayout == null || String(beallitasok.restLayout).trim() === ""
-        ? null
-        : normalizalEnumErteket(
-            beallitasok.restLayout,
-            ERVENYES_ICS_LAYOUT_ERTEKEK,
-            alap.layout
-          ),
-    leapProfile: normalizalEnumErteket(
-      beallitasok?.leapProfile,
-      ERVENYES_ICS_LEAP_PROFILE_ERTEKEK,
-      alap.leapProfile
-    ),
-    fromYear: normalizalSzamErteket(beallitasok?.fromYear, alap.fromYear),
-    untilYear: normalizalSzamErteket(beallitasok?.untilYear, alap.untilYear),
-    baseYear: normalizalSzamErteket(beallitasok?.baseYear, alap.baseYear),
     descriptionMode: normalizalEnumErteket(
-      beallitasok?.descriptionMode,
+      naptarBeallitasok?.descriptionMode,
       ERVENYES_ICS_DESCRIPTION_MODE_ERTEKEK,
       alap.descriptionMode
     ),
     descriptionFormat: normalizalEnumErteket(
-      beallitasok?.descriptionFormat,
+      naptarBeallitasok?.descriptionFormat,
       ERVENYES_ICS_DESCRIPTION_FORMAT_ERTEKEK,
       alap.descriptionFormat
     ),
     ordinalDay: normalizalEnumErteket(
-      beallitasok?.ordinalDay,
+      naptarBeallitasok?.ordinalDay,
       ERVENYES_ICS_ORDINAL_DAY_ERTEKEK,
       alap.ordinalDay
     ),
-    includeOtherDays: beallitasok?.includeOtherDays === true,
-    calendarName: String(beallitasok?.calendarName ?? alap.calendarName).trim() || alap.calendarName,
+    includeOtherDays: naptarBeallitasok?.includeOtherDays === true,
+    calendarName:
+      String(naptarBeallitasok?.calendarName ?? alap.calendarName).trim() || alap.calendarName,
   };
-
-  if (normalizalt.outputMode === "split") {
-    normalizalt.scope = "primary";
-    normalizalt.restHandling = "split";
-    normalizalt.restLayout = normalizalt.restLayout ?? normalizalt.layout;
-    return normalizalt;
-  }
-
-  if (normalizalt.outputMode === "personal") {
-    normalizalt.scope = "primary";
-  }
-
-  if (normalizalt.scope === "all") {
-    normalizalt.restHandling = "hidden";
-  } else if (normalizalt.restHandling === "split") {
-    normalizalt.restHandling = "hidden";
-  }
-
-  return normalizalt;
 }
 
-function listazLeapValtozatokat(utvonal) {
+function migralLegacyIcsBeallitasokat(beallitasok = {}) {
+  const legacyAlap = alapertelmezettLegacyIcsBeallitasok();
+  const sharedAlap = alapertelmezettMegosztottIcsBeallitasok();
+  const outputMode = normalizalEnumErteket(
+    beallitasok?.outputMode,
+    ERVENYES_ICS_OUTPUT_MODE_ERTEKEK,
+    legacyAlap.outputMode
+  );
+  const baseOutput = normalizalBeallitasiUtvonal(beallitasok?.output, legacyAlap.output);
+  const baseCalendarName =
+    String(beallitasok?.calendarName ?? legacyAlap.calendarName).trim() || legacyAlap.calendarName;
+  const baseLayout = normalizalEnumErteket(
+    beallitasok?.layout,
+    ERVENYES_ICS_LAYOUT_ERTEKEK,
+    legacyAlap.layout
+  );
+  const baseDescriptionMode = normalizalEnumErteket(
+    beallitasok?.descriptionMode,
+    ERVENYES_ICS_DESCRIPTION_MODE_ERTEKEK,
+    legacyAlap.descriptionMode
+  );
+  const baseDescriptionFormat = normalizalEnumErteket(
+    beallitasok?.descriptionFormat,
+    ERVENYES_ICS_DESCRIPTION_FORMAT_ERTEKEK,
+    legacyAlap.descriptionFormat
+  );
+  const baseOrdinalDay = normalizalEnumErteket(
+    beallitasok?.ordinalDay,
+    ERVENYES_ICS_ORDINAL_DAY_ERTEKEK,
+    legacyAlap.ordinalDay
+  );
+  const includeOtherDays = beallitasok?.includeOtherDays === true;
+  const restLayout = normalizalEnumErteket(
+    beallitasok?.restLayout,
+    ERVENYES_ICS_LAYOUT_ERTEKEK,
+    baseLayout
+  );
+  const derivedSplitPrimaryOutput =
+    normalizalBeallitasiUtvonal(beallitasok?.primaryOutput, null) ??
+    szarmaztatottKimenetiUtvonal(baseOutput, "primary");
+  const derivedSplitRestOutput =
+    normalizalBeallitasiUtvonal(beallitasok?.restOutput, null) ??
+    szarmaztatottKimenetiUtvonal(baseOutput, "rest");
+  const migratedPersonalPrimaryOutput =
+    normalizalBeallitasiUtvonal(beallitasok?.personalOutput, null) ??
+    szarmaztatottKimenetiUtvonal(baseOutput, "primary");
+
+  return {
+    partitionMode: outputMode === "common" ? "single" : "split",
+    shared: {
+      input: normalizalBeallitasiUtvonal(beallitasok?.input, sharedAlap.input),
+      leapProfile: normalizalEnumErteket(
+        beallitasok?.leapProfile,
+        ERVENYES_ICS_LEAP_PROFILE_ERTEKEK,
+        sharedAlap.leapProfile
+      ),
+      fromYear: normalizalSzamErteket(beallitasok?.fromYear, sharedAlap.fromYear),
+      untilYear: normalizalSzamErteket(beallitasok?.untilYear, sharedAlap.untilYear),
+      baseYear: normalizalSzamErteket(beallitasok?.baseYear, sharedAlap.baseYear),
+    },
+    single: alapertelmezettIcsNaptarBeallitasok({
+      output: baseOutput,
+      layout: baseLayout,
+      descriptionMode: baseDescriptionMode,
+      descriptionFormat: baseDescriptionFormat,
+      ordinalDay: baseOrdinalDay,
+      includeOtherDays,
+      calendarName: baseCalendarName,
+    }),
+    split: {
+      primary: alapertelmezettIcsNaptarBeallitasok({
+        output: outputMode === "personal" ? migratedPersonalPrimaryOutput : derivedSplitPrimaryOutput,
+        layout: baseLayout,
+        descriptionMode: baseDescriptionMode,
+        descriptionFormat: baseDescriptionFormat,
+        ordinalDay: baseOrdinalDay,
+        includeOtherDays,
+        calendarName: `${baseCalendarName} — elsődleges`,
+      }),
+      rest: alapertelmezettIcsNaptarBeallitasok({
+        output:
+          outputMode === "personal"
+            ? szarmaztatottKimenetiUtvonal(migratedPersonalPrimaryOutput, "rest")
+            : derivedSplitRestOutput,
+        layout: restLayout,
+        descriptionMode: baseDescriptionMode,
+        descriptionFormat: baseDescriptionFormat,
+        ordinalDay: baseOrdinalDay,
+        includeOtherDays,
+        calendarName: `${baseCalendarName} — további`,
+      }),
+    },
+  };
+}
+
+export function egyesitIcsBeallitasokat(alap, felulirasok = {}) {
+  return {
+    ...(alap ?? {}),
+    ...(felulirasok ?? {}),
+    shared: {
+      ...(alap?.shared ?? {}),
+      ...(felulirasok?.shared ?? {}),
+    },
+    single: {
+      ...(alap?.single ?? {}),
+      ...(felulirasok?.single ?? {}),
+    },
+    split: {
+      primary: {
+        ...(alap?.split?.primary ?? {}),
+        ...(felulirasok?.split?.primary ?? {}),
+      },
+      rest: {
+        ...(alap?.split?.rest ?? {}),
+        ...(felulirasok?.split?.rest ?? {}),
+      },
+    },
+  };
+}
+
+export function normalizalIcsBeallitasokat(beallitasok = {}) {
+  const alap = alapertelmezettIcsBeallitasok();
+  const legacyLike =
+    !beallitasok?.shared &&
+    !beallitasok?.single &&
+    !beallitasok?.split &&
+    (Object.prototype.hasOwnProperty.call(beallitasok ?? {}, "outputMode") ||
+      Object.prototype.hasOwnProperty.call(beallitasok ?? {}, "scope") ||
+      Object.prototype.hasOwnProperty.call(beallitasok ?? {}, "personalOutput") ||
+      Object.prototype.hasOwnProperty.call(beallitasok ?? {}, "restHandling"));
+  const migrated = legacyLike ? migralLegacyIcsBeallitasokat(beallitasok) : beallitasok;
+  const merged = egyesitIcsBeallitasokat(alap, migrated);
+  const normalizedSingleOutput = normalizalBeallitasiUtvonal(
+    merged?.single?.output,
+    alap.single.output
+  );
+  const normalizedSplitPrimaryOutput = normalizalBeallitasiUtvonal(
+    merged?.split?.primary?.output,
+    szarmaztatottKimenetiUtvonal(normalizedSingleOutput, "primary")
+  );
+  const normalizedSplitRestOutput = normalizalBeallitasiUtvonal(
+    merged?.split?.rest?.output,
+    szarmaztatottKimenetiUtvonal(normalizedSingleOutput, "rest")
+  );
+
+  return {
+    partitionMode: normalizalEnumErteket(
+      merged?.partitionMode,
+      ERVENYES_ICS_PARTITION_MODE_ERTEKEK,
+      alap.partitionMode
+    ),
+    shared: {
+      input: normalizalBeallitasiUtvonal(merged?.shared?.input, alap.shared.input),
+      leapProfile: normalizalEnumErteket(
+        merged?.shared?.leapProfile,
+        ERVENYES_ICS_LEAP_PROFILE_ERTEKEK,
+        alap.shared.leapProfile
+      ),
+      fromYear: normalizalSzamErteket(merged?.shared?.fromYear, alap.shared.fromYear),
+      untilYear: normalizalSzamErteket(merged?.shared?.untilYear, alap.shared.untilYear),
+      baseYear: normalizalSzamErteket(merged?.shared?.baseYear, alap.shared.baseYear),
+    },
+    single: normalizalIcsNaptarBeallitasokat(
+      {
+        ...merged.single,
+        output: normalizedSingleOutput,
+      },
+      {
+        ...alap.single,
+        output: normalizedSingleOutput,
+      }
+    ),
+    split: {
+      primary: normalizalIcsNaptarBeallitasokat(
+        {
+          ...merged?.split?.primary,
+          output: normalizedSplitPrimaryOutput,
+        },
+        {
+          ...alap.split.primary,
+          output: normalizedSplitPrimaryOutput,
+        }
+      ),
+      rest: normalizalIcsNaptarBeallitasokat(
+        {
+          ...merged?.split?.rest,
+          output: normalizedSplitRestOutput,
+        },
+        {
+          ...alap.split.rest,
+          output: normalizedSplitRestOutput,
+        }
+      ),
+    },
+  };
+}
+
+function listazLeapValtozatokat(utvonal, leapProfile) {
   if (!utvonal) {
     return [];
+  }
+
+  if (leapProfile !== "hungarian-both") {
+    return [utvonal];
   }
 
   return [
@@ -205,86 +384,65 @@ function listazLeapValtozatokat(utvonal) {
   ];
 }
 
-/**
- * Az `epitIcsOutputProfilt` a mentett settingsből egységes generálási profilt készít.
- */
-export function epitIcsOutputProfilt(beallitasok = {}, opciok = {}) {
+function buildGeneratorOptions(shared, calendarSettings) {
+  return {
+    input: shared.input,
+    output: calendarSettings.output,
+    scope: "all",
+    layout: calendarSettings.layout,
+    restHandling: "hidden",
+    restLayout: null,
+    leapProfile: shared.leapProfile,
+    fromYear: shared.fromYear,
+    untilYear: shared.untilYear,
+    baseYear: shared.baseYear,
+    descriptionMode: calendarSettings.descriptionMode,
+    descriptionFormat: calendarSettings.descriptionFormat,
+    ordinalDay: calendarSettings.ordinalDay,
+    includeOtherDays: calendarSettings.includeOtherDays,
+    calendarName: calendarSettings.calendarName,
+  };
+}
+
+export function epitIcsOutputProfilt(beallitasok = {}) {
   const settings = normalizalIcsBeallitasokat(beallitasok);
-  const splitPrimaryOutput =
-    settings.primaryOutput ?? szarmaztatottKimenetiUtvonal(settings.output, "primary");
-  const splitRestOutput =
-    settings.restOutput ?? szarmaztatottKimenetiUtvonal(settings.output, "rest");
-  const personalPrimarySource = opciok?.personalPrimarySettings?.primarySource ?? "default";
 
-  if (settings.outputMode === "split") {
+  if (settings.partitionMode === "split") {
     return {
       settings,
-      activeBaseOutputs: [splitPrimaryOutput, splitRestOutput],
-      usesPersonalPrimary: false,
-      generatorOptions: {
-        ...settings,
-        output: settings.output,
-        primaryOutput: splitPrimaryOutput,
-        restOutput: splitRestOutput,
-        scope: "primary",
-        restHandling: "split",
-        restLayout: settings.restLayout ?? settings.layout,
-      },
-    };
-  }
-
-  if (settings.outputMode === "personal") {
-    return {
-      settings,
-      activeBaseOutputs: [settings.personalOutput],
-      usesPersonalPrimary: true,
-      generatorOptions: {
-        ...settings,
-        output: settings.personalOutput,
-        primaryOutput: null,
-        restOutput: null,
-        scope: "primary",
-        restHandling: settings.restHandling === "split" ? "hidden" : settings.restHandling,
-        restLayout: null,
-        primarySource: personalPrimarySource,
-        calendarName: `${settings.calendarName} — saját elsődleges`,
+      partitionMode: "split",
+      activeBaseOutputs: [settings.split.primary.output, settings.split.rest.output],
+      split: {
+        primary: {
+          generatorOptions: buildGeneratorOptions(settings.shared, settings.split.primary),
+        },
+        rest: {
+          generatorOptions: buildGeneratorOptions(settings.shared, settings.split.rest),
+        },
       },
     };
   }
 
   return {
     settings,
-    activeBaseOutputs: [settings.output],
-    usesPersonalPrimary: false,
-    generatorOptions: {
-      ...settings,
-      output: settings.output,
-      primaryOutput: null,
-      restOutput: null,
-      restHandling: settings.restHandling === "split" ? "hidden" : settings.restHandling,
-      restLayout: settings.restHandling === "split" ? null : settings.restLayout,
+    partitionMode: "single",
+    activeBaseOutputs: [settings.single.output],
+    single: {
+      generatorOptions: buildGeneratorOptions(settings.shared, settings.single),
     },
   };
 }
 
-/**
- * A `listazIcsMenedzseltKimeneteket` felsorolja a settings által menedzselt összes lehetséges ICS-kimenetet.
- */
 export function listazIcsMenedzseltKimeneteket(beallitasok = {}) {
   const settings = normalizalIcsBeallitasokat(beallitasok);
-  const splitPrimaryOutput =
-    settings.primaryOutput ?? szarmaztatottKimenetiUtvonal(settings.output, "primary");
-  const splitRestOutput =
-    settings.restOutput ?? szarmaztatottKimenetiUtvonal(settings.output, "rest");
   const managed = new Set();
 
   for (const utvonal of [
-    settings.output,
-    splitPrimaryOutput,
-    splitRestOutput,
-    settings.personalOutput,
+    settings.single.output,
+    settings.split.primary.output,
+    settings.split.rest.output,
   ]) {
-    for (const valtozat of listazLeapValtozatokat(utvonal)) {
+    for (const valtozat of listazLeapValtozatokat(utvonal, settings.shared.leapProfile)) {
       managed.add(path.resolve(process.cwd(), valtozat));
     }
   }
@@ -294,47 +452,69 @@ export function listazIcsMenedzseltKimeneteket(beallitasok = {}) {
 
 export function icsErtekCimke(kulcs, ertek) {
   const cimkek = {
-    outputMode: {
-      common: "közös ICS",
-      split: "primer + további külön",
-      personal: "személyes ICS",
+    partitionMode: {
+      single: "egy naptár, minden névnap",
+      split: "elsődleges + további külön",
     },
-    includeOtherDays: ertek ? "igen" : "nem",
-    scope: {
-      all: "összes névnap",
-      primary: "csak elsődleges",
-    },
-    layout: {
-      grouped: "naponta együtt",
-      separate: "külön",
-    },
-    restHandling: {
-      hidden: "elrejtve",
-      description: "leírásban",
-      "daily-event": "külön napi esemény",
-      split: "külön naptár",
-    },
-    restLayout: {
-      grouped: "naponta együtt",
-      separate: "külön",
-    },
-    leapProfile: {
+    "shared.leapProfile": {
       off: "kikapcsolva",
       "hungarian-a": "magyar A",
       "hungarian-b": "magyar B",
       "hungarian-both": "magyar A + B",
     },
-    descriptionMode: {
+    "single.layout": {
+      grouped: "naponta együtt",
+      separate: "külön",
+    },
+    "split.primary.layout": {
+      grouped: "naponta együtt",
+      separate: "külön",
+    },
+    "split.rest.layout": {
+      grouped: "naponta együtt",
+      separate: "külön",
+    },
+    "single.descriptionMode": {
       none: "nincs",
       compact: "tömör",
       detailed: "részletes",
     },
-    descriptionFormat: {
+    "split.primary.descriptionMode": {
+      none: "nincs",
+      compact: "tömör",
+      detailed: "részletes",
+    },
+    "split.rest.descriptionMode": {
+      none: "nincs",
+      compact: "tömör",
+      detailed: "részletes",
+    },
+    "single.descriptionFormat": {
       text: "szöveg",
       html: "HTML",
       full: "szöveg + HTML",
     },
-    ordinalDay: {
+    "split.primary.descriptionFormat": {
+      text: "szöveg",
+      html: "HTML",
+      full: "szöveg + HTML",
+    },
+    "split.rest.descriptionFormat": {
+      text: "szöveg",
+      html: "HTML",
+      full: "szöveg + HTML",
+    },
+    "single.ordinalDay": {
+      none: "nincs",
+      summary: "címben",
+      description: "leírásban",
+    },
+    "split.primary.ordinalDay": {
+      none: "nincs",
+      summary: "címben",
+      description: "leírásban",
+    },
+    "split.rest.ordinalDay": {
       none: "nincs",
       summary: "címben",
       description: "leírásban",
@@ -360,179 +540,175 @@ export function icsErtekCimke(kulcs, ertek) {
 
 export const ICS_BEALLITAS_DEFINICIOK = [
   {
-    kulcs: "outputMode",
-    cimke: "Kimenet mód",
+    kulcs: "partitionMode",
+    cimke: "Naptárfelosztás",
     tipus: "enum",
-    ertekek: ["common", "split", "personal"],
+    ertekek: ["single", "split"],
     rovidLeiras:
-      "Azt szabályozza, hogy egy közös ICS készüljön, primer és további névnapok külön naptárba kerüljenek, vagy csak a személyes ICS jöjjön létre.",
+      "Azt szabályozza, hogy egyetlen, minden nevet tartalmazó naptár készüljön, vagy külön elsődleges és külön további naptár jöjjön létre.",
     ertekLeirasok: {
-      common:
-        "Pontosan egy közös ICS készül. Ez a legegyszerűbb, alapértelmezett működés.",
+      single:
+        "Pontosan egy ICS készül, és abba minden névnap bekerül. Ebben a módban nincs primerbontás.",
       split:
-        "Két ICS készül: külön az elsődleges neveknek és külön a további névnapoknak. Akkor hasznos, ha ezeket külön akarod importálni.",
-      personal:
-        "Csak a személyes ICS készül el. Ilyenkor a személyes primerforrás, a Normalizált és a Rangsor módosító, valamint a kézi helyi kiegészítések is beleszólnak a tartalomba.",
+        "Két ICS készül: külön az auditban véglegesített elsődleges nevekkel, és külön a maradék nevekkel.",
     },
   },
   {
-    kulcs: "scope",
-    cimke: "Hatókör",
-    tipus: "enum",
-    ertekek: ["all", "primary"],
-    lathato: (beallitasok) => beallitasok?.outputMode !== "split",
-    rovidLeiras:
-      "Azt szabályozza, hogy minden névnap kerüljön be, vagy csak az elsődleges nevek.",
-    ertekLeirasok: {
-      all: "Minden névnap a kiválasztott elrendezésben jelenik meg. Egyszerű, teljes naptárnézet.",
-      primary:
-        "Csak az elsődleges nevek kerülnek fókuszba. A többi név külön szabállyal rejthető, leírásba tehető vagy külön napi eseménybe kerülhet.",
-    },
-  },
-  {
-    kulcs: "layout",
-    cimke: "Elrendezés",
-    tipus: "enum",
-    ertekek: ["grouped", "separate"],
-    rovidLeiras:
-      "Meghatározza, hogy naponta egy esemény készüljön, vagy névenként külön események.",
-    ertekLeirasok: {
-      grouped:
-        "Naponta egyetlen esemény készül. Ez a legletisztultabb, kevésbé zajos naptárnézet.",
-      separate:
-        "Minden név külön eseményt kap. Akkor jó, ha részletesebben akarsz szűrni vagy feldolgozni.",
-    },
-  },
-  {
-    kulcs: "restHandling",
-    cimke: "További nevek kezelése",
-    tipus: "enum",
-    ertekek: ["hidden", "description", "daily-event"],
-    lathato: (beallitasok) =>
-      beallitasok?.outputMode !== "split" && beallitasok?.scope === "primary",
-    rovidLeiras:
-      "Csak elsődleges hatókörnél számít: a nem elsődleges nevek eltűnjenek, leírásba kerüljenek vagy külön napi eseménybe menjenek.",
-    ertekLeirasok: {
-      hidden:
-        "A nem elsődleges nevek nem jelennek meg. Ez adja a legtisztább primerfókuszú naptárat.",
-      description:
-        "A nem elsődleges nevek az eseményleírásba kerülnek. Jó kompromisszum a tisztaság és az információ között.",
-      "daily-event":
-        "A nem elsődleges nevek ugyanarra a napra külön eseményben jelennek meg. Részletesebb, zajosabb nézet.",
-    },
-  },
-  {
-    kulcs: "restLayout",
-    cimke: "További naptár elrendezése",
-    tipus: "enum",
-    ertekek: ["grouped", "separate"],
-    lathato: (beallitasok) => beallitasok?.outputMode === "split",
-    rovidLeiras:
-      "Csak külön naptárba bontásnál számít: a további névnapok naponta együtt vagy névenként külön jelenjenek meg.",
-    ertekLeirasok: {
-      grouped:
-        "A további névnapok naponta csoportosítva jelennek meg a külön naptárban.",
-      separate:
-        "A további névnapok külön eseményekké válnak a külön naptárban.",
-    },
-  },
-  {
-    kulcs: "leapProfile",
+    kulcs: "shared.leapProfile",
     cimke: "Szökőéves profil",
     tipus: "enum",
     ertekek: ["off", "hungarian-a", "hungarian-b", "hungarian-both"],
     rovidLeiras:
-      "A február végi mozgó névnapok kezelését szabályozza. A magyar eltolási modellek egy kapcsoló mögé kerültek.",
+      "Minden generált naptárra közösen vonatkozik. Meghatározza a szökőnap körüli magyar kompatibilitási viselkedést.",
     ertekLeirasok: {
-      off: "Nincs külön szökőéves eltolás. Az ismétlődő események egyszerű mintában készülnek el.",
-      "hungarian-a": "A magyar február végi eltolás A változatát alkalmazza 2050-ig.",
-      "hungarian-b": "A magyar február végi eltolás B változatát alkalmazza 2050-ig.",
+      off: "Nincs külön szökőéves eltolási profil.",
+      "hungarian-a": "A magyar A változat szerinti kompatibilis eltolás érvényesül.",
+      "hungarian-b": "A magyar B változat szerinti kompatibilis eltolás érvényesül.",
       "hungarian-both":
-        "Mindkét szökőéves változat külön fájlban elkészül. Összehasonlításhoz és ellenőrzéshez hasznos.",
+        "Mindkét magyar változat külön fájlváltozatban készül el, -A és -B utótaggal.",
     },
   },
   {
-    kulcs: "fromYear",
-    cimke: "Szökőéves tartomány kezdete",
-    tipus: "number",
-    min: 1900,
-    max: 2050,
-    step: 1,
-    rovidLeiras:
-      "A szökőéves, konkrét évre szóló események kezdőéve. Csak a magyar szökőéves mód mellett lényeges.",
-  },
-  {
-    kulcs: "untilYear",
-    cimke: "Szökőéves tartomány vége",
-    tipus: "number",
-    min: 1900,
-    max: 2050,
-    step: 1,
-    rovidLeiras:
-      "A szökőéves, konkrét évre szóló események utolsó éve. Ha növeled, hosszabb időhorizontra készülnek el az eltolt februári napok.",
-  },
-  {
-    kulcs: "baseYear",
-    cimke: "Bázisév",
+    kulcs: "shared.fromYear",
+    cimke: "Kezdő év",
     tipus: "number",
     min: 1900,
     max: 2100,
     step: 1,
-    rovidLeiras:
-      "A nem szökőéves ismétlődő események technikai báziséve. Naptárimport-kompatibilitási célra szolgál, ritkán kell módosítani.",
+    rovidLeiras: "A generált naptárak első éve.",
   },
   {
-    kulcs: "descriptionMode",
-    cimke: "Leírásmód",
+    kulcs: "shared.untilYear",
+    cimke: "Utolsó év",
+    tipus: "number",
+    min: 1900,
+    max: 2100,
+    step: 1,
+    rovidLeiras: "A generált naptárak utolsó éve.",
+  },
+  {
+    kulcs: "single.layout",
+    cimke: "Egyfájlos elrendezés",
+    tipus: "enum",
+    ertekek: ["grouped", "separate"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "single",
+    rovidLeiras:
+      "Az egyetlen, minden nevet tartalmazó naptár eseményszerkezete: naponta együtt vagy névenként külön.",
+    ertekLeirasok: {
+      grouped: "Naponta egy közös esemény készül az adott nap összes nevével.",
+      separate: "Minden név külön eseményt kap ugyanabban az egyetlen naptárban.",
+    },
+  },
+  {
+    kulcs: "single.descriptionMode",
+    cimke: "Egyfájlos leírás",
     tipus: "enum",
     ertekek: ["none", "compact", "detailed"],
-    rovidLeiras: "Megadja, mennyi kiegészítő szöveg kerüljön az eseményleírásba.",
-    ertekLeirasok: {
-      none: "Nem kerül külön leírás az eseményekbe. A legminimalistább naptárkimenet.",
-      compact:
-        "Rövid, tömör leírás készül a legfontosabb adatokkal. Áttekinthető marad, de ad kontextust.",
-      detailed:
-        "Részletes eseményleírás készül. Akkor hasznos, ha a naptár legyen önmagában is informatív referencia.",
-    },
+    lathato: (beallitasok) => beallitasok?.partitionMode === "single",
+    rovidLeiras: "Az egyetlen naptár eseményleírásainak részletessége.",
   },
   {
-    kulcs: "descriptionFormat",
-    cimke: "Leírásformátum",
+    kulcs: "single.descriptionFormat",
+    cimke: "Egyfájlos leírásformátum",
     tipus: "enum",
     ertekek: ["text", "html", "full"],
-    rovidLeiras:
-      "A leírás technikai formátumát szabályozza, hogy a cél naptáralkalmazás milyen gazdag tartalmat tud megjeleníteni.",
-    ertekLeirasok: {
-      text: "Csak egyszerű szöveges leírás készül. Ez a legszélesebb körben kompatibilis forma.",
-      html: "HTML-leírás készül, gazdagabb megjelenítéshez. Olyan klienseknél hasznos, amelyek ezt ténylegesen kirajzolják.",
-      full:
-        "A szöveges és a gazdagabb leírás együtt készül el. Akkor jó, ha vegyes klienskörnyezetre exportálsz.",
-    },
+    lathato: (beallitasok) => beallitasok?.partitionMode === "single",
+    rovidLeiras: "Az egyetlen naptár eseményleírásainak formátuma.",
   },
   {
-    kulcs: "ordinalDay",
-    cimke: "Év napja",
+    kulcs: "single.ordinalDay",
+    cimke: "Egyfájlos évnapja",
     tipus: "enum",
     ertekek: ["none", "summary", "description"],
-    rovidLeiras:
-      "Az év sorszámozott napjának megjelenítését szabályozza. Ez inkább információs extra, mint kötelező névnapadat.",
-    ertekLeirasok: {
-      none: "Az év napja egyáltalán nem jelenik meg.",
-      summary: "Az év napja rövid, kiemelt formában kerül be az esemény összefoglaló részébe.",
-      description: "Az év napja a leírás részeként jelenik meg, így kevésbé hangsúlyos, de visszakereshető.",
-    },
+    lathato: (beallitasok) => beallitasok?.partitionMode === "single",
+    rovidLeiras: "Az év napja információ megjelenítése az egyetlen naptárban.",
   },
   {
-    kulcs: "includeOtherDays",
-    cimke: "További névnapok a leírásban",
+    kulcs: "single.includeOtherDays",
+    cimke: "Egyfájlos további napok",
     tipus: "boolean",
+    lathato: (beallitasok) => beallitasok?.partitionMode === "single",
     rovidLeiras:
-      "Az elsődleges fókuszú események leírásába beemeli a nem elsődleges, ugyanarra a napra eső neveket is.",
-    ertekLeirasok: {
-      true:
-        "A leírásban megjelennek a további névnapok is. Ettől informatívabb lesz a naptár, de hosszabb leírásokat kapsz.",
-      false:
-        "Csak az adott név saját metaadatai látszanak. Rövidebb és tisztább marad a kimenet.",
-    },
+      "Az egyetlen naptár eseményleírása tartalmazza-e az adott név további névnapjait is.",
+  },
+  {
+    kulcs: "split.primary.layout",
+    cimke: "Elsődleges elrendezés",
+    tipus: "enum",
+    ertekek: ["grouped", "separate"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras: "Az elsődleges naptár eseményszerkezete.",
+  },
+  {
+    kulcs: "split.primary.descriptionMode",
+    cimke: "Elsődleges leírás",
+    tipus: "enum",
+    ertekek: ["none", "compact", "detailed"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras: "Az elsődleges naptár eseményleírásainak részletessége.",
+  },
+  {
+    kulcs: "split.primary.descriptionFormat",
+    cimke: "Elsődleges leírásformátum",
+    tipus: "enum",
+    ertekek: ["text", "html", "full"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras: "Az elsődleges naptár eseményleírásainak formátuma.",
+  },
+  {
+    kulcs: "split.primary.ordinalDay",
+    cimke: "Elsődleges évnapja",
+    tipus: "enum",
+    ertekek: ["none", "summary", "description"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras: "Az év napja információ megjelenítése az elsődleges naptárban.",
+  },
+  {
+    kulcs: "split.primary.includeOtherDays",
+    cimke: "Elsődleges további napok",
+    tipus: "boolean",
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras:
+      "Az elsődleges naptár eseményleírása tartalmazza-e az adott név további névnapjait is.",
+  },
+  {
+    kulcs: "split.rest.layout",
+    cimke: "További elrendezés",
+    tipus: "enum",
+    ertekek: ["grouped", "separate"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras: "A további naptár eseményszerkezete.",
+  },
+  {
+    kulcs: "split.rest.descriptionMode",
+    cimke: "További leírás",
+    tipus: "enum",
+    ertekek: ["none", "compact", "detailed"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras: "A további naptár eseményleírásainak részletessége.",
+  },
+  {
+    kulcs: "split.rest.descriptionFormat",
+    cimke: "További leírásformátum",
+    tipus: "enum",
+    ertekek: ["text", "html", "full"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras: "A további naptár eseményleírásainak formátuma.",
+  },
+  {
+    kulcs: "split.rest.ordinalDay",
+    cimke: "További évnapja",
+    tipus: "enum",
+    ertekek: ["none", "summary", "description"],
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras: "Az év napja információ megjelenítése a további naptárban.",
+  },
+  {
+    kulcs: "split.rest.includeOtherDays",
+    cimke: "További napok listája",
+    tipus: "boolean",
+    lathato: (beallitasok) => beallitasok?.partitionMode === "split",
+    rovidLeiras:
+      "A további naptár eseményleírása tartalmazza-e az adott név további névnapjait is.",
   },
 ];

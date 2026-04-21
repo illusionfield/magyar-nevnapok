@@ -1,6 +1,6 @@
 /**
  * domainek/helyi-konfig.mjs
- * Egységes, nem követett helyi YAML-konfig az ICS-profilhoz és a személyes primerhez.
+ * Egységes, nem követett helyi YAML-konfig az ICS-profilhoz és a helyi primerhez.
  */
 
 import path from "node:path";
@@ -24,7 +24,7 @@ export function alapertelmezettHelyiIcsBeallitasok() {
 }
 
 /**
- * Az `alapertelmezettHelyiPrimerModositok` a személyes primer módosítóinak alapértékeit adja.
+ * Az `alapertelmezettHelyiPrimerModositok` a helyi primer módosítóinak alapértékeit adja.
  */
 export function alapertelmezettHelyiPrimerModositok() {
   return {
@@ -34,7 +34,7 @@ export function alapertelmezettHelyiPrimerModositok() {
 }
 
 /**
- * Az `alapertelmezettHelyiPrimerBeallitasok` a személyes primerblokk alapértékeit adja.
+ * Az `alapertelmezettHelyiPrimerBeallitasok` a helyi primerblokk alapértékeit adja.
  */
 export function alapertelmezettHelyiPrimerBeallitasok() {
   return {
@@ -65,7 +65,7 @@ export function normalizalHelyiIcsBeallitasokat(beallitasok) {
 }
 
 /**
- * A `normalizalHelyiPrimerNapokat` stabil napi listává alakítja a személyes primernapokat.
+ * A `normalizalHelyiPrimerNapokat` stabil napi listává alakítja a helyi primernapokat.
  */
 export function normalizalHelyiPrimerNapokat(days) {
   if (!Array.isArray(days)) {
@@ -98,7 +98,7 @@ export function normalizalHelyiPrimerNapokat(days) {
 }
 
 /**
- * A `normalizalHelyiPrimerBeallitasokat` stabil személyes primerblokkot ad.
+ * A `normalizalHelyiPrimerBeallitasokat` stabil helyi primerblokkot ad.
  */
 export function normalizalHelyiPrimerBeallitasokat(beallitasok) {
   const alap = alapertelmezettHelyiPrimerBeallitasok();
@@ -218,7 +218,7 @@ export async function allitHelyiIcsBeallitasokat(
 }
 
 /**
- * Az `allitHelyiPrimerBlokkot` az egységes helyi YAML személyes primerblokkját menti.
+ * Az `allitHelyiPrimerBlokkot` az egységes helyi YAML helyi primerblokkját menti.
  */
 export async function allitHelyiPrimerBlokkot(
   { primarySource, modifiers, days } = {},

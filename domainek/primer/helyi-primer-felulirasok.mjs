@@ -127,14 +127,14 @@ function extractHelyiPrimerBlokk(payload) {
 }
 
 /**
- * Az `alapertelmezettHelyiPrimerModositok` a személyes primer módosítóinak alapértékeit adja.
+ * Az `alapertelmezettHelyiPrimerModositok` a helyi primer módosítóinak alapértékeit adja.
  */
 export function alapertelmezettHelyiPrimerModositok() {
   return alapertelmezettHelyiPrimerModositokBlokk();
 }
 
 /**
- * Az `alapertelmezettHelyiPrimerBeallitasok` a helyi, személyes primerbeállítások alapértékeit adja.
+ * Az `alapertelmezettHelyiPrimerBeallitasok` a helyi primerbeállítások alapértékeit adja.
  */
 export function alapertelmezettHelyiPrimerBeallitasok() {
   const alap = alapertelmezettHelyiPrimerBeallitasBlokk();
@@ -184,7 +184,7 @@ function normalizalHelyiPrimerBeallitasokat(settings) {
 }
 
 /**
- * A `vanNemAlapertelmezettHelyiPrimerBeallitas` megmondja, hogy a személyes primerprofil eltér-e az alaphelyzettől.
+ * A `vanNemAlapertelmezettHelyiPrimerBeallitas` megmondja, hogy a helyi primerprofil eltér-e az alaphelyzettől.
  */
 export function vanNemAlapertelmezettHelyiPrimerBeallitas(settings) {
   const normalized = normalizalHelyiPrimerBeallitasokat(settings);
@@ -213,7 +213,7 @@ export async function betoltHelyiPrimerBeallitasokat(
 }
 
 /**
- * Az `allitHelyiPrimerForrast` a személyes naptár primerforrási profilját menti.
+ * Az `allitHelyiPrimerForrast` a helyi primerforrás profilját menti.
  */
 export async function allitHelyiPrimerForrast({
   primarySource,
@@ -232,7 +232,7 @@ export async function allitHelyiPrimerForrast({
 }
 
 /**
- * Az `allitHelyiPrimerBeallitasokat` a teljes személyes primerbeállítás-profilt menti.
+ * Az `allitHelyiPrimerBeallitasokat` a teljes helyi primerbeállítás-profilt menti.
  */
 export async function allitHelyiPrimerBeallitasokat({
   primarySource,

@@ -57,8 +57,9 @@ test("az ICS súgó a helyi YAML-profilt emeli ki, és nem listázza a részlete
   assert.doesNotMatch(stdout, /--primary-source/);
   assert.doesNotMatch(stdout, /--leap-mode/);
   assert.doesNotMatch(stdout, /--leap-strategy/);
-  assert.match(stdout, /személyes primerprofil/u);
-  assert.match(stdout, /aktív ICS kimenet mód/u);
+  assert.match(stdout, /helyi primerprofil/u);
+  assert.match(stdout, /egyfájlos ICS mindig minden névnapot tartalmaz/u);
+  assert.match(stdout, /Bontott ICS-nél a generálás automatikusan újrafuttatja a Primer auditot/u);
 });
 
 test("a legacy ICS kapcsoló célzott hibával áll le", async () => {

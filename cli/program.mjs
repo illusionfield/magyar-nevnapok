@@ -225,7 +225,7 @@ function nyomtatPrimerAuditReszleteket(row, resz) {
   }
 
   printKeyValueTable(
-    `Primer audit – ${row.monthDay} – személyes overlay`,
+    `Primer audit – ${row.monthDay} – helyi overlay`,
     [
       ["Közös alap", formataltLista(row.commonPreferredNames ?? row.finalPrimaryNames ?? [])],
       ["Helyi overlay", formataltLista(szakasz.localAddedPreferredNames ?? row.localAddedPreferredNames ?? [])],
@@ -240,7 +240,7 @@ function nyomtatPrimerAuditReszleteket(row, resz) {
   );
 
   printDataTable(
-    `Primer audit – ${row.monthDay} – személyes`,
+    `Primer audit – ${row.monthDay} – helyi jelölések`,
     [
       { key: "nev", title: "Név", width: 22 },
       { key: "helyi", title: "Helyi", width: 10 },
@@ -258,7 +258,7 @@ function nyomtatPrimerAuditReszleteket(row, resz) {
   );
 
   printKeyValueTable(
-    `Primer audit – ${row.monthDay} – személyes beállítások`,
+    `Primer audit – ${row.monthDay} – helyi beállítások`,
     [
       [
         "Primerforrás",
@@ -421,14 +421,13 @@ Elérhető formátumok:
 
 Megjegyzés:
   Az ICS generálás a nem követett .local/nevnapok.local.yaml fájl mentett profiljából dolgozik.
-  Ugyanebben a helyi YAML-ban él a személyes primerprofil és a kézi helyi primerkiegészítés is.
+  Ugyanebben a helyi YAML-ban él a helyi primerprofil és a kézi helyi primerkiegészítés is.
   A közös, követett primerfelülírások mértékadó fájlja a data/primary-registry-overrides.yaml.
-  A helyi, személyes overlay kizárólag a .local/nevnapok.local.yaml.
-  A TUI ICS nézete és a Primer audit személyes beállítási drawerje ezt a közös helyi YAML-t írja.
-  A Normalizált és a Rangsor módosító a Primer auditban véglegesül; az ICS generálás ezeket már nem számolja újra, hanem a véglegesített audit snapshotot olvassa.
-  Ha ezeket kézzel, közvetlenül a YAML-ban módosítod, futtasd újra: nevnapok audit primer
-  Egyszerre pontosan egy aktív ICS kimenet mód él: közös, primer+további külön vagy személyes.
-  A személyes primerprofil csak akkor hat a generálásra, ha a mentett profil személyes ICS módra van állítva.
+  A helyi overlay kizárólag a .local/nevnapok.local.yaml.
+  A TUI ICS nézete és a Primer audit helyi beállítási drawerje ezt a közös helyi YAML-t írja.
+  Az egyfájlos ICS mindig minden névnapot tartalmaz; ebben a módban nincs primerbontás.
+  A Normalizált és a Rangsor módosító a Primer auditban véglegesül.
+  Bontott ICS-nél a generálás automatikusan újrafuttatja a Primer auditot, és a véglegesített audit snapshotból készít külön elsődleges és külön további naptárat.
 
 Táblázatos exportok:
   A csv export UTF-8 BOM-mal és pontosvesszős tagolással készül, hogy Excelben is jól nyíljon meg.
@@ -527,7 +526,7 @@ Elérhető auditok:
           ["Fel nem oldott kézi nevek", adat.summary?.localOnlySelectedCount ?? 0],
           ["Figyelmeztetéses napok", adat.summary?.warningDayCount ?? 0],
           ["Kemény hibák", adat.summary?.hardFailureCount ?? 0],
-          ["Személyes primerforrás", adat.personal?.settingsSnapshot?.primarySource ?? "default"],
+          ["Helyi primerforrás", adat.personal?.settingsSnapshot?.primarySource ?? "default"],
           [
             "Normalizált módosító",
             adat.personal?.settingsSnapshot?.modifiers?.normalized ? "be" : "ki",
@@ -587,11 +586,11 @@ Elérhető auditok:
 
   primerAuditHelyiParancs
     .command("hozzaad <monthDay> <nev>")
-    .description("Egy nevet hozzáad a személyes primerhez az adott napon.")
+    .description("Egy nevet hozzáad a helyi primerhez az adott napon.")
     .action(async (monthDay, nev) => {
       const eredmeny = await hozzaadHelyiPrimerKiegeszitest({ monthDay, name: nev });
       printKeyValueTable(
-        "Személyes primer – hozzáadás",
+        "Helyi primer – hozzáadás",
         [
           ["Nap", eredmeny.monthDay],
           ["Név", eredmeny.name],
@@ -607,11 +606,11 @@ Elérhető auditok:
 
   primerAuditHelyiParancs
     .command("torol <monthDay> <nev>")
-    .description("Egy nevet eltávolít a személyes primerből az adott napon.")
+    .description("Egy nevet eltávolít a helyi primerből az adott napon.")
     .action(async (monthDay, nev) => {
       const eredmeny = await torolHelyiPrimerKiegeszitest({ monthDay, name: nev });
       printKeyValueTable(
-        "Személyes primer – törlés",
+        "Helyi primer – törlés",
         [
           ["Nap", eredmeny.monthDay],
           ["Név", eredmeny.name],
@@ -627,15 +626,15 @@ Elérhető auditok:
 
   primerAuditHelyiParancs
     .command("forras <forras>")
-    .description("Beállítja a személyes primerforrás-profilt.")
+    .description("Beállítja a helyi primerforrás-profilt.")
     .action(async (forras) => {
       if (!["default", "legacy", "ranked", "either"].includes(forras)) {
-        throw new Error("A személyes primerforrás csak default, legacy, ranked vagy either lehet.");
+        throw new Error("A helyi primerforrás csak default, legacy, ranked vagy either lehet.");
       }
 
       const eredmeny = await allitSajatPrimerForrast(forras);
       printKeyValueTable(
-        "Személyes primerforrás",
+        "Helyi primerforrás",
         [
           ["Primerforrás", eredmeny.primarySource],
           ["Helyi konfig", eredmeny.localOverridesPath],
@@ -649,7 +648,7 @@ Elérhető auditok:
 
   primerAuditHelyiParancs
     .command("modosito <modosito> <allapot>")
-    .description("Be- vagy kikapcsol egy személyes primer módosítót.")
+    .description("Be- vagy kikapcsol egy helyi primer módosítót.")
     .action(async (modosito, allapot) => {
       if (!["normalized", "ranking"].includes(modosito)) {
         throw new Error("A módosító csak normalized vagy ranking lehet.");
@@ -661,7 +660,7 @@ Elérhető auditok:
 
       const eredmeny = await allitSajatPrimerModositot(modosito, allapot === "be");
       printKeyValueTable(
-        "Személyes primer módosító",
+        "Helyi primer módosító",
         [
           ["Módosító", eredmeny.modifier],
           ["Állapot", eredmeny.enabled ? "bekapcsolva" : "kikapcsolva"],

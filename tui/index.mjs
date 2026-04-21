@@ -342,20 +342,22 @@ function lathatoIcsBeallitasDefiniciok(beallitasok) {
 function buildIcsKimenetiOsszegzest(beallitasok) {
   const profil = epitIcsOutputProfilt(beallitasok);
   const sorok = [
-    `Aktív mód: ${icsErtekCimke("outputMode", profil.settings.outputMode)}`,
+    `Aktív mód: ${icsErtekCimke("partitionMode", profil.settings.partitionMode)}`,
     `Létrejövő fájlok: ${profil.activeBaseOutputs.map((utvonal) => relativUtvonal(utvonal)).join(" • ")}`,
   ];
 
-  if (profil.settings.leapProfile === "hungarian-both") {
+  if (profil.settings.shared.leapProfile === "hungarian-both") {
     sorok.push("Szökőéves A+B profilnál a tényleges fájlnevek -A és -B utótagot kapnak.");
   }
 
-  if (profil.usesPersonalPrimary) {
+  if (profil.partitionMode === "split") {
     sorok.push(
-      "A személyes primerforrás, a Normalizált és a Rangsor módosító, valamint a kézi helyi kiegészítések most aktívak."
+      "A primer/további bontás előtt a generálás automatikusan frissíti a Primer auditot, és az auditban véglegesített elsődleges listából dolgozik."
     );
   } else {
-    sorok.push("A személyes primerprofil most nem hoz létre külön ICS-t.");
+    sorok.push(
+      "Az egyfájlos naptár minden névnapot tartalmaz; a Primer audit primerbeállításai ebben a módban nem alakítják át a kimenetet."
+    );
   }
 
   sorok.push("A generálás az inaktív, menedzselt ICS-kimeneteket eltakarítja a kimeneti mappából.");
@@ -592,7 +594,7 @@ function ICSBeallitasNezet({ adat, visszaMenu }) {
         e(
           Text,
           null,
-          "A nevnapok kimenet general ics már kizárólag a mentett helyi YAML-profilt használja, és csak az aktív kimenet módhoz tartozó ICS-eket hagyja meg. A személyes primerforrás és a Normalizált / Rangsor módosítók a Primer audit nézet személyes beállítási drawerjében kezelhetők."
+          "A nevnapok kimenet general ics kizárólag a mentett helyi YAML-profilt használja. Az egyfájlos mód minden nevet egy naptárba ír, a bontott mód pedig automatikusan frissített Primer auditból készít külön elsődleges és külön további naptárat. A primerforrás és a Normalizált / Rangsor módosítók a Primer audit nézet drawerjében kezelhetők."
         )
       )
     )

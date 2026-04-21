@@ -1,6 +1,6 @@
 {
   "name": "magyar-nevnapok",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "Magyar hivatalos névnap adatbázis és iCalendar fájl generátor",
   "type": "module",
   "main": "./index.mjs",
@@ -32,7 +32,7 @@
     "googleapis": "^171.4.0",
     "ink": "^7.0.1",
     "picocolors": "^1.1.1",
-    "puppeteer": "^24.41.0",
+    "puppeteer": "^24.42.0",
     "react": "^19.2.5",
     "yaml": "^2.8.3"
   },

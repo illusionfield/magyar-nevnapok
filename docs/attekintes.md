@@ -35,5 +35,5 @@ hanem közvetlen CSV- és Excel-export is.
 
 ## Kiemelt auditok
 
-- `primer-audit` — egységes primer diagnosztika a forrásnézettel, a hiányzó nevekkel és a személyes primerállapottal,
+- `primer-audit` — egységes primer diagnosztika a forrásnézettel, a hiányzó nevekkel és a helyi primerállapottal,
 - `hivatalos-nevjegyzek` — a dokumentált kivétellistával kezelt hivatalos névjegyzék-összevetés.

@@ -135,10 +135,9 @@ NPM audit:
 - `output/adatbazis/nevnapok.csv`
 - `output/adatbazis/nevnapok.xlsx`
 - `output/adatbazis/formalizalt-elek.yaml`
-- `output/naptar/nevnapok.ics`
-- `output/naptar/nevnapok-primary.ics` — akkor készül el, ha az aktív ICS kimenet mód a primer + további külön
-- `output/naptar/nevnapok-rest.ics` — akkor készül el, ha az aktív ICS kimenet mód a primer + további külön
-- `output/naptar/nevnapok-sajat.ics` — akkor készül el, ha az aktív ICS kimenet mód a személyes ICS
+- `output/naptar/nevnapok.ics` — az alapértelmezett, egyfájlos kimenet
+- `output/naptar/nevnapok-primary.ics` — a bontott kimenet alapértelmezett elsődleges naptára
+- `output/naptar/nevnapok-rest.ics` — a bontott kimenet alapértelmezett további naptára
 - `output/riportok/*.yaml`
 - `output/pipeline/manifest.yaml`
 
@@ -146,7 +145,7 @@ Kiemelt riportok:
 
 - `output/riportok/primer-audit.yaml`
 
-Helyi, nem követett személyes bemenet:
+Helyi, nem követett bemenet:
 
 - `.local/nevnapok.local.yaml`
 
@@ -159,14 +158,14 @@ Helyi, nem követett személyes bemenet:
 - A pipeline lépései deklarált bemenetekkel és kimenetekkel működnek.
 - A hivatalos névjegyzék eltérései dokumentált kivétellistában vannak kezelve.
 - A közös, követett primerfelülírások mértékadó fájlja a `data/primary-registry-overrides.yaml`.
-- Az ICS-profil, a személyes primerprofil és a kézi helyi primernapok egy közös, nem követett helyi YAML-fájlban élnek: `.local/nevnapok.local.yaml`.
-- A helyi YAML `personalPrimary` blokkja a személyes primerforrást, a `Normalizált` / `Rangsor` módosítókat és a kézi helyi primernapokat tárolja.
+- Az ICS-profil, a helyi primerprofil és a kézi helyi primernapok egy közös, nem követett helyi YAML-fájlban élnek: `.local/nevnapok.local.yaml`.
+- A helyi YAML `personalPrimary` blokkja a helyi primerforrást, a `Normalizált` / `Rangsor` módosítókat és a kézi helyi primernapokat tárolja.
 - A közös alap továbbra is a `data/primary-registry-overrides.yaml`, erre ül rá a helyi overlay a `.local/nevnapok.local.yaml` alapján.
 - A `Normalizált` / `Rangsor` módosító a Primer auditban véglegesül; az ICS-generálás ezt a véglegesített audit snapshotot használja, nem számolja újra.
-- Az `ics.outputMode` egyszerre pontosan egy aktív ICS-kimenetet jelöl ki: közös, primer+további külön vagy személyes.
+- Az `ics.partitionMode` két egyszerű kimeneti modellt kezel: `single` esetén egyetlen, minden nevet tartalmazó ICS készül, `split` esetén külön elsődleges és külön további naptár jön létre.
 - A scraper réteg Puppeteer 24-gyel is stabilan fut; a HUN-REN HTTP-forráshoz a projekt központi kompatibilitási launch-opciókat használ.
 - Az `ics` generálás publikus CLI-felülete már nem részletes kapcsolókkal dolgozik, hanem a mentett helyi YAML-profilt használja.
-- A TUI ICS nézete és a Primer audit személyes beállítási drawerje ugyanazt a helyi YAML-fájlt frissíti.
+- A TUI ICS nézete és a Primer audit helyi beállítási drawerje ugyanazt a helyi YAML-fájlt frissíti.
 
 ## Dokumentáció
 
@@ -179,6 +178,7 @@ Helyi, nem követett személyes bemenet:
 - [Források és dokumentált kivételek](docs/forrasok-es-kivetelek.md)
 - [Migráció a régi scriptvilágból](docs/migracio.md)
 - [Változásnapló](CHANGELOG.md)
+- [0.6.5 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.5.md)
 - [0.6.4 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.4.md)
 - [0.6.3 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.3.md)
 - [0.6.2 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.2.md)
