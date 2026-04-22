@@ -21,6 +21,10 @@ function getInitialAuditId() {
   return fromQuery || "vegso-primer";
 }
 
+function getInitialAuditQuery() {
+  return new URLSearchParams(window.location.search).get("query") ?? "";
+}
+
 function AuditCard({ audit, selected, onSelect, onRerun }) {
   return (
     <button type="button" data-audit-id={audit.id} className={selected ? "catalog-card selected" : "catalog-card"} onClick={() => onSelect(audit.id)}>
@@ -322,7 +326,7 @@ function AuditDetailBody({ detail, request, query, refreshToken, onSaved }) {
 
 export function AuditsPage({ request, connected, jobState, lastSocketError }) {
   const [selectedAuditId, setSelectedAuditId] = useState(getInitialAuditId);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(getInitialAuditQuery);
   const [refreshToken, setRefreshToken] = useState(0);
   const catalogQuery = useWsQuery(() => request("audits:get-catalog").then((payload) => payload.auditCatalog), [request, refreshToken]);
   const detailQuery = useWsQuery(

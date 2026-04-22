@@ -1,13 +1,13 @@
 # Áttekintés
 
-A `magyar-nevnapok` egy böngészős GUI-val vezérelt, helyi magyar névnap build-, audit- és karbantartó alkalmazás.
+A `magyar-nevnapok` egy böngészős GUI-val vezérelt, helyi magyar névnap audit-, primer- és exportalkalmazás.
 
-A projekt célja, hogy a magyar névnapokkal kapcsolatos forrásadatokból:
+A projekt elsődleges célja nem pusztán egy admin felület biztosítása, hanem az, hogy a magyar névnapforrásokból:
 
-- egységes, dokumentált pipeline-t adjon,
-- jól követhető kimenetkészletet állítson elő,
-- több különböző nézetből is összevesse ugyanazt a névanyagot,
-- webes munkaterekben tegye kezelhetővé az auditokat, a primer döntéseket és az ICS-generálást,
+- **teljes auditálhatóságot** adjon,
+- **kiterjesztett, szakmailag használható primer adatbázist** állítson elő,
+- a primerdöntések mögé **forrásbizonyítékot** tegyen,
+- a szakembereknek gyorsan áttekinthető, mégis részletes webes munkateret adjon,
 - miközben az igazság forrása továbbra is a fájlrendszer marad.
 
 ## Fő célok
@@ -15,10 +15,10 @@ A projekt célja, hogy a magyar névnapokkal kapcsolatos forrásadatokból:
 - web-only kezelőfelület,
 - websocketes frontend/backend kommunikáció,
 - jól elkülönített domainhatárok,
-- követhető pipeline-manifest,
-- audit- és ICS-szerkesztő munkaterek,
-- adminisztratív, gyorsan áttekinthető GUI,
-- többforrású validáció és eltérésfigyelés,
+- audit-first pipeline,
+- elsőrangú külön auditok,
+- primer editor snapshot visszakötve a forrásauditokhoz,
+- blokkoló eltérések gyors láthatósága,
 - helyi profilalapú ICS- és primerkezelés.
 
 ## Fő futási utak
@@ -29,24 +29,46 @@ A projekt célja, hogy a magyar névnapokkal kapcsolatos forrásadatokból:
 - `npm run data:build` — teljes adat/pipeline build, ICS generálás nélkül
 - `npm run ellenorzes` — lint + typecheck + teszt + web build
 
-## Fő folyamat
+## Irányadó folyamat
 
 1. legacy primerjegyzék építése a régi ICS-ből,
 2. wiki primerjegyzék gyűjtése,
-3. végső primer-feloldás,
-4. teljes névadatbázis építése,
-5. auditok és ellenőrző riportok frissítése,
-6. primer audit snapshot és szerkesztői nézet előállítása,
-7. formalizált él-lista generálása,
-8. formalizált és auditkísérő kimenetek lezárása.
+3. végső primer feloldása,
+4. normalizáló alap előállítása,
+5. **külön auditok** frissítése,
+6. `primer-audit` editor snapshot előállítása,
+7. adatbázis és exportkimenetek lezárása,
+8. igény szerint külön ICS generálás.
+
+Ez a sorrend szándékos: a projektben a primer minősége és auditálhatósága az első, az exportok és a naptárkimenetek csak erre épülnek rá.
+
+## Mi számít elsőrangú auditnak?
+
+Az audit-first modellben külön, elsőrangú auditnak számít többek között:
+
+- `vegso-primer`
+- `primer-nelkul-marado-nevek`
+- `primer-normalizalo`
+- `wiki-vs-legacy`
+- `legacy-primer`
+- `hivatalos-nevjegyzek`
+
+Ezek nem puszta háttér-összetevők. A dashboardon és az `/auditok` oldalon is saját prioritással, saját összefoglalóval és saját havi részletekkel jelennek meg.
+
+A `primer-audit` ettől eltérő szerepű:
+
+- **primer editor**,
+- **snapshot**,
+- **szintetizáló nézet**,
+- de **nem az auditigazság egyetlen hordozója**.
 
 ## Webes munkaterek
 
-- **Dashboard** — primer- és auditközpontú irányítópult a teendők, a havi primerállapot, az auditfigyelmek és a pipeline összkép áttekintésére
-- **Pipeline** — csoportos admin nézet közérthető státuszokkal és célzott futtatással
-- **Auditok** — auditkatalógus, fluid részletnézetek és a szerkeszthető auditforrások inline editorai
-- **Primer audit** — havi csoportos, táblázatos inline editor a közös és helyi primerdöntésekhez
-- **ICS generálás** — live mentésű beállítófelület, havi accordionos táblázatos előnézet, névszintű részletek és letöltés
+- **Dashboard** — audit-first irányítópult a blokkoló auditokhoz, a kézi döntést igénylő napokhoz és a primer állapot gyors áttekintéséhez
+- **Auditok** — auditkatalógus, strukturált összefoglalók, havi bontások és auditforrás-szerkesztők
+- **Primer audit** — közös és helyi primerdöntések szerkesztője, forrásbizonyíték-linkekkel
+- **Pipeline** — csoportos admin nézet, célzott futtatás és frissességi állapot
+- **ICS generálás** — külön munkatér a konfigurációhoz, previewhoz és letöltéshez
 
 ## Fő működési elvek
 
@@ -54,4 +76,6 @@ A projekt célja, hogy a magyar névnapokkal kapcsolatos forrásadatokból:
 - Az aktív job állapota strukturált workspace-progresszként érkezik.
 - A logfolyam megmarad, de már nem ez a felület elsődleges visszajelzése.
 - A read-only workspace lekérések aktív job mellett is elérhetők.
-- A GUI nem általános fájlböngésző, hanem domain-specifikus editorokra épül.
+- A GUI nem általános fájlböngésző, hanem domain-specifikus audit- és primer editorokra épül.
+- A blokkoló eltérések előre sorolódnak, hogy a primer minőségét rontó hibák hamar látszódjanak.
+- Az ICS nem húzza vissza a fő workflow fókuszát: külön művelet, külön munkatér, külön felelősség.

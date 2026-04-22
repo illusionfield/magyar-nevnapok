@@ -4,26 +4,19 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 
 ## [Unreleased]
 
-### Web GUI v3 admin refaktor
+### Audit-first visszarendezés
 
-- Az app shell slim felső sávra és bal oldali navigációra váltott, benne globális `kompakt` / `részletes` nézetkapcsolóval.
-- A Dashboard primer- és auditközpontú irányítópult lett: primer teendőket, havi primerállapotot, auditfigyelmeket és tömör pipeline összképet mutat.
-- A nyers dashboardos jobkonzol kikerült; a futási visszajelzés most workspace-szintű progresszcsíkból és strukturált állapotblokkokból áll.
+- A projekt kommunikált elsődleges célja újra a **teljes auditálhatóság** és a **kiterjesztett primer adatbázis** lett.
+- A `vegso-primer` és a `primer-nelkul-marado-nevek` audit visszakerült elsőrangú, külön látható auditként a dashboardon, az auditkatalógusban és a websocket contractban is.
+- Az auditkatalógus és a dashboard a primerblokkoló auditokat előre sorolja, így a szakmailag legsúlyosabb eltérések hamarabb látszanak.
+- A primer editor minden fontosabb napi döntéshez audit-bizonyíték linkeket ad, hogy az érintett nap közvetlenül visszanyitható legyen a forrásauditban.
+- Az audit részletnézetek egységes, strukturált szekciómodellre álltak át: rövid összefoglaló, bizonyító blokkok és havi bontások jelennek meg.
 
-### Pipeline és auditok
+### Regresszióvédelem és dokumentáció
 
-- A pipeline konkrét lépésekre és három admin csoportra tisztult, megszűntek az állapotot torzító átfedő virtuális aggregátumok.
-- Visszakerült a `vegso-primer` és a `primer-nelkul-marado-nevek` audit külön, elsőrangú nézetként.
-- A pipeline és az auditok GUI-ja a terminálos kimenetek helyett HTML-táblákat, névrácsokat és rövid összefoglaló blokkokat használ.
-- A web crawleres pipeline-lépések safe guardot kaptak: sanity alapján kihagyhatók, és tényleges újrafutás előtt külön megerősítést kérnek.
-- A Primer audit szerkesztő gyorsított frissítést kapott a közös nap mentése után, így a visszajelzés nem várja meg a teljes nehéz láncot.
-
-### ICS munkatér
-
-- Kikerült a külön draftkártya és a szétválasztott mentési logika; az ICS oldal live mentéssel dolgozik.
-- Az első blokk a szökőéves profil lett `A` / `B` jelölőkkel és prózai magyarázattal.
-- Az előnézet havi accordionos, kompakt táblázatos lett; névre kattintva már csak az adott név teljes leírása és metaadata látszik.
-- Az ICS-generálás kikerült a pipeline felelősségéből; a letöltés kizárólag az ICS munkatérről indul.
+- Új golden audit tesztek rögzítik a `wiki-vs-legacy`, `primer-normalizalo`, `vegso-primer`, `primer-nelkul-marado-nevek` és `primer-audit` alapvető szakmai elvárásait.
+- A README és a fő dokumentációk most már következetesen audit-first narratívát használnak: külön audit, primer editor, forrásbizonyíték, gyors frissítés és blokkoló eltérés.
+- Az artifactum- és pipeline-dokumentáció egyértelműen külön kezeli az elsőrangú auditriportokat és a `primer-audit` editor snapshot szerepét.
 
 ## [0.7.0] - 2026-04-21
 

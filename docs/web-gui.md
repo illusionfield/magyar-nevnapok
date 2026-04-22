@@ -12,6 +12,17 @@ A webes felület top-level route-struktúrája:
 
 A shell slim felső sávból és bal oldali navigációból áll. A felületen globális `kompakt` / `részletes` nézetmód váltható, amely böngészőoldalon perzisztál.
 
+## Audit-first felületi elv
+
+A GUI nem általános fájlböngésző és nem öncélú admin shell.
+
+A fő felhasználói célok:
+
+- gyorsan látszódjon, **hol rossz vagy vitatott a primer**,
+- előre kerüljenek a **blokkoló eltérések**,
+- a primer editorból vissza lehessen jutni a **forrásbizonyítékot** adó külön auditokhoz,
+- az ICS külön munkatér maradjon, ne húzza el a primer- és auditfókuszt.
+
 ## Kommunikációs modell
 
 A támogatott frontend contract:
@@ -89,22 +100,22 @@ A jelenlegi főbb websocket műveletek:
 
 A fontosabb summary DTO-k szemantikája:
 
-- `dashboard:get` már nem általános kártyahalmazt ad, hanem primer- és auditközpontú szekciókat,
-- `pipeline:get` három csoportot ad, és a crawleres lépések safety metaadatait is tartalmazza,
+- `dashboard:get` audit-first összképet ad, külön kiemelve a primerblokkoló auditokat,
+- `audits:get-catalog` elsőrangúan visszaadja a `vegso-primer` és a `primer-nelkul-marado-nevek` auditot is,
+- `audits:get-detail-summary` és `audits:get-detail-month` egységes, strukturált szekciómodellel dolgozik,
+- `primer-audit:get-*` payload editor/snapshot szerepet tükröz, nem külön auditként viselkedik,
 - `ics:preview` havi, sor-alapú előnézetet ad stabil `main` / `rest` naptárszerepekkel és külön névszintű detail payloadokkal.
 
 A `pipeline:run` kérés opcionálisan `confirmCrawlerRun: true` mezőt is fogad. Ez akkor kell, ha a futás web crawleres lépést indítana, és a szerver először `pipeline_confirmation_required` hibával megerősítést kér.
 
-## GUI-elv
+## GUI-elv workspace-enként
 
-A felület nem általános fájlböngésző:
-
-- a Dashboard nem futtató-gyűjtőhely, hanem operatív összkép és navigációs belépőpont,
-- a Pipeline oldal csoportos admin nézetet ad közérthetőbb státuszokkal,
-- az Auditok oldal auditkatalógust és fluid részletes inspectort ad,
-- az Auditok és a Primer audit nagy nézetei **havi lazy részletlekéréssel** töltődnek,
-- a Primer audit oldal havi csoportos, táblázatos inline editor,
-- az ICS oldal live mentésű beállítófelületet, havi accordionos táblázatos előnézetet, névszintű részletpanelt és lazy nyers ICS-résznézetet ad,
-- a nyers terminálkimenet helyett a GUI strukturált HTML-táblákat, névrácsokat és összefoglaló blokkokat használ.
+- A **Dashboard** nem futtató-gyűjtőhely, hanem operatív összkép és navigációs belépőpont.
+- A **Pipeline** oldal csoportos admin nézetet ad közérthetőbb státuszokkal.
+- Az **Auditok** oldal auditkatalógust és fluid részletes inspectort ad, blokkoló auditokkal elöl.
+- Az **Auditok** és a **Primer audit** nagy nézetei havi lazy részletlekéréssel töltődnek.
+- A **Primer audit** oldal primer editor, ahol a szerkesztői döntések audit-bizonyíték linkeken visszamutatnak a külön auditokra.
+- Az **ICS** oldal live mentésű beállítófelületet, havi accordionos táblázatos előnézetet, névszintű részletpanelt és lazy nyers ICS-résznézetet ad.
+- A nyers terminálkimenet helyett a GUI strukturált HTML-táblákat, névrácsokat és összefoglaló blokkokat használ.
 
 A tényleges irányadó állapot továbbra is a fájlrendszerben él, de a GUI ezt szemantikus szerkesztőkön keresztül kezeli.

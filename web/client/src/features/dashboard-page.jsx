@@ -97,7 +97,9 @@ function AuditWarningList({ items = [] }) {
             <strong>{audit.title}</strong>
             <span>{audit.primaryKpi ? `${audit.primaryKpi.label}: ${audit.primaryKpi.value}` : audit.purpose}</span>
           </div>
-          <StatusBadge tone="warning">figyelmet kér</StatusBadge>
+          <StatusBadge tone={audit.blocksPrimerWork ? "danger" : "warning"}>
+            {audit.blocksPrimerWork ? "blokkoló" : "figyelmet kér"}
+          </StatusBadge>
         </li>
       ))}
     </ul>
@@ -146,7 +148,7 @@ export function DashboardPage({ request }) {
             items={[
               { label: "Akciózható primer napok", value: dashboard.summary.actionablePrimerDayCount ?? 0 },
               { label: "Nyitott primer hiány", value: dashboard.summary.primerOpenCount ?? 0 },
-              { label: "Audit figyelmek", value: dashboard.summary.auditWarningCount ?? 0 },
+              { label: "Audit blokkoló", value: dashboard.summary.auditBlockingCount ?? 0 },
               { label: "Pipeline figyelem", value: dashboard.summary.pipelineAttentionCount ?? 0 },
             ]}
           />

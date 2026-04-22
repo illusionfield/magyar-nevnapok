@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActionButton,
+  AppLink,
   EmptyState,
   ErrorLabel,
   LoadingLabel,
@@ -17,6 +18,25 @@ import { defaultMonthOpen } from "./shared/month-groups.js";
 
 function arraysEqual(left = [], right = []) {
   return JSON.stringify(left ?? []) === JSON.stringify(right ?? []);
+}
+
+function EvidenceLinkList({ items = [] }) {
+  if (items.length === 0) {
+    return <span className="muted-text">—</span>;
+  }
+
+  return (
+    <ul className="plain-list evidence-link-list">
+      {items.map((item) => (
+        <li key={item.id} className="evidence-link-item">
+          <AppLink to={item.to} className="inline-nav-link">
+            {item.label}
+          </AppLink>
+          {item.detail ? <small>{item.detail}</small> : null}
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function PrimerMonthContent({ monthSummary, request, filterId, query, refreshToken, onAfterSave }) {
@@ -64,6 +84,7 @@ function PrimerMonthContent({ monthSummary, request, filterId, query, refreshTok
                 <th>Hiányzó nevek</th>
                 <th>Helyi hozzáadások</th>
                 <th>Források / eltérések</th>
+                <th>Audit bizonyíték</th>
                 <th>Állapot</th>
                 <th>Műveletek</th>
               </tr>
@@ -113,6 +134,9 @@ function PrimerMonthContent({ monthSummary, request, filterId, query, refreshTok
                         <span><strong>Normalizált:</strong> {row.sourceSummary.normalized}</span>
                         <span><strong>Rangsor:</strong> {row.sourceSummary.ranking}</span>
                       </div>
+                    </td>
+                    <td>
+                      <EvidenceLinkList items={row.evidence ?? []} />
                     </td>
                     <td>
                       <div className="status-stack">

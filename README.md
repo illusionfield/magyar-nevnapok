@@ -1,8 +1,10 @@
 # magyar-nevnapok
 
-Web-only, helyi használatra szánt magyar névnap alkalmazás.
+Audit-first, web-only magyar névnap munkakörnyezet.
 
-A projekt **böngészős GUI-ra épülő, single-user Node monolit**:
+A projekt elsődleges célja a **teljes auditálhatóság** és egy **kiterjesztett, jól karbantartható primer adatbázis** előállítása. Sok felhasználónak már a primer névjegyzék önmagában is végtermék, ezért kritikus, hogy ott valóban jó nevek szerepeljenek, és minden fontos döntés mögött visszakereshető auditlánc álljon.
+
+A jelenlegi alkalmazás egy **böngészős GUI-ra épülő, single-user Node monolit**:
 
 - a támogatott felület a webes kezelőfelület,
 - a **CLI/TUI megszűnt**, nincs párhuzamos vagy átmeneti működés,
@@ -12,7 +14,7 @@ A projekt **böngészős GUI-ra épülő, single-user Node monolit**:
   - `output/*`
 - a hosszú műveletek **egyetlen aktív job** modellen futnak,
 - a frontend és a backend alkalmazásszintű kommunikációja **websocketen** megy,
-- a GUI nem általános fájlböngésző, hanem **szerkesztő-központú munkatérkészlet**.
+- a GUI nem öncélú admin shell, hanem **szakértői audit- és primer munkatér**.
 
 A csomag alkalmazásként él tovább: **private repo-app**, nincs támogatott publikus JS API, nincs `bin`, nincs CLI-szerződés.
 
@@ -36,7 +38,7 @@ Production web build:
   npm run build
 ```
 
-Web szerver indítása a buildelt appal:
+Webszerver indítása a buildelt appal:
 
 ```bash
   npm start
@@ -67,13 +69,30 @@ A `HOST` és `PORT` környezeti változóval felülbírálható.
 
 ## Webes munkaterek
 
-- `/` — **Dashboard**: primer- és auditközpontú irányítópult a teendőkhöz, havi primerállapothoz, auditfigyelmekhez és a pipeline összképhez
+- `/` — **Dashboard**: audit-first irányítópult, ahol azonnal látszik, hol hibás vagy vitatott a primer, mely auditok blokkolnak, és mely napok igényelnek kézi döntést
+- `/auditok` — **Auditok**: elsőrangú auditkatalógus, strukturált összefoglalók, havi bontások és a szerkeszthető auditforrások inline editorai
+- `/primer-audit` — **Primer audit**: primer editor snapshot a közös és helyi döntésekhez, forrásbizonyíték-linkekkel visszakötve a külön auditokhoz
 - `/pipeline` — **Pipeline**: csoportos, adminisztratív állapotnézet közérthető státuszokkal és célzott futtatással
-- `/auditok` — **Auditok**: auditkatalógus, fluid részletnézet, havi bontások és a szerkeszthető auditforrások inline editorai
-- `/primer-audit` — **Primer audit**: havi csoportos, táblázatos editor a közös és helyi primerdöntésekhez, gyors visszajelzéssel
-- `/ics` — **ICS generálás**: live mentésű beállítófelület, havi accordionos táblázatos előnézet, névszintű részletek és letöltés egy helyen
+- `/ics` — **ICS generálás**: live mentésű beállítófelület, havi accordionos táblázatos előnézet, névszintű részletek és letöltés
 
 Az app shell slim felső sávból és bal oldali navigációból áll, benne globális `kompakt` / `részletes` nézetkapcsolóval.
+
+## Audit-first működési modell
+
+A projekt irányadó döntési lánca:
+
+1. primerforrások begyűjtése,
+2. végső primerjegyzék feloldása,
+3. normalizáló alap előállítása,
+4. **külön auditok** futtatása,
+5. `primer-audit` editor snapshot képzése,
+6. adatbázis- és exportkimenetek lezárása.
+
+Fontos különbség:
+
+- a `vegso-primer` és a `primer-nelkul-marado-nevek` audit **nem háttéranyag**, hanem önálló, elsőrangú audit,
+- a `primer-audit` **nem az auditigazság egyetlen hordozója**, hanem szerkesztői/szintetizáló nézet,
+- az ICS-generálás **nem a pipeline része**, hanem külön munkatér és külön művelet.
 
 ## Kommunikációs modell
 
@@ -112,7 +131,7 @@ A `job:log` megmarad másodlagos, technikai kiegészítésnek, capped tail + ink
 - `npm run data:build` — teljes adat/pipeline build, ICS generálás nélkül
 - `npm run lint` — lint
 - `npm run typecheck` — statikus szintaxis- és entrypoint-ellenőrzés
-- `npm test` — automatizált tesztek
+- `npm test` — automatizált tesztek, benne audit golden baseline-okkal
 - `npm run ellenorzes` — lint + typecheck + teszt + web build
 - `npm run audit` — dependency audit
 
@@ -134,22 +153,22 @@ A `job:log` megmarad másodlagos, technikai kiegészítésnek, capped tail + ink
 - `data/primary-registry-overrides.yaml`
 - `data/hivatalos-nevjegyzek-kivetelek.yaml`
 - `.local/nevnapok.local.yaml`
-- `output/adatbazis/nevnapok.yaml`
 - `output/primer/*.yaml`
 - `output/riportok/*.yaml`
+- `output/adatbazis/nevnapok.yaml`
 - `output/naptar/*.ics`
 - `output/pipeline/manifest.yaml`
 
 ## Fontos alapelvek
 
 - A projekt **web-only**.
+- A projekt elsődleges célja a **teljes auditálhatóság** és a **jó minőségű primer adatbázis**.
 - Egyszerre pontosan **egy mutáló job** lehet aktív.
 - Aktív job mellett újabb mutáló websocket kérés **409** hibát kap.
 - A pipeline és az auditok továbbra is fájlalapú kimeneteket írnak.
+- A `vegso-primer` és a `primer-nelkul-marado-nevek` audit blokkoló auditként is kiemelt helyet kap.
+- A `primer-audit` primer editor snapshot, amely a külön auditok bizonyítékait leképezi, nem helyettesíti.
 - Az ICS-fájlok generálása nem pipeline-feladat, hanem az `/ics` munkatérről indított külön művelet.
-- A Primer audit véglegesíti az elsődleges névlogikát a bontott ICS-kimenethez.
-- A `single` és `split` ICS-modell maradt érvényben.
-- A GUI elsődlegesen **editorokat és admin munkatereket** ad: auditforrás-szerkesztőt, primer inline editort, csoportos pipeline-felületet és live ICS konfigurátort.
 
 ## Dokumentáció
 

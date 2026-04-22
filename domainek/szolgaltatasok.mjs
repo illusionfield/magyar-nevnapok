@@ -69,12 +69,12 @@ async function runWithReporter(opciok, fn) {
 
 function publikusAuditok() {
   return [
-    "hivatalos-nevjegyzek",
-    "legacy-primer",
-    "wiki-vs-legacy",
-    "primer-normalizalo",
     "vegso-primer",
     "primer-nelkul-marado-nevek",
+    "primer-normalizalo",
+    "wiki-vs-legacy",
+    "legacy-primer",
+    "hivatalos-nevjegyzek",
     "primer-audit",
   ];
 }

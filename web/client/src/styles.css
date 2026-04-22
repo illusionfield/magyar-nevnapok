@@ -514,6 +514,7 @@ a {
 .row-action-stack,
 .status-stack,
 .source-stack,
+.evidence-link-list,
 .name-list,
 .attention-list,
 .structured-list,
@@ -943,6 +944,15 @@ a {
 .source-stack span,
 .status-stack span {
   display: block;
+}
+
+.evidence-link-item {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.evidence-link-item small {
+  color: var(--muted);
 }
 
 .name-list {

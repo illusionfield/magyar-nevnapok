@@ -290,6 +290,7 @@ test("a websocket contract summary + lazy payloadokra állt át, és az ICS let�
 
   const dashboard = await client.requestRaw("dashboard:get");
   assert.equal(typeof dashboard.data.dashboard.summary.pipelineAttentionCount, "number");
+  assert.equal(typeof dashboard.data.dashboard.summary.auditBlockingCount, "number");
   assert.equal("cards" in dashboard.data.dashboard, false);
   assert.ok(dashboard.bytes < 20_000);
 
@@ -305,12 +306,28 @@ test("a websocket contract summary + lazy payloadokra állt át, és az ICS let�
   assert.equal(primerSummary.data.primerAuditSummary.months.length, 12);
   assert.ok(primerSummary.bytes < 100_000);
 
+  const auditCatalog = await client.request("audits:get-catalog");
+  assert.deepEqual(
+    (auditCatalog.auditCatalog.audits ?? []).slice(0, 4).map((audit) => audit.id),
+    ["vegso-primer", "primer-nelkul-marado-nevek", "primer-normalizalo", "wiki-vs-legacy"]
+  );
+  assert.equal(auditCatalog.auditCatalog.audits[0].blocksPrimerWork, true);
+
   const primerMonth = await client.requestRaw("primer-audit:get-month", {
     month: 1,
     filterId: "osszes",
     query: "",
   });
   assert.equal(Array.isArray(primerMonth.data.primerAuditMonth.rows), true);
+  const januaryMismatchRow = primerMonth.data.primerAuditMonth.rows.find((row) => row.monthDay === "01-02");
+  const januaryMissingRow = primerMonth.data.primerAuditMonth.rows.find((row) => row.monthDay === "01-03");
+  assert.equal(januaryMismatchRow.evidence.some((entry) => entry.id === "vegso-primer"), true);
+  assert.equal(januaryMismatchRow.evidence.some((entry) => entry.id === "wiki-vs-legacy"), true);
+  assert.equal(januaryMissingRow.evidence.some((entry) => entry.id === "primer-nelkul-marado-nevek"), true);
+  assert.match(
+    januaryMissingRow.evidence.find((entry) => entry.id === "primer-nelkul-marado-nevek")?.to ?? "",
+    /audit=primer-nelkul-marado-nevek/u
+  );
   assert.ok(primerMonth.bytes < 400_000);
 
   const wikiSummary = await client.requestRaw("audits:get-detail-summary", {
