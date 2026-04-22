@@ -29,6 +29,7 @@ function nowIso() {
 
 export function createReporter(handlers = {}) {
   const emit = handlers.emit ?? (() => {});
+  const updateState = handlers.updateState ?? (() => {});
 
   const write = (level, parts = []) => {
     const message = parts.map(formatMessagePart).join(" ").trim();
@@ -44,6 +45,35 @@ export function createReporter(handlers = {}) {
     info: (...parts) => write("info", parts),
     warn: (...parts) => write("warn", parts),
     error: (...parts) => write("error", parts),
+    stage(label, extra = {}) {
+      updateState({
+        stageLabel: String(label ?? "").trim() || null,
+        ...extra,
+      });
+    },
+    progress(current, total, extra = {}) {
+      const safeCurrent = Number.isFinite(current) ? Number(current) : 0;
+      const safeTotal = Number.isFinite(total) ? Number(total) : 0;
+      const percent =
+        safeTotal > 0 ? Math.max(0, Math.min(100, Math.round((safeCurrent / safeTotal) * 100))) : 0;
+
+      updateState({
+        progress: {
+          current: safeCurrent,
+          total: safeTotal,
+          percent,
+        },
+        ...extra,
+      });
+    },
+    sections(sections = []) {
+      updateState({
+        sections: Array.isArray(sections) ? sections : [],
+      });
+    },
+    state(patch = {}) {
+      updateState(patch);
+    },
   };
 }
 

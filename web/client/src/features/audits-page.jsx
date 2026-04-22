@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActionButton,
   EmptyState,
@@ -9,17 +9,26 @@ import {
   PageSection,
   SearchInput,
   StatusBadge,
+  StructuredSections,
   Toolbar,
+  WorkspaceJobPanel,
 } from "../ui.jsx";
 import { useWsQuery } from "../hooks.js";
 import { defaultMonthOpen } from "./shared/month-groups.js";
 
+function getInitialAuditId() {
+  const fromQuery = new URLSearchParams(window.location.search).get("audit");
+  return fromQuery || "vegso-primer";
+}
+
 function AuditCard({ audit, selected, onSelect, onRerun }) {
   return (
-    <button type="button" className={selected ? "catalog-card selected" : "catalog-card"} onClick={() => onSelect(audit.id)}>
+    <button type="button" data-audit-id={audit.id} className={selected ? "catalog-card selected" : "catalog-card"} onClick={() => onSelect(audit.id)}>
       <div className="catalog-card-head">
         <strong>{audit.title}</strong>
-        <StatusBadge tone={audit.status === "ok" ? "ok" : "warning"}>{audit.status === "ok" ? "rendben" : "figyelmet kér"}</StatusBadge>
+        <StatusBadge tone={audit.status === "ok" ? "ok" : "warning"}>
+          {audit.status === "ok" ? "rendben" : "figyelmet kér"}
+        </StatusBadge>
       </div>
       <p>{audit.purpose}</p>
       <div className="catalog-kpis">
@@ -31,12 +40,17 @@ function AuditCard({ audit, selected, onSelect, onRerun }) {
       </div>
       <div className="catalog-actions">
         <span>{audit.generatedAt ?? "Még nincs riport"}</span>
-        <span className="catalog-action-link" onClick={(event) => {
-          event.stopPropagation();
-          onRerun(audit.id);
-        }}>
+        <button
+          type="button"
+          className="catalog-inline-action"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onRerun(audit.id);
+          }}
+        >
           Újrafuttatás
-        </span>
+        </button>
       </div>
     </button>
   );
@@ -111,47 +125,42 @@ function ExceptionTable({ title, rows, onChange }) {
   );
 }
 
-function OfficialAuditInspector({ detail, request, onSaved }) {
-  const [notes, setNotes] = useState(detail?.notes ?? "");
-  const [sources, setSources] = useState(detail?.sources ?? {});
+function OfficialAuditEditor({ detail, request, onSaved }) {
+  const editor = detail.editor;
+  const [notes, setNotes] = useState(editor?.notes ?? "");
+  const [sources, setSources] = useState(editor?.sources ?? {});
   const [genders, setGenders] = useState({
     male: {
-      extraInJson: detail?.genders?.find((entry) => entry.id === "male")?.lists?.[0]?.rows ?? [],
-      missingFromJson: detail?.genders?.find((entry) => entry.id === "male")?.lists?.[1]?.rows ?? [],
+      extraInJson: editor?.genders?.find((entry) => entry.id === "male")?.lists?.[0]?.rows ?? [],
+      missingFromJson: editor?.genders?.find((entry) => entry.id === "male")?.lists?.[1]?.rows ?? [],
     },
     female: {
-      extraInJson: detail?.genders?.find((entry) => entry.id === "female")?.lists?.[0]?.rows ?? [],
-      missingFromJson: detail?.genders?.find((entry) => entry.id === "female")?.lists?.[1]?.rows ?? [],
+      extraInJson: editor?.genders?.find((entry) => entry.id === "female")?.lists?.[0]?.rows ?? [],
+      missingFromJson: editor?.genders?.find((entry) => entry.id === "female")?.lists?.[1]?.rows ?? [],
     },
   });
 
   useEffect(() => {
-    setNotes(detail?.notes ?? "");
-    setSources(detail?.sources ?? {});
+    setNotes(editor?.notes ?? "");
+    setSources(editor?.sources ?? {});
     setGenders({
       male: {
-        extraInJson: detail?.genders?.find((entry) => entry.id === "male")?.lists?.[0]?.rows ?? [],
-        missingFromJson: detail?.genders?.find((entry) => entry.id === "male")?.lists?.[1]?.rows ?? [],
+        extraInJson: editor?.genders?.find((entry) => entry.id === "male")?.lists?.[0]?.rows ?? [],
+        missingFromJson: editor?.genders?.find((entry) => entry.id === "male")?.lists?.[1]?.rows ?? [],
       },
       female: {
-        extraInJson: detail?.genders?.find((entry) => entry.id === "female")?.lists?.[0]?.rows ?? [],
-        missingFromJson: detail?.genders?.find((entry) => entry.id === "female")?.lists?.[1]?.rows ?? [],
+        extraInJson: editor?.genders?.find((entry) => entry.id === "female")?.lists?.[0]?.rows ?? [],
+        missingFromJson: editor?.genders?.find((entry) => entry.id === "female")?.lists?.[1]?.rows ?? [],
       },
     });
-  }, [detail]);
+  }, [editor]);
 
   return (
     <div className="page-stack">
-      <MetricStrip
-        items={(detail.genders ?? []).flatMap((gender) => [
-          { label: `${gender.label} – hivatalos`, value: gender.officialCount ?? 0 },
-          { label: `${gender.label} – adatbázis`, value: gender.jsonCount ?? 0 },
-          { label: `${gender.label} – dokumentált`, value: (gender.documentedExtraCount ?? 0) + (gender.documentedMissingCount ?? 0) },
-          { label: `${gender.label} – tisztázandó`, value: (gender.unresolvedExtraCount ?? 0) + (gender.unresolvedMissingCount ?? 0) },
-        ])}
-      />
+      <StructuredSections sections={detail.sections ?? []} />
+      <MetricStrip items={detail.metrics ?? []} />
 
-      <PageSection title="Forrásmeta" subtitle="A kivétellista forrásdátumai és megjegyzései.">
+      <PageSection title="Forrásmeta" subtitle="A forrásdátumok és a rövid szerkesztői megjegyzés itt tartható karban.">
         <div className="form-grid two-columns">
           <label>
             <span>Hivatalos névjegyzék dátuma</span>
@@ -174,18 +183,12 @@ function OfficialAuditInspector({ detail, request, onSaved }) {
         </div>
         <label>
           <span>Megjegyzés</span>
-          <textarea
-            rows="3"
-            value={notes}
-            onChange={(event) => {
-              setNotes(event.target.value);
-            }}
-          />
+          <textarea rows="3" value={notes} onChange={(event) => setNotes(event.target.value)} />
         </label>
       </PageSection>
 
-      {(detail.genders ?? []).map((gender) => (
-        <PageSection key={gender.id} title={gender.label} subtitle="A szerkeszthető, kézi kivétellisták naprakészen tartása.">
+      {(editor?.genders ?? []).map((gender) => (
+        <PageSection key={gender.id} title={gender.label} subtitle="A dokumentált kivételek szerkesztése közvetlenül innen elvégezhető.">
           <ExceptionTable
             title={`${gender.label} – többlet az adatbázisban`}
             rows={genders[gender.id].extraInJson}
@@ -229,7 +232,7 @@ function OfficialAuditInspector({ detail, request, onSaved }) {
           }}
         />
         <ActionButton
-          label="Mentés és audit újrafuttatása"
+          label="Mentés és újrafuttatás"
           onClick={async () => {
             await request("audits:save-official-exceptions", {
               notes,
@@ -241,106 +244,6 @@ function OfficialAuditInspector({ detail, request, onSaved }) {
           }}
         />
       </Toolbar>
-    </div>
-  );
-}
-
-function WikiRows({ rows }) {
-  return (
-    <div className="diff-card-list">
-      {rows.map((row) => (
-        <article key={row.monthDay} className="diff-card">
-          <div className="diff-card-head">
-            <strong>{row.dateLabel}</strong>
-            <span>összes eltérés: {row.mismatchCount}</span>
-          </div>
-          {row.nameDiff ? (
-            <div className="diff-block">
-              <h3>Névkészlet</h3>
-              <p>{row.nameDiff.typeLabel}</p>
-              <p><strong>Csak legacy:</strong> {(row.nameDiff.onlyLegacy ?? []).join(", ") || "—"}</p>
-              <p><strong>Csak wiki:</strong> {(row.nameDiff.onlyWiki ?? []).join(", ") || "—"}</p>
-            </div>
-          ) : null}
-          {row.preferredDiff ? (
-            <div className="diff-block">
-              <h3>Primerkészlet</h3>
-              <p>{row.preferredDiff.typeLabel}</p>
-              <p><strong>Csak legacy primer:</strong> {(row.preferredDiff.onlyLegacy ?? []).join(", ") || "—"}</p>
-              <p><strong>Csak wiki primer:</strong> {(row.preferredDiff.onlyWiki ?? []).join(", ") || "—"}</p>
-            </div>
-          ) : null}
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function LegacyRows({ rows }) {
-  return (
-    <div className="diff-card-list">
-      {rows.map((row) => (
-        <article key={row.monthDay} className="diff-card">
-          <div className="diff-card-head">
-            <strong>{row.dateLabel}</strong>
-            <span>eltérés: {row.mismatchCount}</span>
-          </div>
-          {row.registryDiff ? (
-            <div className="diff-block">
-              <h3>Registry vs adatbázis</h3>
-              <p><strong>Hiányzik:</strong> {(row.registryDiff.missing ?? []).join(", ") || "—"}</p>
-              <p><strong>Találat:</strong> {(row.registryDiff.hits ?? []).join(", ") || "—"}</p>
-            </div>
-          ) : null}
-          {row.primaryDiff ? (
-            <div className="diff-block">
-              <h3>Legacy primer vs rangsorolt primer</h3>
-              <p><strong>Csak legacy:</strong> {(row.primaryDiff.onlyLegacyPrimary ?? []).join(", ") || "—"}</p>
-              <p><strong>Csak rangsorolt:</strong> {(row.primaryDiff.onlyRankedPrimary ?? []).join(", ") || "—"}</p>
-            </div>
-          ) : null}
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function NormalizerRows({ comparisons }) {
-  return (
-    <div className="page-stack">
-      {(comparisons ?? []).map((comparison) => (
-        <div key={comparison.id} className="page-stack">
-          <MetricStrip
-            items={[
-              { label: `${comparison.title} – találatok`, value: comparison.summary.total ?? 0 },
-            ]}
-          />
-          <div className="diff-card-list">
-            {(comparison.rows ?? []).map((row) => (
-              <article key={`${comparison.id}-${row.monthDay}`} className="diff-card">
-                <div className="diff-card-head">
-                  <strong>{row.dateLabel}</strong>
-                  <span>eltérés: {row.mismatchCount}</span>
-                </div>
-                {row.nameDiff ? (
-                  <div className="diff-block">
-                    <h3>Névkészlet</h3>
-                    <p><strong>Csak normalizált:</strong> {(row.nameDiff.onlyLeft ?? []).join(", ") || "—"}</p>
-                    <p><strong>Csak összevetett forrás:</strong> {(row.nameDiff.onlyRight ?? []).join(", ") || "—"}</p>
-                  </div>
-                ) : null}
-                {row.preferredDiff ? (
-                  <div className="diff-block">
-                    <h3>Primerkészlet</h3>
-                    <p><strong>Csak normalizált primer:</strong> {(row.preferredDiff.onlyLeft ?? []).join(", ") || "—"}</p>
-                    <p><strong>Csak összevetett primer:</strong> {(row.preferredDiff.onlyRight ?? []).join(", ") || "—"}</p>
-                  </div>
-                ) : null}
-              </article>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
@@ -361,28 +264,18 @@ function AuditMonthContent({ auditId, monthSummary, query, request, refreshToken
     <>
       {monthQuery.loading && !data ? <LoadingLabel label="Havi audit-részletek betöltése…" /> : null}
       <ErrorLabel error={monthQuery.error} />
-      {data ? (
-        auditId === "wiki-vs-legacy" ? (
-          data.month.rows.length > 0 ? <WikiRows rows={data.month.rows} /> : <EmptyState title="Ebben a hónapban nincs találat." />
-        ) : auditId === "legacy-primer" ? (
-          data.month.rows.length > 0 ? <LegacyRows rows={data.month.rows} /> : <EmptyState title="Ebben a hónapban nincs találat." />
-        ) : auditId === "primer-normalizalo" ? (
-          (data.comparisons ?? []).some((comparison) => (comparison.rows ?? []).length > 0) ? (
-            <NormalizerRows comparisons={data.comparisons} />
-          ) : (
-            <EmptyState title="Ebben a hónapban nincs találat." />
-          )
-        ) : null
-      ) : null}
+      {data ? <StructuredSections sections={data.sections ?? []} /> : null}
     </>
   );
 }
 
 function AuditMonthSection({ auditId, monthSummary, query, request, refreshToken }) {
-  const defaultOpen = defaultMonthOpen(monthSummary, { query });
-
   return (
-    <MonthAccordion group={monthSummary} defaultOpen={defaultOpen} keepMountedAfterOpen={true}>
+    <MonthAccordion
+      group={monthSummary}
+      defaultOpen={defaultMonthOpen(monthSummary, { query })}
+      keepMountedAfterOpen={true}
+    >
       <AuditMonthContent
         auditId={auditId}
         monthSummary={monthSummary}
@@ -394,95 +287,41 @@ function AuditMonthSection({ auditId, monthSummary, query, request, refreshToken
   );
 }
 
-function AuditDetail({ detail, request, query, refreshToken, onSaved }) {
+function AuditDetailBody({ detail, request, query, refreshToken, onSaved }) {
   if (!detail) {
-    return <EmptyState title="Válassz auditot." detail="A bal oldali katalógusból nyiss meg egy auditot a részletekhez." />;
+    return <EmptyState title="Válassz auditot." detail="A bal oldali listából nyiss meg egy auditot a részletekhez." />;
   }
 
   if (detail.kind === "official") {
-    return <OfficialAuditInspector detail={detail} request={request} onSaved={onSaved} />;
+    return <OfficialAuditEditor detail={detail} request={request} onSaved={onSaved} />;
   }
 
-  if (detail.kind === "wiki-vs-legacy") {
-    return (
-      <div className="page-stack">
-        <MetricStrip
-          items={[
-            { label: "Legacy napok", value: detail.summary.legacyDayCount ?? 0 },
-            { label: "Wiki napok", value: detail.summary.wikiDayCount ?? 0 },
-            { label: "Néveltéréses napok", value: detail.summary.disjointNameMatchDayCount ?? 0 },
-            { label: "Primereltéréses napok", value: detail.summary.disjointPreferredMatchDayCount ?? 0 },
-          ]}
-        />
-        {(detail.monthSummaries ?? []).map((monthSummary) => (
-          <AuditMonthSection
-            key={`${detail.id}-${monthSummary.month}`}
-            auditId={detail.id}
-            monthSummary={monthSummary}
-            query={query}
-            request={request}
-            refreshToken={refreshToken}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (detail.kind === "legacy-primer") {
-    return (
-      <div className="page-stack">
-        <MetricStrip
-          items={[
-            { label: "Registry részleges napok", value: detail.registrySummary.partialCount ?? 0 },
-            { label: "Registry hiányzó nevek", value: detail.registrySummary.registryMissingNameCount ?? 0 },
-            { label: "Primer mismatch napok", value: detail.primarySummary.disjointDayCount ?? 0 },
-            { label: "Rangsorolt only napok", value: detail.primarySummary.rankedOnlyDayCount ?? 0 },
-          ]}
-        />
-        {(detail.monthSummaries ?? []).map((monthSummary) => (
-          <AuditMonthSection
-            key={`${detail.id}-${monthSummary.month}`}
-            auditId={detail.id}
-            monthSummary={monthSummary}
-            query={query}
-            request={request}
-            refreshToken={refreshToken}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (detail.kind === "primer-normalizalo") {
-    return (
-      <div className="page-stack">
-        <MetricStrip
-          items={[
-            { label: "Közvetlenül legacyből", value: detail.normalizer.summary?.directFromLegacy ?? 0 },
-            { label: "Közvetlenül adatbázisból", value: detail.normalizer.summary?.directFromDatabase ?? 0 },
-            { label: "Kézi felülvizsgálat", value: detail.normalizer.summary?.manualConflictReview ?? 0 },
-            { label: "Feloldatlan", value: detail.normalizer.summary?.unresolved ?? 0 },
-          ]}
-        />
-        {(detail.monthSummaries ?? []).map((monthSummary) => (
-          <AuditMonthSection
-            key={`${detail.id}-${monthSummary.month}`}
-            auditId={detail.id}
-            monthSummary={monthSummary}
-            query={query}
-            request={request}
-            refreshToken={refreshToken}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  return <EmptyState title="Az audit részletnézete még nem elérhető." />;
+  return (
+    <div className="page-stack">
+      <MetricStrip items={detail.metrics ?? []} />
+      <StructuredSections sections={detail.sections ?? []} />
+      {(detail.monthSummaries ?? []).length > 0 ? (
+        <div className="page-stack">
+          {(detail.monthSummaries ?? []).map((monthSummary) => (
+            <AuditMonthSection
+              key={`${detail.id}-${monthSummary.month}`}
+              auditId={detail.id}
+              monthSummary={monthSummary}
+              query={query}
+              request={request}
+              refreshToken={refreshToken}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="Ehhez az auditnézethez nincs havi bontás." />
+      )}
+    </div>
+  );
 }
 
-export function AuditsPage({ request }) {
-  const [selectedAuditId, setSelectedAuditId] = useState("hivatalos-nevjegyzek");
+export function AuditsPage({ request, connected, jobState, lastSocketError }) {
+  const [selectedAuditId, setSelectedAuditId] = useState(getInitialAuditId);
   const [query, setQuery] = useState("");
   const [refreshToken, setRefreshToken] = useState(0);
   const catalogQuery = useWsQuery(() => request("audits:get-catalog").then((payload) => payload.auditCatalog), [request, refreshToken]);
@@ -497,11 +336,28 @@ export function AuditsPage({ request }) {
     }
   }, [catalogQuery.data, selectedAuditId]);
 
+  const selectedAudit = useMemo(
+    () => catalogQuery.data?.audits?.find((audit) => audit.id === selectedAuditId) ?? null,
+    [catalogQuery.data, selectedAuditId]
+  );
+
+  const rerunAudit = async (auditId) => {
+    await request("audits:run", { auditId });
+    setRefreshToken((value) => value + 1);
+  };
+
   return (
     <div className="page-stack">
-      <PageSection title="Auditok" subtitle="Auditkatalógus, részletes inspectorok és ahol lehet, közvetlen forrásszerkesztés.">
+      <PageSection title="Auditok" subtitle="Auditkatalógus rövid összképpel, havi részletekkel és ahol kell, közvetlen szerkesztéssel.">
+        <WorkspaceJobPanel
+          workspace="auditok"
+          connected={connected}
+          jobState={jobState}
+          lastSocketError={lastSocketError}
+          idleLabel="Ha innen indítasz auditot, itt jelenik meg az előrehaladás és az aktuális futási szakasz."
+        />
         <Toolbar>
-          <SearchInput value={query} onChange={setQuery} placeholder="Keresés az audit-részletekben" />
+          <SearchInput value={query} onChange={setQuery} placeholder="Keresés a havi részletekben…" />
         </Toolbar>
       </PageSection>
 
@@ -515,13 +371,11 @@ export function AuditsPage({ request }) {
               audit={audit}
               selected={selectedAuditId === audit.id}
               onSelect={setSelectedAuditId}
-              onRerun={async (auditId) => {
-                await request("audits:run", { auditId });
-                setRefreshToken((value) => value + 1);
-              }}
+              onRerun={rerunAudit}
             />
           ))}
         </div>
+
         <div className="audit-detail-column">
           {detailQuery.loading && !detailQuery.data ? <LoadingLabel label="Audit részletek betöltése…" /> : null}
           <ErrorLabel error={detailQuery.error} />
@@ -531,18 +385,15 @@ export function AuditsPage({ request }) {
               subtitle={detailQuery.data.purpose}
               actions={
                 <Toolbar>
+                  <StatusBadge tone={detailQuery.data.status === "ok" ? "ok" : "warning"}>
+                    {detailQuery.data.status === "ok" ? "Rendben" : "Figyelmet kér"}
+                  </StatusBadge>
                   <StatusBadge tone="neutral">Utolsó futás: {detailQuery.data.generatedAt ?? "még nincs"}</StatusBadge>
-                  <ActionButton
-                    label="Audit újrafuttatása"
-                    onClick={async () => {
-                      await request("audits:run", { auditId: selectedAuditId });
-                      setRefreshToken((value) => value + 1);
-                    }}
-                  />
+                  {selectedAudit ? <ActionButton label="Audit újrafuttatása" onClick={() => rerunAudit(selectedAudit.id)} /> : null}
                 </Toolbar>
               }
             >
-              <AuditDetail
+              <AuditDetailBody
                 detail={detailQuery.data}
                 request={request}
                 query={query}

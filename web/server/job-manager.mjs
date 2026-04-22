@@ -29,10 +29,14 @@ function cloneJobSummary(job) {
     id: job.id,
     kind: job.kind,
     target: job.target,
+    workspace: job.workspace ?? null,
     status: job.status,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,
     logCount: job.logCount ?? 0,
+    stageLabel: job.stageLabel ?? null,
+    progress: job.progress ?? null,
+    sections: Array.isArray(job.sections) ? job.sections.map((entry) => ({ ...entry })) : [],
     result: job.result ?? null,
     error: job.error ?? null,
   };
@@ -129,7 +133,30 @@ export class JobManager {
     return job.logs.slice(-limit).map((entry) => cloneLogEntry(entry));
   }
 
-  async startJob({ kind, target, handler }) {
+  updateJobState(jobId, patch = {}) {
+    const job =
+      this.activeJob?.id === jobId ? this.activeJob : this.lastJob?.id === jobId ? this.lastJob : null;
+
+    if (!job) {
+      return;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, "stageLabel")) {
+      job.stageLabel = patch.stageLabel ?? null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, "progress")) {
+      job.progress = patch.progress ? { ...patch.progress } : null;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, "sections")) {
+      job.sections = Array.isArray(patch.sections) ? patch.sections.map((entry) => ({ ...entry })) : [];
+    }
+
+    this.emitUpdate();
+  }
+
+  async startJob({ kind, target, workspace = null, handler }) {
     if (this.activeJob) {
       throw new ActiveJobConflictError(this.activeJob);
     }
@@ -138,11 +165,15 @@ export class JobManager {
       id: crypto.randomUUID(),
       kind,
       target,
+      workspace,
       status: "running",
       startedAt: nowIso(),
       finishedAt: null,
       logs: [],
       logCount: 0,
+      stageLabel: null,
+      progress: null,
+      sections: [],
       result: null,
       error: null,
     };
@@ -166,6 +197,9 @@ export class JobManager {
         }
 
         this.emitLog(job, clonedEntry);
+      },
+      updateState: (patch) => {
+        this.updateJobState(job.id, patch);
       },
     });
 

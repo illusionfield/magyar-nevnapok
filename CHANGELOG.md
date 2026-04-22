@@ -4,7 +4,26 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 
 ## [Unreleased]
 
-Jelenleg nincs külön, kiadásra előkészített új változás.
+### Web GUI v3 admin refaktor
+
+- Az app shell slim felső sávra és bal oldali navigációra váltott, benne globális `kompakt` / `részletes` nézetkapcsolóval.
+- A Dashboard primer- és auditközpontú irányítópult lett: primer teendőket, havi primerállapotot, auditfigyelmeket és tömör pipeline összképet mutat.
+- A nyers dashboardos jobkonzol kikerült; a futási visszajelzés most workspace-szintű progresszcsíkból és strukturált állapotblokkokból áll.
+
+### Pipeline és auditok
+
+- A pipeline konkrét lépésekre és három admin csoportra tisztult, megszűntek az állapotot torzító átfedő virtuális aggregátumok.
+- Visszakerült a `vegso-primer` és a `primer-nelkul-marado-nevek` audit külön, elsőrangú nézetként.
+- A pipeline és az auditok GUI-ja a terminálos kimenetek helyett HTML-táblákat, névrácsokat és rövid összefoglaló blokkokat használ.
+- A web crawleres pipeline-lépések safe guardot kaptak: sanity alapján kihagyhatók, és tényleges újrafutás előtt külön megerősítést kérnek.
+- A Primer audit szerkesztő gyorsított frissítést kapott a közös nap mentése után, így a visszajelzés nem várja meg a teljes nehéz láncot.
+
+### ICS munkatér
+
+- Kikerült a külön draftkártya és a szétválasztott mentési logika; az ICS oldal live mentéssel dolgozik.
+- Az első blokk a szökőéves profil lett `A` / `B` jelölőkkel és prózai magyarázattal.
+- Az előnézet havi accordionos, kompakt táblázatos lett; névre kattintva már csak az adott név teljes leírása és metaadata látszik.
+- Az ICS-generálás kikerült a pipeline felelősségéből; a letöltés kizárólag az ICS munkatérről indul.
 
 ## [0.7.0] - 2026-04-21
 

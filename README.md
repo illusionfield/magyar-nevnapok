@@ -42,7 +42,7 @@ Web szerver indítása a buildelt appal:
   npm start
 ```
 
-Teljes adat/pipeline build belső vagy CI célra:
+Teljes adat/pipeline build belső vagy CI célra (ICS generálás nélkül):
 
 ```bash
   npm run data:build
@@ -67,11 +67,13 @@ A `HOST` és `PORT` környezeti változóval felülbírálható.
 
 ## Webes munkaterek
 
-- `/` — **Dashboard**: operatív összkép, kapcsolat, jobállapot, KPI-k és gyors műveletek
-- `/pipeline` — **Pipeline**: lépésenként kibontott inspector és célzott futtatás
-- `/auditok` — **Auditok**: auditkatalógus, részletes inspectorok, a szerkeszthető források inline editorai
-- `/primer-audit` — **Primer audit**: havi csoportos, táblázatos inline editor a közös és helyi primerdöntésekhez
-- `/ics` — **ICS generálás**: teljes beállítófelület, mentett állapot + draft + előnézet, valamint letöltés
+- `/` — **Dashboard**: primer- és auditközpontú irányítópult a teendőkhöz, havi primerállapothoz, auditfigyelmekhez és a pipeline összképhez
+- `/pipeline` — **Pipeline**: csoportos, adminisztratív állapotnézet közérthető státuszokkal és célzott futtatással
+- `/auditok` — **Auditok**: auditkatalógus, fluid részletnézet, havi bontások és a szerkeszthető auditforrások inline editorai
+- `/primer-audit` — **Primer audit**: havi csoportos, táblázatos editor a közös és helyi primerdöntésekhez, gyors visszajelzéssel
+- `/ics` — **ICS generálás**: live mentésű beállítófelület, havi accordionos táblázatos előnézet, névszintű részletek és letöltés egy helyen
+
+Az app shell slim felső sávból és bal oldali navigációból áll, benne globális `kompakt` / `részletes` nézetkapcsolóval.
 
 ## Kommunikációs modell
 
@@ -93,14 +95,21 @@ A jobállapot és a live log websocket push eseményként érkezik:
 - `job:log`
 - `job:finished`
 
-A jobnapló nem teljes snapshotként kering, hanem capped log tail + inkrementális logesemény modellben.
+Az elsődleges futási visszajelzés már nem a nyers terminállog, hanem a strukturált jobállapot:
+
+- `workspace`
+- `stageLabel`
+- `progress`
+- `sections`
+
+A `job:log` megmarad másodlagos, technikai kiegészítésnek, capped tail + inkrementális események formájában.
 
 ## Scriptkészlet
 
 - `npm run dev` — fejlesztői webes felület indítás Vite middlewares módban
 - `npm start` — a buildelt web app kiszolgálása Expressből
 - `npm run build` — webes felület build
-- `npm run data:build` — teljes adat/pipeline build
+- `npm run data:build` — teljes adat/pipeline build, ICS generálás nélkül
 - `npm run lint` — lint
 - `npm run typecheck` — statikus szintaxis- és entrypoint-ellenőrzés
 - `npm test` — automatizált tesztek
@@ -136,10 +145,11 @@ A jobnapló nem teljes snapshotként kering, hanem capped log tail + inkrementá
 - A projekt **web-only**.
 - Egyszerre pontosan **egy mutáló job** lehet aktív.
 - Aktív job mellett újabb mutáló websocket kérés **409** hibát kap.
-- A pipeline, az auditok és a kimenetek továbbra is fájlalapú kimeneteket írnak.
+- A pipeline és az auditok továbbra is fájlalapú kimeneteket írnak.
+- Az ICS-fájlok generálása nem pipeline-feladat, hanem az `/ics` munkatérről indított külön művelet.
 - A Primer audit véglegesíti az elsődleges névlogikát a bontott ICS-kimenethez.
 - A `single` és `split` ICS-modell maradt érvényben.
-- A GUI elsődlegesen **editorokat** ad: auditforrás-szerkesztőt, primer inline editort és teljes ICS konfigurátort.
+- A GUI elsődlegesen **editorokat és admin munkatereket** ad: auditforrás-szerkesztőt, primer inline editort, csoportos pipeline-felületet és live ICS konfigurátort.
 
 ## Dokumentáció
 

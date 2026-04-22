@@ -62,7 +62,14 @@ export async function epitIcsKimenetiTervet(rawOptions = {}, runtime = {}) {
     runtime.sourceNameMap instanceof Map
       ? runtime.sourceNameMap
       : buildNameMapFromSourceDays(sourceDays);
-  const jobs = buildCalendarJobs(sourceDays, outputPath, options);
+  const jobs = buildCalendarJobs(sourceDays, outputPath, options).map((job) => ({
+    ...job,
+    previewRole: runtime.previewRole ?? job.previewRole ?? "main",
+    previewLabel:
+      runtime.previewLabel ??
+      job.previewLabel ??
+      (runtime.previewRole === "rest" || job.previewRole === "rest" ? "További naptár" : "Naptár"),
+  }));
 
   return {
     inputPath,
@@ -74,6 +81,8 @@ export async function epitIcsKimenetiTervet(rawOptions = {}, runtime = {}) {
     globalNameCatalog,
     sourceDays,
     sourceNameMap,
+    previewRole: runtime.previewRole ?? null,
+    previewLabel: runtime.previewLabel ?? null,
     jobs,
     plannedOutputPaths: jobs.map((job) => job.outputPath),
   };
@@ -97,6 +106,8 @@ export async function vegrehajtIcsKimenetiTervet(terv, runtime = {}) {
       sourceDays: job.sourceDays,
       skippedEmptyPrimaryDays: job.skippedEmptyPrimaryDays,
       options: job.options,
+      previewRole: job.previewRole ?? terv.previewRole ?? "main",
+      previewLabel: job.previewLabel ?? terv.previewLabel ?? "Naptár",
       events: result.events,
       eventCount: result.events.length,
       calendarText: result.calendarText,
@@ -252,6 +263,8 @@ function buildCalendarJobs(sourceDays, outputPath, options) {
         calendarName: `${options.calendarName} — elsődleges`,
         calendarPartition: "primary",
       },
+      previewRole: "main",
+      previewLabel: "Naptár",
     });
     baseJobs.push({
       sourceDays: splitDays.restDays,
@@ -268,6 +281,8 @@ function buildCalendarJobs(sourceDays, outputPath, options) {
         calendarName: `${options.calendarName} — további`,
         calendarPartition: "rest",
       },
+      previewRole: "rest",
+      previewLabel: "További naptár",
     });
   } else {
     baseJobs.push({
@@ -277,6 +292,8 @@ function buildCalendarJobs(sourceDays, outputPath, options) {
       optionOverrides: {
         calendarPartition: null,
       },
+      previewRole: "main",
+      previewLabel: "Naptár",
     });
   }
 
@@ -303,6 +320,8 @@ function buildCalendarJobs(sourceDays, outputPath, options) {
         sourceDays: baseJob.sourceDays,
         outputPath: variantOutputPath,
         skippedEmptyPrimaryDays: baseJob.skippedEmptyPrimaryDays,
+        previewRole: baseJob.previewRole ?? "main",
+        previewLabel: baseJob.previewLabel ?? "Naptár",
         options: variantOptions,
       });
     }
@@ -2298,6 +2317,117 @@ function buildDetailedFrequencyHtml(nameEntry) {
   }
 
   return lines.map((line) => escapeHtml(line)).join("<br>");
+}
+
+function buildPreviewActualDate(sourceDay, options = {}) {
+  const parsed =
+    parseNamedayValue(sourceDay?.monthDay) ??
+    parseNamedayValue(formatMonthDay(sourceDay?.month, sourceDay?.day));
+
+  if (!parsed) {
+    return null;
+  }
+
+  const actualDate = {
+    month: parsed.month,
+    day: parsed.day,
+    monthDay: parsed.monthDay,
+    sourceMonthDay: parsed.monthDay,
+    shifted: false,
+  };
+
+  if (options?.leapMode === "hungarian-until-2050") {
+    const shiftedMap = new Map([
+      ["02-24", "02-25"],
+      ["02-25", "02-26"],
+      ["02-26", "02-27"],
+      ["02-27", "02-28"],
+      ["02-28", "02-29"],
+    ]);
+    const shiftedMonthDay = shiftedMap.get(parsed.monthDay);
+
+    if (shiftedMonthDay) {
+      const shifted = parseNamedayValue(shiftedMonthDay);
+
+      if (shifted) {
+        actualDate.leapRule = {
+          shiftedMonth: shifted.month,
+          shiftedDay: shifted.day,
+        };
+      }
+    }
+  }
+
+  return actualDate;
+}
+
+export function buildIcsPreviewNameDetailPayload({
+  nameEntry,
+  sourceDay,
+  otherMonthDays = [],
+  options = {},
+  calendarRole = "main",
+  calendarLabel = "Naptár",
+} = {}) {
+  if (!nameEntry || !sourceDay) {
+    return null;
+  }
+
+  const normalizedOtherDays = normalizeNamedayEntries(otherMonthDays).map((entry) => entry.monthDay);
+  const actualDate = buildPreviewActualDate(sourceDay, options);
+  const displayYear = resolveDescriptionYear(options, null);
+  const plainLines = [];
+
+  if (options?.ordinalDay === "description" && actualDate) {
+    plainLines.push("Az év napja");
+
+    for (const line of buildOrdinalDescriptionLines(actualDate, displayYear)) {
+      plainLines.push(`• ${line}`);
+    }
+
+    plainLines.push("");
+  }
+
+  const leapShiftOverview = buildLeapShiftOverview(actualDate, displayYear);
+
+  if (leapShiftOverview) {
+    plainLines.push(leapShiftOverview);
+    plainLines.push("");
+  }
+
+  plainLines.push(
+    ...buildDetailedPlainLines(
+      decorateNameEntryForDescription(nameEntry, actualDate, displayYear),
+      normalizedOtherDays,
+      0
+    )
+  );
+
+  while (plainLines[plainLines.length - 1] === "") {
+    plainLines.pop();
+  }
+
+  return {
+    plainDescription: plainLines.join("\n"),
+    meta: {
+      name: nameEntry.name,
+      calendarRole,
+      calendarLabel,
+      monthDay: sourceDay.monthDay ?? null,
+      gender: prettifyGender(nameEntry.gender?.label) || null,
+      origin: normalizeInlineDisplayText(nameEntry.origin) || null,
+      meaning: normalizeInlineDisplayText(nameEntry.meaning) || null,
+      nicknames: sanitizeDisplayValues(nameEntry.nicknames),
+      relatedNames: sanitizeDisplayValues(nameEntry.relatedNames),
+      frequency: {
+        overall: frequencyLabelHu(nameEntry.frequency?.overall) ?? null,
+        newborns: frequencyLabelHu(nameEntry.frequency?.newborns) ?? null,
+        trend: polishFrequencyMetaLabel(nameEntry.meta?.frequency?.labelHu) ?? null,
+      },
+      otherNamedays: normalizedOtherDays.map(formatMonthDayHuFromMonthDay).filter(Boolean),
+      dayMeta: nameEntry.dayMeta ?? null,
+    },
+  };
 }
 
 /**

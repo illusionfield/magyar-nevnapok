@@ -223,10 +223,10 @@ function szemelyesModifierLeiras(kulcs, aktiv) {
 
 export function sajatPrimerForrasCimke(ertek) {
   const cimkek = {
-    default: "alapértelmezett (legacy + ranking kiegészítés)",
-    legacy: "legacy elsődlegesek",
-    ranked: "rangsorolt elsődlegesek",
-    either: "legacy vagy ranking uniója",
+    default: "alap + ranking",
+    legacy: "csak legacy",
+    ranked: "csak ranking",
+    either: "legacy vagy ranking",
   };
 
   return cimkek[ertek] ?? String(ertek);

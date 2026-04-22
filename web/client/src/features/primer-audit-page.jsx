@@ -10,6 +10,7 @@ import {
   PageSection,
   SearchInput,
   Toolbar,
+  WorkspaceJobPanel,
 } from "../ui.jsx";
 import { useWsQuery } from "../hooks.js";
 import { defaultMonthOpen } from "./shared/month-groups.js";
@@ -84,7 +85,7 @@ function PrimerMonthContent({ monthSummary, request, filterId, query, refreshTok
                       <NameTokenEditor
                         values={commonValues}
                         suggestions={row.candidateNames}
-                        placeholder="Közös primer név"
+                        placeholder="Közös primer név…"
                         onChange={(values) => {
                           setCommonDrafts((current) => ({ ...current, [row.monthDay]: values }));
                         }}
@@ -99,7 +100,7 @@ function PrimerMonthContent({ monthSummary, request, filterId, query, refreshTok
                       <NameTokenEditor
                         values={localValues}
                         suggestions={row.candidateNames}
-                        placeholder="Helyi hozzáadás"
+                        placeholder="Helyi hozzáadás…"
                         onChange={(values) => {
                           setLocalDrafts((current) => ({ ...current, [row.monthDay]: values }));
                         }}
@@ -234,7 +235,7 @@ function NameView({ namesData, onPageChange }) {
 
 function PrimerSettingsEditor({ fields, value, onChange, onSave }) {
   return (
-    <PageSection title="Személyes primerbeállítások" subtitle="A helyi overlay globális beállításai azonnali, normál űrlapos szerkesztéssel.">
+    <PageSection title="Saját primerbeállítások" subtitle="A helyi overlay globális beállításai egy rövid, egyszerű szerkesztőfelületen.">
       <div className="settings-grid">
         {fields.map((field) => (
           <label key={field.key} className="field-card">
@@ -276,13 +277,13 @@ function PrimerSettingsEditor({ fields, value, onChange, onSave }) {
         ))}
       </div>
       <Toolbar>
-        <ActionButton label="Beállítások mentése" onClick={onSave} />
+        <ActionButton label="Mentés" onClick={onSave} />
       </Toolbar>
     </PageSection>
   );
 }
 
-export function PrimerAuditPage({ request }) {
+export function PrimerAuditPage({ request, connected, jobState, lastSocketError }) {
   const [mode, setMode] = useState("napok");
   const [dayQuery, setDayQuery] = useState("");
   const [dayFilterId, setDayFilterId] = useState("akciozhato");
@@ -326,7 +327,14 @@ export function PrimerAuditPage({ request }) {
 
   return (
     <div className="page-stack">
-      <PageSection title="Primer audit" subtitle="Teljes táblázatos inline editor a közös primerdöntésekhez, a helyi overlayhez és a személyes primerprofilhoz.">
+      <PageSection title="Primer audit" subtitle="A közös primerdöntések, a helyi feloldások és a saját primerprofil egy admin munkatéren marad.">
+        <WorkspaceJobPanel
+          workspace="primer-audit"
+          connected={connected}
+          jobState={jobState}
+          lastSocketError={lastSocketError}
+          idleLabel="A közös primernap mentésekor indul újrafuttatás; annak állapota itt látszik majd százalékos visszajelzéssel."
+        />
         <Toolbar>
           <button type="button" className={mode === "napok" ? "tab-button active" : "tab-button"} onClick={() => setMode("napok")}>
             Napok
@@ -372,7 +380,7 @@ export function PrimerAuditPage({ request }) {
                   </option>
                 ))}
               </select>
-              <SearchInput value={dayQuery} onChange={setDayQuery} placeholder="Keresés dátumra vagy névre" />
+              <SearchInput value={dayQuery} onChange={setDayQuery} placeholder="Keresés dátumra vagy névre…" />
             </Toolbar>
           </PageSection>
           {(summary?.months ?? []).map((monthSummary) => (
@@ -391,7 +399,7 @@ export function PrimerAuditPage({ request }) {
         </>
       ) : (
         <>
-          <PageSection title="Névnézet" subtitle="Névlista, előfordulások és gyors ugrás a kapcsolódó napokra.">
+          <PageSection title="Névnézet" subtitle="Névlista, előfordulások és gyors áttekintés a kapcsolódó napokról.">
             <Toolbar>
               <select value={nameFilterId} onChange={(event) => setNameFilterId(event.target.value)}>
                 {(summary?.filters?.names ?? []).map((item) => (
@@ -407,7 +415,7 @@ export function PrimerAuditPage({ request }) {
                   </option>
                 ))}
               </select>
-              <SearchInput value={nameQuery} onChange={setNameQuery} placeholder="Keresés névre vagy dátumra" />
+              <SearchInput value={nameQuery} onChange={setNameQuery} placeholder="Keresés névre vagy dátumra…" />
             </Toolbar>
           </PageSection>
           {namesQuery.loading && mode === "nevek" && !namesQuery.data ? <LoadingLabel label="Névlista betöltése…" /> : null}

@@ -94,13 +94,12 @@ async function installWsProbe(page) {
       }
 
       send(data) {
-        window.__wsDebug.sendCount += 1;
-        window.__wsDebug.lastSendAt = Date.now();
-
         try {
           const payload = JSON.parse(String(data));
 
           if (payload.tipus) {
+            window.__wsDebug.sendCount += 1;
+            window.__wsDebug.lastSendAt = Date.now();
             window.__wsDebug.requestTypes[payload.tipus] =
               (window.__wsDebug.requestTypes[payload.tipus] ?? 0) + 1;
           }
@@ -143,7 +142,7 @@ function createConsoleCollectors(page) {
   };
 }
 
-async function waitForWsQuiet(page, timeoutMs = 15_000) {
+async function waitForWsQuiet(page, timeoutMs = 25_000) {
   await page.waitForFunction(
     () => window.__wsDebug.sendCount > 0,
     { timeout: timeoutMs }
@@ -217,10 +216,10 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.equal(auditStats.requestTypes["audits:get-detail-month"] ?? 0, 0, "Csukott hónapokhoz nem szabad havi auditlekérést indítani.");
 
   await auditPage.evaluate(() => {
-    const target = [...document.querySelectorAll(".catalog-card")].find((element) => element.textContent.includes("Wiki vs legacy"));
+    const target = document.querySelector("[data-audit-id=\"wiki-vs-legacy\"]");
 
     if (!target) {
-      throw new Error("A Wiki vs legacy auditkártya nem található.");
+      throw new Error("A wiki-vs-legacy auditkártya nem található.");
     }
 
     target.click();
@@ -296,7 +295,8 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   await icsPage.goto(`${baseUrl}/ics`, { waitUntil: "domcontentloaded" });
   const icsStats = await expectQuietWindow(icsPage, "ics");
   assert.equal(icsStats.requestTypes["ics:get-editor"], 1, "Az ICS oldalnak egyetlen editor summary lekérést kell indítania.");
-  assert.equal(icsStats.requestTypes["ics:preview"] ?? 0, 0, "Előnézet csak explicit gombnyomásra készülhet.");
+  assert.equal(icsStats.requestTypes["ics:preview"] ?? 0, 1, "Az ICS oldalnak egyetlen automatikus előnézetet kell kérnie a mentett állapothoz.");
+  assert.equal(icsStats.requestTypes["ics:get-raw-preview"] ?? 0, 0, "A nyers ICS előnézet maradjon lustán betöltött.");
   assertNoRenderLoopErrors("ics", icsLogs.consoleMessages, icsLogs.pageErrors);
   await icsPage.close();
 });

@@ -384,6 +384,17 @@ function listazLeapValtozatokat(utvonal, leapProfile) {
   ];
 }
 
+export function listazAktivIcsKimeneteket(beallitasok = {}) {
+  const settings = normalizalIcsBeallitasokat(beallitasok);
+  const profile = epitIcsOutputProfilt(settings);
+  const activeBaseOutputs =
+    profile.partitionMode === "split"
+      ? [settings.split.primary.output, settings.split.rest.output]
+      : [settings.single.output];
+
+  return activeBaseOutputs.flatMap((utvonal) => listazLeapValtozatokat(utvonal, settings.shared.leapProfile));
+}
+
 function buildGeneratorOptions(shared, calendarSettings) {
   return {
     input: shared.input,

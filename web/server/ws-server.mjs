@@ -5,7 +5,9 @@ import {
   allitKozosPrimerNapot,
   allitSajatPrimerBeallitasokat,
   allitHelyiPrimerNapot,
+  ellenorizPipelineFuttatast,
   futtatAuditot,
+  futtatPrimerAuditGyorsFrissitest,
   futtatPipeline,
   generalKimenetet,
 } from "../../domainek/szolgaltatasok.mjs";
@@ -51,6 +53,7 @@ async function runJobAndWait(jobManager, descriptor, handler) {
   const startedJob = await jobManager.startJob({
     kind: descriptor.kind,
     target: descriptor.target,
+    workspace: descriptor.workspace ?? null,
     handler,
   });
   const finalJob = await jobManager.whenSettled(startedJob.id);
@@ -109,15 +112,22 @@ async function handleRequest(context, request) {
         throw createRequestError("A pipeline futtatásához kötelező a target mező.");
       }
 
+      await ellenorizPipelineFuttatast(target, {
+        force: payload.force === true,
+        confirmCrawlerRun: payload.confirmCrawlerRun === true,
+      });
+
       const job = await runJobAndWait(
         context.jobManager,
         {
           kind: "pipeline",
           target,
+          workspace: "pipeline",
         },
         ({ reporter }) =>
           futtatPipeline(target, {
             force: payload.force === true,
+            confirmCrawlerRun: payload.confirmCrawlerRun === true,
             reporter,
           })
       );
@@ -168,6 +178,7 @@ async function handleRequest(context, request) {
         {
           kind: "audit",
           target: auditId,
+          workspace: "auditok",
         },
         ({ reporter }) =>
           futtatAuditot(auditId, {
@@ -201,6 +212,7 @@ async function handleRequest(context, request) {
           {
             kind: "audit",
             target: "hivatalos-nevjegyzek",
+            workspace: "auditok",
           },
           ({ reporter }) =>
             futtatAuditot("hivatalos-nevjegyzek", {
@@ -272,9 +284,10 @@ async function handleRequest(context, request) {
           {
             kind: "audit",
             target: "primer-audit",
+            workspace: "primer-audit",
           },
           ({ reporter }) =>
-            futtatAuditot("primer-audit", {
+            futtatPrimerAuditGyorsFrissitest({
               reporter,
             })
         );
@@ -322,7 +335,19 @@ async function handleRequest(context, request) {
       const settings = payload.settings ?? payload.draft ?? payload;
 
       return {
-        icsPreview: await buildIcsPreviewModel(settings),
+        icsPreview: await buildIcsPreviewModel(settings, {
+          includeRaw: false,
+        }),
+      };
+    }
+    case "ics:get-raw-preview": {
+      const settings = payload.settings ?? payload.draft ?? payload;
+
+      return {
+        icsRawPreview: await buildIcsPreviewModel(settings, {
+          includeRaw: true,
+          panelId: payload.panelId ?? null,
+        }),
       };
     }
     case "ics:generate": {
@@ -334,6 +359,7 @@ async function handleRequest(context, request) {
         {
           kind: "output",
           target: "ics",
+          workspace: "ics",
         },
         ({ reporter }) =>
           generalKimenetet("ics", {
@@ -352,7 +378,9 @@ async function handleRequest(context, request) {
         },
         downloads,
         icsEditor: await buildIcsEditorModel(),
-        icsPreview: await buildIcsPreviewModel(settings),
+        icsPreview: await buildIcsPreviewModel(settings, {
+          includeRaw: false,
+        }),
         dashboard: await buildDashboardModel(context.jobManager.getState()),
       };
     }

@@ -69,7 +69,7 @@ function createLocalConfig() {
 async function copyPath(relativeSource, targetPath) {
   const sourcePath = path.join(repoRoot, relativeSource);
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
-  await fs.cp(sourcePath, targetPath, { recursive: true });
+  await fs.cp(sourcePath, targetPath, { recursive: true, preserveTimestamps: true });
 }
 
 async function prepareWorkspace(rootDir) {
@@ -245,6 +245,28 @@ function createWsClient(baseUrl) {
   });
 }
 
+function keresPipelineLepest(pipeline, stepId) {
+  return (pipeline?.groups ?? [])
+    .flatMap((group) => group.steps ?? [])
+    .find((step) => step.id === stepId) ?? null;
+}
+
+function keresElsoDetailId(preview) {
+  for (const month of preview?.months ?? []) {
+    for (const row of month.rows ?? []) {
+      for (const column of preview?.columns ?? []) {
+        const detailId = row.cells?.[column.id]?.names?.[0]?.detailId ?? null;
+
+        if (detailId) {
+          return detailId;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 test("a websocket contract summary + lazy payloadokra állt át, és az ICS letöltés végigjárható", async (t) => {
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-websocket-"));
   await prepareWorkspace(workspace);
@@ -267,8 +289,17 @@ test("a websocket contract summary + lazy payloadokra állt át, és az ICS let�
   assert.ok(initialJobUpdate.bytes < 1024);
 
   const dashboard = await client.requestRaw("dashboard:get");
-  assert.equal(typeof dashboard.data.dashboard.pipelineKpi.total, "number");
+  assert.equal(typeof dashboard.data.dashboard.summary.pipelineAttentionCount, "number");
+  assert.equal("cards" in dashboard.data.dashboard, false);
   assert.ok(dashboard.bytes < 20_000);
+
+  const pipelineState = await client.request("pipeline:get");
+  assert.deepEqual(
+    (pipelineState.pipeline.groups ?? []).map((group) => group.id),
+    ["forrasok-es-alapadatok", "primer-audit", "auditok"]
+  );
+  assert.equal((pipelineState.pipeline.groups ?? []).some((group) => (group.steps ?? []).some((step) => step.id === "naptar-generalas")), false);
+  assert.equal(keresPipelineLepest(pipelineState.pipeline, "wiki-primer-gyujtes")?.isCrawler, true);
 
   const primerSummary = await client.requestRaw("primer-audit:get-summary");
   assert.equal(primerSummary.data.primerAuditSummary.months.length, 12);
@@ -293,7 +324,7 @@ test("a websocket contract summary + lazy payloadokra állt át, és az ICS let�
     month: 1,
     query: "",
   });
-  assert.equal(Array.isArray(wikiMonth.data.auditMonth.month.rows), true);
+  assert.equal(Array.isArray(wikiMonth.data.auditMonth.sections), true);
   assert.ok(wikiMonth.bytes < 200_000);
 
   const editor = await client.request("ics:get-editor");
@@ -303,8 +334,19 @@ test("a websocket contract summary + lazy payloadokra állt át, és az ICS let�
     settings: editor.icsEditor.savedSettings,
   });
   assert.equal(preview.icsPreview.mode, "single");
-  assert.equal(preview.icsPreview.panels.length, 1);
-  assert.match(preview.icsPreview.panels[0].rawText, /BEGIN:VCALENDAR/u);
+  assert.equal(preview.icsPreview.calendars.length, 1);
+  assert.equal(preview.icsPreview.calendars[0].rawText, null);
+  assert.equal(preview.icsPreview.columns.length, 1);
+  assert.equal(Array.isArray(preview.icsPreview.months), true);
+  const firstDetailId = keresElsoDetailId(preview.icsPreview);
+  assert.equal(typeof firstDetailId, "string");
+  assert.equal(typeof preview.icsPreview.details[firstDetailId]?.plainDescription, "string");
+
+  const rawPreview = await client.request("ics:get-raw-preview", {
+    settings: editor.icsEditor.savedSettings,
+    panelId: preview.icsPreview.calendars[0].id,
+  });
+  assert.match(rawPreview.icsRawPreview.calendars[0].rawText, /BEGIN:VCALENDAR/u);
 
   const generatePromise = client.request("ics:generate", {
     settings: editor.icsEditor.savedSettings,
@@ -369,7 +411,7 @@ test("a hivatalos kivétellista mentése websocketen át a kézi forrásfájlt m
   const detail = await client.request("audits:get-detail-summary", {
     auditId: "hivatalos-nevjegyzek",
   });
-  const firstMaleList = detail.auditDetail.genders.find((entry) => entry.id === "male").lists[0].rows;
+  const firstMaleList = detail.auditDetail.editor.genders.find((entry) => entry.id === "male").lists[0].rows;
 
   await client.request("audits:save-official-exceptions", {
     notes: "Tesztelt módosítás",
@@ -439,4 +481,45 @@ test("a primer audit lazy websocket editorai mentik a követett és a helyi rét
   const trackedOverrides = await betoltStrukturaltFajl(path.join(workspace, "data", "primary-registry-overrides.yaml"));
   const updatedDay = trackedOverrides.days.find((entry) => entry.monthDay === "01-02");
   assert.deepEqual(updatedDay.preferredNames, ["Ábel", "Alpár"]);
+});
+
+test("a pipeline crawler safe guard hiány és anomália esetén megerősítést kér", async (t) => {
+  const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "nevnapok-pipeline-guard-"));
+  await prepareWorkspace(workspace);
+  await fs.rm(path.join(workspace, "output", "primer", "wiki-primer.yaml"));
+  await fs.writeFile(path.join(workspace, "output", "adatbazis", "nevnapok.yaml"), "ervenytelen: [\n", "utf8");
+  const { child, baseUrl } = await startServer(workspace);
+
+  t.after(async () => {
+    await stopServer(child);
+  });
+
+  const client = await createWsClient(baseUrl);
+  t.after(() => {
+    client.socket.close();
+  });
+
+  const pipelineState = await client.request("pipeline:get");
+  const wikiStep = keresPipelineLepest(pipelineState.pipeline, "wiki-primer-gyujtes");
+  const portalStep = keresPipelineLepest(pipelineState.pipeline, "portal-nevadatbazis-epites");
+
+  assert.equal(wikiStep?.sanityState, "missing");
+  assert.equal(wikiStep?.requiresConfirmation, true);
+  assert.equal(portalStep?.sanityState, "anomaly");
+  assert.equal(portalStep?.requiresConfirmation, true);
+
+  await assert.rejects(
+    () =>
+      client.request("pipeline:run", {
+        target: "forrasok-es-alapadatok",
+        force: false,
+      }),
+    (error) => {
+      assert.equal(error.code, "pipeline_confirmation_required");
+      const stepIds = new Set((error.details?.steps ?? []).map((step) => step.stepId));
+      assert.equal(stepIds.has("wiki-primer-gyujtes"), true);
+      assert.equal(stepIds.has("portal-nevadatbazis-epites"), true);
+      return true;
+    }
+  );
 });

@@ -10,7 +10,6 @@ import { futtatLegacyPrimerAuditot } from "./auditok/legacy-primer-osszevetes.mj
 import {
   alkalmazHelyiPrimerOverlaytPrimerAuditRiporton,
   buildPrimerAuditVeglegesitettPrimerPayload,
-  futtatPrimerAuditMunkafolyamat,
 } from "./auditok/primer-audit.mjs";
 import { futtatPrimerNormalizaloAuditot } from "./auditok/primer-normalizalo-osszevetes.mjs";
 import { futtatWikiVsLegacyAuditot } from "./auditok/wiki-vs-legacy.mjs";
@@ -35,7 +34,6 @@ import {
   listazIcsMenedzseltKimeneteket,
   normalizalIcsBeallitasokat,
 } from "./naptar/ics-beallitasok.mjs";
-import { futtatPrimerNormalizaloRiportot } from "./primer/normalizalo-riport.mjs";
 import {
   allitHelyiPrimerBeallitasokat,
   allitHelyiPrimerForrast,
@@ -51,7 +49,13 @@ import { letezik } from "../kozos/fajlrendszer.mjs";
 import { createConsoleReporter, createReporter, withReporterConsole } from "../kozos/reporter.mjs";
 import { betoltStrukturaltFajl, mentStrukturaltFajl } from "../kozos/strukturalt-fajl.mjs";
 import { kanonikusUtvonalak } from "../kozos/utvonalak.mjs";
-import { futtatPipelineCelt, listazPipelineAllapot, listazPipelineCelokat } from "../pipeline/futtato.mjs";
+import {
+  ellenorizPipelineFuttatasiIgenyt,
+  futtatPipelineCelt,
+  listazPipelineAllapot,
+  listazPipelineCelokat,
+} from "../pipeline/futtato.mjs";
+import { keresLepest } from "../pipeline/lepesek.mjs";
 import { listazGoogleNaptarakat, vegrehajtGoogleNaptarTorloMuveletet } from "./integraciok/google-naptar/web-szolgaltatas.mjs";
 
 function resolveReporter(opciok = {}) {
@@ -69,6 +73,8 @@ function publikusAuditok() {
     "legacy-primer",
     "wiki-vs-legacy",
     "primer-normalizalo",
+    "vegso-primer",
+    "primer-nelkul-marado-nevek",
     "primer-audit",
   ];
 }
@@ -76,47 +82,98 @@ function publikusAuditok() {
 async function futtatPrimerAuditFrissitest(opciok = {}) {
   const reporter = resolveReporter(opciok);
 
-  if (opciok.force === true || !(await letezik(kanonikusUtvonalak.adatbazis.nevnapok))) {
-    await futtatPipelineCelt("portal-nevadatbazis-epites", {
-      force: opciok.force === true,
-      reporter,
-    });
+  const eredmenyek = await futtatPipelineCelt("primer-audit", {
+    force: opciok.force === true,
+    reporter,
+  });
+
+  return {
+    audit: "primer-audit",
+    sikeres: true,
+    reportPath: kanonikusUtvonalak.riportok.primerAudit,
+    pipeline: eredmenyek,
+  };
+}
+
+export async function futtatPrimerAuditGyorsFrissitest(opciok = {}) {
+  const reporter = resolveReporter(opciok);
+  const stepIds = [
+    "vegso-primer-feloldas",
+    "audit-vegso-primer",
+    "audit-primer-nelkul-marado-nevek",
+    "audit-primer-audit",
+  ];
+  const szekciok = stepIds.map((stepId) => ({
+    id: stepId,
+    label: keresLepest(stepId)?.leiras ?? stepId,
+    status: "pending",
+  }));
+  const eredmenyek = [];
+
+  reporter.sections(szekciok);
+  reporter.progress(0, stepIds.length, {
+    stageLabel: "A primer audit gyors frissítése előkészül",
+  });
+
+  for (const [index, stepId] of stepIds.entries()) {
+    const lep = keresLepest(stepId);
+    const szekcio = szekciok.find((entry) => entry.id === stepId);
+
+    if (!lep) {
+      throw new Error(`Hiányzó primer audit lépés: ${stepId}`);
+    }
+
+    if (szekcio) {
+      szekcio.status = "running";
+    }
+
+    reporter.sections(szekciok);
+    reporter.stage(`Fut: ${lep.leiras.replace(/\.$/u, "")}`);
+
+    try {
+      const eredmeny = await lep.futtat({
+        ...opciok,
+        reporter,
+      });
+
+      if (szekcio) {
+        szekcio.status = "completed";
+        szekcio.meta = "Frissítve.";
+      }
+
+      reporter.sections(szekciok);
+      reporter.progress(index + 1, stepIds.length, {
+        stageLabel: `Kész: ${lep.leiras.replace(/\.$/u, "")}`,
+      });
+      eredmenyek.push({
+        azonosito: stepId,
+        eredmeny,
+      });
+    } catch (error) {
+      if (szekcio) {
+        szekcio.status = "failed";
+        szekcio.meta = error?.message ?? "Ismeretlen hiba.";
+      }
+
+      reporter.sections(szekciok);
+      reporter.state({
+        stageLabel: `Hiba: ${lep.leiras.replace(/\.$/u, "")}`,
+      });
+      throw error;
+    }
   }
 
-  return withReporterConsole(reporter, async () => {
-    await futtatWikiVsLegacyAuditot({
-      legacy: kanonikusUtvonalak.primer.legacy,
-      wiki: kanonikusUtvonalak.primer.wiki,
-      report: kanonikusUtvonalak.riportok.wikiVsLegacy,
-    });
-    await futtatPrimerNormalizaloRiportot({
-      input: kanonikusUtvonalak.adatbazis.nevnapok,
-      diff: kanonikusUtvonalak.riportok.wikiVsLegacy,
-      output: kanonikusUtvonalak.primer.normalizaloRiport,
-    });
-    await futtatPrimerNormalizaloAuditot({
-      normalized: kanonikusUtvonalak.primer.normalizaloRiport,
-      legacy: kanonikusUtvonalak.primer.legacy,
-      wiki: kanonikusUtvonalak.primer.wiki,
-      report: kanonikusUtvonalak.riportok.primerNormalizalo,
-    });
-    await futtatPrimerAuditMunkafolyamat({
-      final: kanonikusUtvonalak.primer.vegso,
-      legacy: kanonikusUtvonalak.primer.legacy,
-      wiki: kanonikusUtvonalak.primer.wiki,
-      normalized: kanonikusUtvonalak.primer.normalizaloRiport,
-      input: kanonikusUtvonalak.adatbazis.nevnapok,
-      overrides: kanonikusUtvonalak.kezi.primerFelulirasok,
-      local: kanonikusUtvonalak.helyi.nevnapokKonfig,
-      report: kanonikusUtvonalak.riportok.primerAudit,
-    });
-
-    return {
-      audit: "primer-audit",
-      sikeres: true,
-      reportPath: kanonikusUtvonalak.riportok.primerAudit,
-    };
+  reporter.progress(stepIds.length, stepIds.length, {
+    stageLabel: "A primer audit gyors frissítése elkészült",
   });
+
+  return {
+    audit: "primer-audit",
+    sikeres: true,
+    mod: "quick",
+    reportPath: kanonikusUtvonalak.riportok.primerAudit,
+    pipeline: eredmenyek,
+  };
 }
 
 async function szinkronizalPrimerAuditSnapshotot() {
@@ -275,7 +332,12 @@ async function epitIcsFutasiTerveket(beallitasok = {}, reporter) {
       );
     }
 
-    futasiTervek.push(await epitIcsKimenetiTervet(outputProfil.single.generatorOptions));
+    futasiTervek.push(
+      await epitIcsKimenetiTervet(outputProfil.single.generatorOptions, {
+        previewRole: "main",
+        previewLabel: "Naptár",
+      })
+    );
   } else {
     await futtatPrimerAuditFrissitest({ reporter });
 
@@ -297,6 +359,8 @@ async function epitIcsFutasiTerveket(beallitasok = {}, reporter) {
         payload: nevadatbazisPayload,
         sourceDays: splitDays.primaryDays,
         sourceNameMap,
+        previewRole: "main",
+        previewLabel: "Naptár",
       })
     );
     futasiTervek.push(
@@ -304,6 +368,8 @@ async function epitIcsFutasiTerveket(beallitasok = {}, reporter) {
         payload: nevadatbazisPayload,
         sourceDays: splitDays.restDays,
         sourceNameMap,
+        previewRole: "rest",
+        previewLabel: "További naptár",
       })
     );
   }
@@ -546,6 +612,10 @@ export async function futtatPipeline(cel, opciok = {}) {
   });
 }
 
+export async function ellenorizPipelineFuttatast(cel, opciok = {}) {
+  return ellenorizPipelineFuttatasiIgenyt(cel, opciok);
+}
+
 /**
  * A `listazPipelineCelLista` visszaadja a felületeken megjeleníthető pipeline-célokat.
  */
@@ -634,20 +704,42 @@ export async function futtatAuditot(ellenorzes, opciok = {}) {
   const reporter = resolveReporter(opciok);
 
   if (ellenorzes === "mind") {
-    return futtatPipelineCelt("audit-futtatas", {
+    return futtatPipelineCelt("auditok", {
       ...opciok,
       reporter,
     });
   }
 
-  if (["vegso-primer", "primer-nelkul-marado-nevek"].includes(ellenorzes)) {
-    throw new Error(
-      `A ${ellenorzes} külön publikus audit megszűnt. Használd helyette a primer-audit felületet.`
-    );
-  }
-
   if (ellenorzes === "primer-audit") {
     return futtatPrimerAuditFrissitest({ ...opciok, reporter });
+  }
+
+  if (ellenorzes === "vegso-primer") {
+    const eredmenyek = await futtatPipelineCelt("audit-vegso-primer", {
+      ...opciok,
+      reporter,
+    });
+
+    return {
+      audit: ellenorzes,
+      sikeres: true,
+      reportPath: kanonikusUtvonalak.riportok.vegsoPrimer,
+      pipeline: eredmenyek,
+    };
+  }
+
+  if (ellenorzes === "primer-nelkul-marado-nevek") {
+    const eredmenyek = await futtatPipelineCelt("audit-primer-nelkul-marado-nevek", {
+      ...opciok,
+      reporter,
+    });
+
+    return {
+      audit: ellenorzes,
+      sikeres: true,
+      reportPath: kanonikusUtvonalak.riportok.primerNelkulMaradoNevek,
+      pipeline: eredmenyek,
+    };
   }
 
   return withReporterConsole(reporter, async () => {

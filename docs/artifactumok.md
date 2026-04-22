@@ -6,7 +6,7 @@ A webes felület azonban nem ezek nyers böngészésére épül, hanem szemantik
 
 - Auditok → kézi kivétellisták és részletes riport inspectorok
 - Primer audit → közös primerdöntések és helyi overlay inline editor
-- ICS generálás → teljes konfigurátor + előnézet + letöltés
+- ICS generálás → teljes konfigurátor + havi előnézet + letöltés
 
 ## Fő kimenetek
 
@@ -37,6 +37,8 @@ A webes felület azonban nem ezek nyers böngészésére épül, hanem szemantik
 - `output/naptar/nevnapok-primary.ics`
 - `output/naptar/nevnapok-rest.ics`
 
+Ezek a fájlok továbbra is a projekt kimenetei, de **nem a pipeline írja őket**. A generálás és a letöltés az `/ics` munkatérből indul.
+
 ### Pipeline állapot
 
 - `output/pipeline/manifest.yaml`
@@ -47,7 +49,7 @@ A felület ezeket nem általános fájllistaként mutatja, hanem:
 
 - auditkártyák és audit-inspectorok,
 - primer napi és név szerinti szerkesztőnézet,
-- ICS előnézeti panelek és letöltőgombok,
+- ICS havi előnézetek, névszintű részletpanelek és letöltőgombok,
 - pipeline lépésinspectorok.
 
 A fájlok továbbra is mértékadóak, csak a kezelőfelület nem fájlböngészőként közelít hozzájuk.

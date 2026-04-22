@@ -73,3 +73,30 @@ test("a JobManager capped log tailt tart csak memóriában, miközben a logszám
   assert.equal(tail.at(-1).message, `sor-${MAX_JOB_LOG_LINES + 24}`);
   assert.equal("logs" in manager.getState().lastJob, false);
 });
+
+test("a JobManager továbbadja a strukturált stage/progress/sections állapotot is", async () => {
+  const manager = new JobManager();
+
+  const startedJob = await manager.startJob({
+    kind: "pipeline",
+    target: "primer-audit",
+    workspace: "pipeline",
+    handler: async ({ reporter }) => {
+      reporter.stage("Előkészítés");
+      reporter.progress(1, 4);
+      reporter.sections([
+        { id: "one", label: "Első lépés", status: "running" },
+      ]);
+      return { ok: true };
+    },
+  });
+
+  assert.equal(startedJob.workspace, "pipeline");
+  const settled = await manager.whenSettled(startedJob.id);
+
+  assert.equal(settled.stageLabel, "Előkészítés");
+  assert.equal(settled.progress.percent, 25);
+  assert.deepEqual(settled.sections, [
+    { id: "one", label: "Első lépés", status: "running" },
+  ]);
+});
