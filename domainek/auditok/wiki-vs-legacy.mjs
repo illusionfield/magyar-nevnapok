@@ -3,6 +3,7 @@
  * Wiki és legacy primerjegyzék összevető audit.
  */
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   DEFAULT_PRIMARY_REGISTRY_PATH,
   loadPrimaryRegistry,
@@ -15,15 +16,14 @@ import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
 const DEFAULT_WIKI_REGISTRY_PATH = kanonikusUtvonalak.primer.wiki;
 const DEFAULT_REPORT_PATH = kanonikusUtvonalak.riportok.wikiVsLegacy;
 const collator = new Intl.Collator("hu", { sensitivity: "base", numeric: true });
-const args = parseArgs(process.argv.slice(2));
 
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * A `futtatWikiVsLegacyAuditot` összeveti a wiki és legacy primerjegyzéket.
  */
-async function main() {
-  const legacyPath = path.resolve(process.cwd(), args.legacy ?? DEFAULT_PRIMARY_REGISTRY_PATH);
-  const wikiPath = path.resolve(process.cwd(), args.wiki ?? DEFAULT_WIKI_REGISTRY_PATH);
-  const reportPath = path.resolve(process.cwd(), args.report ?? DEFAULT_REPORT_PATH);
+export async function futtatWikiVsLegacyAuditot(opciok = {}) {
+  const legacyPath = path.resolve(process.cwd(), opciok.legacy ?? DEFAULT_PRIMARY_REGISTRY_PATH);
+  const wikiPath = path.resolve(process.cwd(), opciok.wiki ?? DEFAULT_WIKI_REGISTRY_PATH);
+  const reportPath = path.resolve(process.cwd(), opciok.report ?? DEFAULT_REPORT_PATH);
 
   const [{ payload: legacyPayload }, { payload: wikiPayload }] = await Promise.all([
     loadPrimaryRegistry(legacyPath),
@@ -42,6 +42,8 @@ async function main() {
   await mentStrukturaltFajl(reportPath, report);
 
   printReport(report);
+
+  return report;
 }
 
 /**
@@ -481,7 +483,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  futtatWikiVsLegacyAuditot(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

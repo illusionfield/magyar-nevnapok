@@ -3,6 +3,7 @@
  * A Wikipédia napi oldalairól primer névnapokat gyűjtő folyamat.
  */
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer";
 import { normalizeNameForMatch } from "../../primer/alap.mjs";
 import { epitPuppeteerInditasiBeallitasokat } from "../../../kozos/puppeteer-inditas.mjs";
@@ -33,18 +34,25 @@ const MONTH_NAME_TO_NUMBER = new Map([
   ["december", 12],
 ]);
 
-const args = parseArgs(process.argv.slice(2));
-const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_OUTPUT_PATH);
-const concurrency = args.concurrency ?? DEFAULT_CONCURRENCY;
-const limit = args.limit ?? null;
+function shouldLogProgress(index, total, cadence = 25) {
+  if (total <= 10) {
+    return true;
+  }
+
+  return index === 0 || index === total - 1 || (index + 1) % cadence === 0;
+}
 
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * A `futtatWikipediaPrimerGyujtest` a Wikipédia napi oldalairól kigyűjti a primer névnapokat.
  */
-async function main() {
+export async function futtatWikipediaPrimerGyujtest(opciok = {}) {
+  const outputPath = path.resolve(process.cwd(), opciok.output ?? DEFAULT_OUTPUT_PATH);
+  const concurrency = opciok.concurrency ?? DEFAULT_CONCURRENCY;
+  const limit = opciok.limit ?? null;
+
   console.log("A Wikipédia-névnapgyűjtés elindult.");
 
-  const browser = await puppeteer.launch(epitPuppeteerInditasiBeallitasokat(args));
+  const browser = await puppeteer.launch(epitPuppeteerInditasiBeallitasokat(opciok));
 
   try {
     const discoveredDays = await discoverDayPages(browser);
@@ -61,6 +69,11 @@ async function main() {
     await mentStrukturaltFajl(outputPath, payload);
 
     console.log(`Mentve: ${days.length} Wikipédia-primer nap ide: ${outputPath}`);
+
+    return {
+      payload,
+      outputPath,
+    };
   } finally {
     await browser.close();
   }
@@ -180,9 +193,11 @@ async function scrapeDayPages(browser, dayPages, concurrencyLimit) {
         page = result.page;
         results[currentIndex] = result.data;
 
-        console.log(
-          `[${String(currentIndex + 1).padStart(String(dayPages.length).length, "0")}/${dayPages.length}] ${dayMeta.monthDay} (${result.data.preferredNames.length} primary / ${result.data.names.length} total)`
-        );
+        if (shouldLogProgress(currentIndex, dayPages.length, 24)) {
+          console.log(
+            `[${String(currentIndex + 1).padStart(String(dayPages.length).length, "0")}/${dayPages.length}] ${dayMeta.monthDay} (${result.data.preferredNames.length} primary / ${result.data.names.length} total)`
+          );
+        }
       }
     } finally {
       await safeClosePage(page);
@@ -535,7 +550,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  futtatWikipediaPrimerGyujtest(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

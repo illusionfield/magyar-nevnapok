@@ -1,6 +1,6 @@
 /**
  * domainek/naptar/ics-beallitasok.mjs
- * Egységes ICS-beállításmodell a helyi YAML-hoz, a TUI-hoz és az alkalmazásszintű szolgáltatásokhoz.
+ * Egységes ICS-beállításmodell a helyi YAML-hoz, a webes beállításnézethez és az alkalmazásszintű szolgáltatásokhoz.
  */
 
 import path from "node:path";

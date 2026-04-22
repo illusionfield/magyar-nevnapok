@@ -3,6 +3,7 @@
  * A HUN-REN utónévportál teljes adatgyűjtő munkafolyamata.
  */
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer";
 import {
   buildPrimaryRegistryLookup,
@@ -37,23 +38,30 @@ const FREQUENCY_SCALE_MAP = new Map(
   FREQUENCY_SCALE.map((entry) => [entry.labelHu, { ...entry }])
 );
 
-const args = parseArgs(process.argv.slice(2));
-const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_OUTPUT_PATH);
-const primaryRegistryPath = path.resolve(
-  process.cwd(),
-  args.primaryRegistry ?? DEFAULT_PRIMARY_REGISTRY
-);
-const legacyPrimaryRegistryPath = path.resolve(
-  process.cwd(),
-  args.legacyPrimaryRegistry ?? DEFAULT_LEGACY_PRIMARY_REGISTRY
-);
-const concurrency = args.concurrency ?? DEFAULT_CONCURRENCY;
-const limit = args.limit ?? null;
+function shouldLogProgress(index, total, cadence = 50) {
+  if (total <= 20) {
+    return true;
+  }
+
+  return index === 0 || index === total - 1 || (index + 1) % cadence === 0;
+}
 
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * A `futtatHunrenNevadatbazisEpiteset` a HUN-REN portálból felépíti a teljes névadatbázist.
  */
-async function main() {
+export async function futtatHunrenNevadatbazisEpiteset(opciok = {}) {
+  const outputPath = path.resolve(process.cwd(), opciok.output ?? DEFAULT_OUTPUT_PATH);
+  const primaryRegistryPath = path.resolve(
+    process.cwd(),
+    opciok.primaryRegistry ?? DEFAULT_PRIMARY_REGISTRY
+  );
+  const legacyPrimaryRegistryPath = path.resolve(
+    process.cwd(),
+    opciok.legacyPrimaryRegistry ?? DEFAULT_LEGACY_PRIMARY_REGISTRY
+  );
+  const concurrency = opciok.concurrency ?? DEFAULT_CONCURRENCY;
+  const limit = opciok.limit ?? null;
+
   console.log("Adatgyűjtés indul a nem szerinti indexoldalakról.");
 
   const [primaryRegistry, legacyPrimaryRegistry] = await Promise.all([
@@ -65,7 +73,7 @@ async function main() {
   ]);
   const primaryRegistryLookup = buildPrimaryRegistryLookup(primaryRegistry.payload.days);
   const legacyPrimaryRegistryLookup = buildPrimaryRegistryLookup(legacyPrimaryRegistry.payload.days);
-  const browser = await puppeteer.launch(epitPuppeteerInditasiBeallitasokat(args));
+  const browser = await puppeteer.launch(epitPuppeteerInditasiBeallitasokat(opciok));
 
   try {
     const discoveredNames = await discoverNames(browser);
@@ -127,6 +135,13 @@ async function main() {
     await mentStrukturaltFajl(outputPath, payload);
 
     console.log(`Mentve: ${names.length} névrekord ide: ${outputPath}`);
+
+    return {
+      payload,
+      outputPath,
+      primaryRegistryPath,
+      legacyPrimaryRegistryPath,
+    };
   } finally {
     await browser.close();
   }
@@ -201,9 +216,11 @@ async function scrapeNames(browser, names, concurrencyLimit) {
         page = result.page;
 
         results[currentIndex] = result.data;
-        console.log(
-          `[${String(currentIndex + 1).padStart(String(names.length).length, "0")}/${names.length}] ${result.data.name} (${result.data.days.length} nap)`
-        );
+        if (shouldLogProgress(currentIndex, names.length, 50)) {
+          console.log(
+            `[${String(currentIndex + 1).padStart(String(names.length).length, "0")}/${names.length}] ${result.data.name} (${result.data.days.length} nap)`
+          );
+        }
       }
     } finally {
       await safeClosePage(page);
@@ -1554,7 +1571,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  futtatHunrenNevadatbazisEpiteset(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

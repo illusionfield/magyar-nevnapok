@@ -1,42 +1,38 @@
 {
   "name": "magyar-nevnapok",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "Magyar hivatalos névnap adatbázis és iCalendar fájl generátor",
+  "private": true,
   "type": "module",
-  "main": "./index.mjs",
-  "exports": "./index.mjs",
-  "bin": {
-    "nevnapok": "./bin/nevnapok.mjs"
-  },
   "scripts": {
-    "cli": "node ./bin/nevnapok.mjs",
-    "tui": "node ./bin/nevnapok.mjs tui",
-    "build": "node ./bin/nevnapok.mjs pipeline futtat teljes",
-    "pipeline": "node ./bin/nevnapok.mjs pipeline futtat teljes",
-    "allapot": "node ./bin/nevnapok.mjs pipeline allapot",
+    "dev": "node ./web/server/dev.mjs",
+    "start": "node ./web/server/start.mjs",
+    "build": "vite build",
+    "data:build": "node ./scripts/data-build.mjs",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "node ./scripts/typecheck.mjs",
     "test": "node --test",
-    "ellenorzes": "npm run lint && npm run typecheck && npm test",
-    "google-naptar:auth:reset": "rm -f .google-calendar-oauth.local.json token.json credentials.json",
+    "ellenorzes": "npm run lint && npm run typecheck && npm test && npm run build",
     "audit": "npm audit"
   },
   "author": "illusionfield <illusionfield@gmail.com>",
   "license": "MIT License",
   "dependencies": {
-    "@google-cloud/local-auth": "^3.0.1",
-    "@inkjs/ui": "^2.0.0",
     "ajv": "^8.18.0",
-    "cli-table3": "^0.6.5",
-    "commander": "^14.0.3",
+    "express": "^5.2.1",
     "googleapis": "^171.4.0",
-    "ink": "^7.0.1",
-    "picocolors": "^1.1.1",
     "puppeteer": "^24.42.0",
     "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "ws": "^8.20.0",
     "yaml": "^2.8.3"
   },
   "devDependencies": {
-    "eslint": "^10.2.1"
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.2.1",
+    "vite": "^8.0.9"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-darwin-arm64": "^1.0.0-rc.16"
   }
 }

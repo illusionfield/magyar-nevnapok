@@ -1,13 +1,14 @@
 /**
  * index.mjs
- * A projekt elsődleges belépési pontja és publikus API-ja.
+ * Internal web application entry exports.
  */
 
+export { startWebServer, createWebApp } from "./web/server/app.mjs";
 export {
-  allitSajatPrimerBeallitasokat,
-  allitSajatPrimerModositot,
-  allitSajatPrimerForrast,
   allitIcsBeallitasokat,
+  allitSajatPrimerBeallitasokat,
+  allitSajatPrimerForrast,
+  allitSajatPrimerModositot,
   betoltIcsBeallitasokat,
   betoltPrimerAuditAdata,
   futtatAuditot,
@@ -15,14 +16,10 @@ export {
   generalKimenetet,
   hozzaadHelyiPrimerKiegeszitest,
   listazAuditokat,
+  listazGoogleNaptarokat,
   listazKimenetiFormatumokat,
   listazPipelineCelLista,
   pipelineAllapot,
-  torolHelyiPrimerKiegeszitest,
   torolGoogleNaptarat,
-  visszaallitIcsBeallitasokat,
+  torolHelyiPrimerKiegeszitest,
 } from "./domainek/szolgaltatasok.mjs";
-
-export { artifactumTar } from "./pipeline/artifactumok.mjs";
-export { pipelineLepesek } from "./pipeline/lepesek.mjs";
-export { kanonikusUtvonalak } from "./kozos/utvonalak.mjs";

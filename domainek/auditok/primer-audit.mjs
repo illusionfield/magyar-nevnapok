@@ -48,8 +48,6 @@ const DEFAULT_INPUT_PATH = kanonikusUtvonalak.adatbazis.nevnapok;
 const DEFAULT_REPORT_PATH = kanonikusUtvonalak.riportok.primerAudit;
 const DEFAULT_LOCAL_CONFIG_PATH = kanonikusUtvonalak.helyi.nevnapokKonfig;
 
-const args = parseArgs(process.argv.slice(2));
-
 export async function buildPrimerAuditReport({
   finalRegistryPayload,
   legacyRegistryPayload,
@@ -715,24 +713,30 @@ function printReport(report) {
   }
 }
 
-async function main() {
-  const finalRegistryPath = path.resolve(process.cwd(), args.final ?? DEFAULT_FINAL_PRIMARY_REGISTRY_PATH);
+export async function futtatPrimerAuditMunkafolyamat(opciok = {}) {
+  const finalRegistryPath = path.resolve(
+    process.cwd(),
+    opciok.final ?? DEFAULT_FINAL_PRIMARY_REGISTRY_PATH
+  );
   const legacyRegistryPath = path.resolve(
     process.cwd(),
-    args.legacy ?? DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH
+    opciok.legacy ?? DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH
   );
-  const wikiRegistryPath = path.resolve(process.cwd(), args.wiki ?? DEFAULT_WIKI_PRIMARY_REGISTRY_PATH);
+  const wikiRegistryPath = path.resolve(
+    process.cwd(),
+    opciok.wiki ?? DEFAULT_WIKI_PRIMARY_REGISTRY_PATH
+  );
   const normalizedRegistryPath = path.resolve(
     process.cwd(),
-    args.normalized ?? DEFAULT_NORMALIZED_REGISTRY_PATH
+    opciok.normalized ?? DEFAULT_NORMALIZED_REGISTRY_PATH
   );
-  const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
+  const inputPath = path.resolve(process.cwd(), opciok.input ?? DEFAULT_INPUT_PATH);
   const overridesPath = path.resolve(
     process.cwd(),
-    args.overrides ?? DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH
+    opciok.overrides ?? DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH
   );
-  const reportPath = path.resolve(process.cwd(), args.report ?? DEFAULT_REPORT_PATH);
-  const localConfigPath = path.resolve(process.cwd(), args.local ?? DEFAULT_LOCAL_CONFIG_PATH);
+  const reportPath = path.resolve(process.cwd(), opciok.report ?? DEFAULT_REPORT_PATH);
+  const localConfigPath = path.resolve(process.cwd(), opciok.local ?? DEFAULT_LOCAL_CONFIG_PATH);
   const [finalRegistry, legacyRegistry, wikiRegistry, normalizedRegistry, overridesRegistry, inputPayload, localSettings, localOverrides] =
     await Promise.all([
       loadPrimaryRegistry(finalRegistryPath),
@@ -770,6 +774,8 @@ async function main() {
   await fs.mkdir(path.dirname(reportPath), { recursive: true });
   await mentStrukturaltFajl(reportPath, report);
   printReport(report);
+
+  return report;
 }
 
 function parseArgs(argv = []) {
@@ -873,7 +879,7 @@ const kozvetlenFuttatas =
   process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (kozvetlenFuttatas) {
-  main().catch((error) => {
+  futtatPrimerAuditMunkafolyamat(parseArgs(process.argv.slice(2))).catch((error) => {
     console.error(error);
     process.exitCode = 1;
   });

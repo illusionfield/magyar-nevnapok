@@ -3,21 +3,22 @@
  * Az elsődleges pipeline lépésregisztere és futtató segédei.
  */
 
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { futtatNodeFolyamat } from "../kozos/parancs-futtatas.mjs";
 import { betoltStrukturaltFajl, mentStrukturaltFajl } from "../kozos/strukturalt-fajl.mjs";
+import { createConsoleReporter, withReporterConsole } from "../kozos/reporter.mjs";
 import { kanonikusUtvonalak } from "../kozos/utvonalak.mjs";
+import { futtatHivatalosNevjegyzekAuditot } from "../domainek/auditok/hivatalos-nevjegyzek.mjs";
+import { futtatLegacyPrimerAuditot } from "../domainek/auditok/legacy-primer-osszevetes.mjs";
+import { futtatPrimerAuditMunkafolyamat } from "../domainek/auditok/primer-audit.mjs";
+import { futtatPrimerNormalizaloAuditot } from "../domainek/auditok/primer-normalizalo-osszevetes.mjs";
+import { futtatWikiVsLegacyAuditot } from "../domainek/auditok/wiki-vs-legacy.mjs";
+import { futtatHunrenNevadatbazisEpiteset } from "../domainek/forrasok/hunren-portal/munkafolyamat.mjs";
+import { futtatWikipediaPrimerGyujtest } from "../domainek/forrasok/wikipedia/munkafolyamat.mjs";
+import { futtatFormalizaltElekGeneralasat } from "../domainek/kapcsolatok/formalizalt-elek.mjs";
+import { generalIcsKimeneteket } from "../domainek/naptar/ics-generalas.mjs";
+import { futtatLegacyPrimerEpiteset } from "../domainek/primer/legacy-ics-atalakitas.mjs";
+import { futtatPrimerNormalizaloRiportot } from "../domainek/primer/normalizalo-riport.mjs";
+import { futtatVegsoPrimerEpiteset } from "../domainek/primer/vegso-primer-epites.mjs";
 import { rogzitManifestLepes } from "./manifest.mjs";
-
-const aktualisKonyvtar = path.dirname(fileURLToPath(import.meta.url));
-
-/**
- * A `modulUtvonal` a modul relatív útvonalát abszolút projektútvonallá alakítja.
- */
-function modulUtvonal(relativ) {
-  return path.resolve(aktualisKonyvtar, "..", relativ);
-}
 
 /**
  * Az `exportalJsonValtozatokat` opcionális JSON testvérfájlokat készít a YAML artifactok mellé.
@@ -43,17 +44,18 @@ async function exportalJsonValtozatokat(outputok = [], formatum = "yaml") {
   return letrehozott;
 }
 
+function resolveReporter(opciok = {}) {
+  return opciok.reporter ?? createConsoleReporter();
+}
+
 /**
- * A `futtatLepest` lefuttat egy worker modult és rögzíti az eredményét a manifestben.
+ * A `futtatLepest` lefuttat egy in-process worker műveletet és rögzíti az eredményét a manifestben.
  */
-async function futtatLepest({ stepId, modul, argumentumok, inputs, outputs, formatum }) {
+async function futtatLepest({ stepId, vegrehajt, inputs, outputs, formatum, reporter }) {
   const kezdes = Date.now();
 
   try {
-    await futtatNodeFolyamat(modulUtvonal(modul), argumentumok, {
-      tukrozzStdout: true,
-      tukrozzStderr: true,
-    });
+    await withReporterConsole(reporter, () => vegrehajt());
 
     const exportalt = await exportalJsonValtozatokat(outputs, formatum);
     const durationMs = Date.now() - kezdes;
@@ -88,104 +90,96 @@ async function futtatLepest({ stepId, modul, argumentumok, inputs, outputs, form
 /**
  * A `futtatAuditokat` sorban lefuttatja az összes fő auditmodult.
  */
-async function futtatAuditokat(formatum = "yaml") {
+async function futtatAuditokat(opciok = {}) {
+  const reporter = resolveReporter(opciok);
+  const formatum = opciok.formatum ?? "yaml";
   const futasok = [];
 
   futasok.push(
     await futtatLepest({
       stepId: "audit-hivatalos-nevjegyzek",
-      modul: "domainek/auditok/hivatalos-nevjegyzek.mjs",
-      argumentumok: [
-        "--input",
-        kanonikusUtvonalak.adatbazis.nevnapok,
-        "--report",
-        kanonikusUtvonalak.riportok.hivatalosNevjegyzek,
-        "--exceptions",
-        kanonikusUtvonalak.kezi.hivatalosNevjegyzekKivetelek,
-      ],
+      vegrehajt: () =>
+        futtatHivatalosNevjegyzekAuditot({
+          input: kanonikusUtvonalak.adatbazis.nevnapok,
+          report: kanonikusUtvonalak.riportok.hivatalosNevjegyzek,
+          exceptions: kanonikusUtvonalak.kezi.hivatalosNevjegyzekKivetelek,
+        }),
       inputs: [
         kanonikusUtvonalak.adatbazis.nevnapok,
         kanonikusUtvonalak.kezi.hivatalosNevjegyzekKivetelek,
       ],
       outputs: [kanonikusUtvonalak.riportok.hivatalosNevjegyzek],
       formatum,
+      reporter,
     })
   );
 
   futasok.push(
     await futtatLepest({
       stepId: "audit-legacy-primer",
-      modul: "domainek/auditok/legacy-primer-osszevetes.mjs",
-      argumentumok: [
-        "--input",
-        kanonikusUtvonalak.adatbazis.nevnapok,
-        "--registry",
-        kanonikusUtvonalak.primer.legacy,
-        "--report",
-        kanonikusUtvonalak.riportok.legacyPrimer,
-      ],
+      vegrehajt: () =>
+        futtatLegacyPrimerAuditot({
+          input: kanonikusUtvonalak.adatbazis.nevnapok,
+          registry: kanonikusUtvonalak.primer.legacy,
+          report: kanonikusUtvonalak.riportok.legacyPrimer,
+        }),
       inputs: [kanonikusUtvonalak.adatbazis.nevnapok, kanonikusUtvonalak.primer.legacy],
       outputs: [kanonikusUtvonalak.riportok.legacyPrimer],
       formatum,
+      reporter,
     })
   );
 
   return futasok;
 }
 
-async function futtatPrimerAuditFrissitest(formatum = "yaml") {
+async function futtatPrimerAuditFrissitest(opciok = {}) {
+  const reporter = resolveReporter(opciok);
+  const formatum = opciok.formatum ?? "yaml";
   const futasok = [];
 
   futasok.push(
     await futtatLepest({
       stepId: "audit-wiki-vs-legacy",
-      modul: "domainek/auditok/wiki-vs-legacy.mjs",
-      argumentumok: [
-        "--legacy",
-        kanonikusUtvonalak.primer.legacy,
-        "--wiki",
-        kanonikusUtvonalak.primer.wiki,
-        "--report",
-        kanonikusUtvonalak.riportok.wikiVsLegacy,
-      ],
+      vegrehajt: () =>
+        futtatWikiVsLegacyAuditot({
+          legacy: kanonikusUtvonalak.primer.legacy,
+          wiki: kanonikusUtvonalak.primer.wiki,
+          report: kanonikusUtvonalak.riportok.wikiVsLegacy,
+        }),
       inputs: [kanonikusUtvonalak.primer.legacy, kanonikusUtvonalak.primer.wiki],
       outputs: [kanonikusUtvonalak.riportok.wikiVsLegacy],
       formatum,
+      reporter,
     })
   );
 
   futasok.push(
     await futtatLepest({
       stepId: "audit-primer-normalizalo-alap",
-      modul: "domainek/primer/normalizalo-riport.mjs",
-      argumentumok: [
-        "--input",
-        kanonikusUtvonalak.adatbazis.nevnapok,
-        "--diff",
-        kanonikusUtvonalak.riportok.wikiVsLegacy,
-        "--output",
-        kanonikusUtvonalak.primer.normalizaloRiport,
-      ],
+      vegrehajt: () =>
+        futtatPrimerNormalizaloRiportot({
+          input: kanonikusUtvonalak.adatbazis.nevnapok,
+          diff: kanonikusUtvonalak.riportok.wikiVsLegacy,
+          output: kanonikusUtvonalak.primer.normalizaloRiport,
+        }),
       inputs: [kanonikusUtvonalak.adatbazis.nevnapok, kanonikusUtvonalak.riportok.wikiVsLegacy],
       outputs: [kanonikusUtvonalak.primer.normalizaloRiport],
       formatum,
+      reporter,
     })
   );
 
   futasok.push(
     await futtatLepest({
       stepId: "audit-primer-normalizalo",
-      modul: "domainek/auditok/primer-normalizalo-osszevetes.mjs",
-      argumentumok: [
-        "--normalized",
-        kanonikusUtvonalak.primer.normalizaloRiport,
-        "--legacy",
-        kanonikusUtvonalak.primer.legacy,
-        "--wiki",
-        kanonikusUtvonalak.primer.wiki,
-        "--report",
-        kanonikusUtvonalak.riportok.primerNormalizalo,
-      ],
+      vegrehajt: () =>
+        futtatPrimerNormalizaloAuditot({
+          normalized: kanonikusUtvonalak.primer.normalizaloRiport,
+          legacy: kanonikusUtvonalak.primer.legacy,
+          wiki: kanonikusUtvonalak.primer.wiki,
+          report: kanonikusUtvonalak.riportok.primerNormalizalo,
+        }),
       inputs: [
         kanonikusUtvonalak.primer.normalizaloRiport,
         kanonikusUtvonalak.primer.legacy,
@@ -193,31 +187,24 @@ async function futtatPrimerAuditFrissitest(formatum = "yaml") {
       ],
       outputs: [kanonikusUtvonalak.riportok.primerNormalizalo],
       formatum,
+      reporter,
     })
   );
 
   futasok.push(
     await futtatLepest({
       stepId: "audit-primer-audit",
-      modul: "domainek/auditok/primer-audit.mjs",
-      argumentumok: [
-        "--final",
-        kanonikusUtvonalak.primer.vegso,
-        "--legacy",
-        kanonikusUtvonalak.primer.legacy,
-        "--wiki",
-        kanonikusUtvonalak.primer.wiki,
-        "--normalized",
-        kanonikusUtvonalak.primer.normalizaloRiport,
-        "--input",
-        kanonikusUtvonalak.adatbazis.nevnapok,
-        "--overrides",
-        kanonikusUtvonalak.kezi.primerFelulirasok,
-        "--local",
-        kanonikusUtvonalak.helyi.nevnapokKonfig,
-        "--report",
-        kanonikusUtvonalak.riportok.primerAudit,
-      ],
+      vegrehajt: () =>
+        futtatPrimerAuditMunkafolyamat({
+          final: kanonikusUtvonalak.primer.vegso,
+          legacy: kanonikusUtvonalak.primer.legacy,
+          wiki: kanonikusUtvonalak.primer.wiki,
+          normalized: kanonikusUtvonalak.primer.normalizaloRiport,
+          input: kanonikusUtvonalak.adatbazis.nevnapok,
+          overrides: kanonikusUtvonalak.kezi.primerFelulirasok,
+          local: kanonikusUtvonalak.helyi.nevnapokKonfig,
+          report: kanonikusUtvonalak.riportok.primerAudit,
+        }),
       inputs: [
         kanonikusUtvonalak.primer.vegso,
         kanonikusUtvonalak.primer.legacy,
@@ -229,6 +216,7 @@ async function futtatPrimerAuditFrissitest(formatum = "yaml") {
       ],
       outputs: [kanonikusUtvonalak.riportok.primerAudit],
       formatum,
+      reporter,
     })
   );
 
@@ -245,16 +233,15 @@ export const pipelineLepesek = [
     futtat: (opciok = {}) =>
       futtatLepest({
         stepId: "legacy-primer-epites",
-        modul: "domainek/primer/legacy-ics-atalakitas.mjs",
-        argumentumok: [
-          "--input",
-          kanonikusUtvonalak.kezi.legacyIcs,
-          "--output",
-          kanonikusUtvonalak.primer.legacy,
-        ],
+        vegrehajt: () =>
+          futtatLegacyPrimerEpiteset({
+            input: kanonikusUtvonalak.kezi.legacyIcs,
+            output: kanonikusUtvonalak.primer.legacy,
+          }),
         inputs: [kanonikusUtvonalak.kezi.legacyIcs],
         outputs: [kanonikusUtvonalak.primer.legacy],
         formatum: opciok.formatum ?? "yaml",
+        reporter: resolveReporter(opciok),
       }),
   },
   {
@@ -266,11 +253,14 @@ export const pipelineLepesek = [
     futtat: (opciok = {}) =>
       futtatLepest({
         stepId: "wiki-primer-gyujtes",
-        modul: "domainek/forrasok/wikipedia/munkafolyamat.mjs",
-        argumentumok: ["--output", kanonikusUtvonalak.primer.wiki],
+        vegrehajt: () =>
+          futtatWikipediaPrimerGyujtest({
+            output: kanonikusUtvonalak.primer.wiki,
+          }),
         inputs: [],
         outputs: [kanonikusUtvonalak.primer.wiki],
         formatum: opciok.formatum ?? "yaml",
+        reporter: resolveReporter(opciok),
       }),
   },
   {
@@ -286,17 +276,13 @@ export const pipelineLepesek = [
     futtat: (opciok = {}) =>
       futtatLepest({
         stepId: "vegso-primer-feloldas",
-        modul: "domainek/primer/vegso-primer-epites.mjs",
-        argumentumok: [
-          "--legacy",
-          kanonikusUtvonalak.primer.legacy,
-          "--wiki",
-          kanonikusUtvonalak.primer.wiki,
-          "--overrides",
-          kanonikusUtvonalak.kezi.primerFelulirasok,
-          "--output",
-          kanonikusUtvonalak.primer.vegso,
-        ],
+        vegrehajt: () =>
+          futtatVegsoPrimerEpiteset({
+            legacy: kanonikusUtvonalak.primer.legacy,
+            wiki: kanonikusUtvonalak.primer.wiki,
+            overrides: kanonikusUtvonalak.kezi.primerFelulirasok,
+            output: kanonikusUtvonalak.primer.vegso,
+          }),
         inputs: [
           kanonikusUtvonalak.primer.legacy,
           kanonikusUtvonalak.primer.wiki,
@@ -304,6 +290,7 @@ export const pipelineLepesek = [
         ],
         outputs: [kanonikusUtvonalak.primer.vegso],
         formatum: opciok.formatum ?? "yaml",
+        reporter: resolveReporter(opciok),
       }),
   },
   {
@@ -315,18 +302,16 @@ export const pipelineLepesek = [
     futtat: (opciok = {}) =>
       futtatLepest({
         stepId: "portal-nevadatbazis-epites",
-        modul: "domainek/forrasok/hunren-portal/munkafolyamat.mjs",
-        argumentumok: [
-          "--primary-registry",
-          kanonikusUtvonalak.primer.vegso,
-          "--legacy-primary-registry",
-          kanonikusUtvonalak.primer.legacy,
-          "--output",
-          kanonikusUtvonalak.adatbazis.nevnapok,
-        ],
+        vegrehajt: () =>
+          futtatHunrenNevadatbazisEpiteset({
+            primaryRegistry: kanonikusUtvonalak.primer.vegso,
+            legacyPrimaryRegistry: kanonikusUtvonalak.primer.legacy,
+            output: kanonikusUtvonalak.adatbazis.nevnapok,
+          }),
         inputs: [kanonikusUtvonalak.primer.vegso, kanonikusUtvonalak.primer.legacy],
         outputs: [kanonikusUtvonalak.adatbazis.nevnapok],
         formatum: opciok.formatum ?? "yaml",
+        reporter: resolveReporter(opciok),
       }),
   },
   {
@@ -346,7 +331,7 @@ export const pipelineLepesek = [
       kanonikusUtvonalak.riportok.primerAudit,
     ],
     dependsOn: ["vegso-primer-feloldas", "portal-nevadatbazis-epites"],
-    futtat: (opciok = {}) => futtatPrimerAuditFrissitest(opciok.formatum ?? "yaml"),
+    futtat: (opciok = {}) => futtatPrimerAuditFrissitest(opciok),
   },
   {
     azonosito: "formalizalt-elek-generalasa",
@@ -357,16 +342,15 @@ export const pipelineLepesek = [
     futtat: (opciok = {}) =>
       futtatLepest({
         stepId: "formalizalt-elek-generalasa",
-        modul: "domainek/kapcsolatok/formalizalt-elek.mjs",
-        argumentumok: [
-          "--input",
-          kanonikusUtvonalak.adatbazis.nevnapok,
-          "--output",
-          kanonikusUtvonalak.adatbazis.formalizaltElek,
-        ],
+        vegrehajt: () =>
+          futtatFormalizaltElekGeneralasat({
+            input: kanonikusUtvonalak.adatbazis.nevnapok,
+            output: kanonikusUtvonalak.adatbazis.formalizaltElek,
+          }),
         inputs: [kanonikusUtvonalak.adatbazis.nevnapok],
         outputs: [kanonikusUtvonalak.adatbazis.formalizaltElek],
         formatum: opciok.formatum ?? "yaml",
+        reporter: resolveReporter(opciok),
       }),
   },
   {
@@ -378,16 +362,15 @@ export const pipelineLepesek = [
     futtat: (opciok = {}) =>
       futtatLepest({
         stepId: "naptar-generalas",
-        modul: "domainek/naptar/ics-generalas.mjs",
-        argumentumok: [
-          "--input",
-          kanonikusUtvonalak.adatbazis.nevnapok,
-          "--output",
-          kanonikusUtvonalak.naptar.alap,
-        ],
+        vegrehajt: () =>
+          generalIcsKimeneteket({
+            input: kanonikusUtvonalak.adatbazis.nevnapok,
+            output: kanonikusUtvonalak.naptar.alap,
+          }),
         inputs: [kanonikusUtvonalak.adatbazis.nevnapok],
         outputs: [kanonikusUtvonalak.naptar.alap],
         formatum: opciok.formatum ?? "yaml",
+        reporter: resolveReporter(opciok),
       }),
   },
   {
@@ -410,7 +393,7 @@ export const pipelineLepesek = [
       kanonikusUtvonalak.riportok.primerAudit,
     ],
     dependsOn: ["primer-audit-frissites"],
-    futtat: (opciok = {}) => futtatAuditokat(opciok.formatum ?? "yaml"),
+    futtat: (opciok = {}) => futtatAuditokat(opciok),
   },
 ];
 

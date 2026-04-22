@@ -1,27 +1,30 @@
 # Áttekintés
 
-A `magyar-nevnapok` célja, hogy a magyar névnapokkal kapcsolatos forrásadatokból egységes, jól követhető, dokumentált és bővíthető build-láncot adjon.
+A `magyar-nevnapok` egy böngészős GUI-val vezérelt, helyi magyar névnap build- és auditalkalmazás.
+
+A projekt célja, hogy a magyar névnapokkal kapcsolatos forrásadatokból:
+
+- egységes, dokumentált pipeline-t adjon,
+- jól követhető kimenetkészletet állítson elő,
+- webes munkaterekben tegye kezelhetővé az auditokat, a primer döntéseket és az ICS-generálást,
+- miközben az igazság forrása továbbra is a fájlrendszer marad.
 
 ## Fő célok
 
-- egyetlen elsődleges CLI,
-- jól elkülönített domainek,
-- YAML-alapú artifactok,
+- web-only kezelőfelület,
+- websocketes frontend/backend kommunikáció,
+- jól elkülönített domainhatárok,
 - követhető pipeline-manifest,
-- külön audit- és kimenetgeneráló réteg,
-- könnyű bővíthetőség új forrásokkal és új kimenetekkel,
-- valamint stabil scraper-réteg a frissített Puppeteer-verziókkal is.
+- audit- és ICS-szerkesztő munkaterek,
+- helyi profilalapú ICS- és primerkezelés.
 
-Az elsődleges névadatbázisból nemcsak ICS és strukturált YAML/JSON artifact készülhet,
-hanem közvetlen CSV- és Excel-export is.
+## Fő futási utak
 
-## Alap parancsok
-
-- `npm run build` — a teljes elsődleges pipeline futtatása,
-- `npm run lint` — repo-szintű lintellenőrzés,
-- `npm run typecheck` — Node-alapú statikus szintaxis- és entrypoint-ellenőrzés,
-- `npm test` — automatizált tesztek,
-- `npm run ellenorzes` — a gyors helyi minőségellenőrzési kör.
+- `npm run dev` — fejlesztői webes felület indítás
+- `npm run build` — webes felület build
+- `npm start` — a buildelt app kiszolgálása
+- `npm run data:build` — teljes adat/pipeline build
+- `npm run ellenorzes` — lint + typecheck + teszt + web build
 
 ## Fő folyamat
 
@@ -29,11 +32,22 @@ hanem közvetlen CSV- és Excel-export is.
 2. wiki primerjegyzék gyűjtése,
 3. végső primer-feloldás,
 4. teljes névadatbázis építése,
-5. formalizált él-lista generálása,
-6. ICS kimenet,
-7. auditok és riportok.
+5. primer audit snapshot frissítése,
+6. formalizált él-lista generálása,
+7. naptárkimenetek előállítása,
+8. auditok és riportok futtatása.
 
-## Kiemelt auditok
+## Webes munkaterek
 
-- `primer-audit` — egységes primer diagnosztika a forrásnézettel, a hiányzó nevekkel és a helyi primerállapottal,
-- `hivatalos-nevjegyzek` — a dokumentált kivétellistával kezelt hivatalos névjegyzék-összevetés.
+- **Dashboard** — operatív összkép, kapcsolat, joblog, KPI-k és gyors műveletek
+- **Pipeline** — lépésenként kibontott inspector, leírások és akciógombok
+- **Auditok** — auditkatalógus, részletes inspectorok és a szerkeszthető auditforrások inline editorai
+- **Primer audit** — havi csoportos, táblázatos inline editor a közös és helyi primerdöntésekhez
+- **ICS generálás** — teljes beállítófelület, mentett állapot + draft + előnézet + letöltés
+
+## Fő működési elvek
+
+- Egyszerre egyetlen mutáló job lehet aktív.
+- Az aktív job állapota és logja websocket push eseményként érkezik.
+- A read-only workspace lekérések aktív job mellett is elérhetők.
+- A GUI nem általános fájlböngésző, hanem domain-specifikus editorokra épül.

@@ -6,6 +6,39 @@ Ez a fájl a projekt jelentősebb, felhasználói szempontból is látható vál
 
 Jelenleg nincs külön, kiadásra előkészített új változás.
 
+## [0.7.0] - 2026-04-21
+
+### Web-only hardcut
+
+- A projekt támogatott felülete mostantól kizárólag a böngészős GUI.
+- A CLI és a TUI kikerült a repositoryból, nincs dual-run és nincs kompatibilitási shim.
+- A package `private` alkalmazásként működik tovább, publikus `bin`, `main` és `exports` szerződés nélkül.
+
+### Új web réteg
+
+- Elkészült az Express-alapú HTTP szerver és a React + Vite kliens.
+- Bejött a dashboard, a pipeline, az outputs, az audits, a primer audit és a settings webes workspace.
+- A Primer audit korábbi state- és view-model logikája shared, browser-safe modulba került.
+
+### Jobkezelés és live log
+
+- A hosszú futások központi jobkezelőn keresztül mennek.
+- Egyszerre csak egy mutáló job lehet aktív.
+- A logfolyam SSE-n keresztül élőben érkezik a GUI-ba.
+- Második mutáló kérés aktív futás mellett 409 hibát kap.
+
+### Pipeline és export refaktor
+
+- A pipeline a korábbi subprocesses orchestration helyett közvetlen async workerhívásokkal fut.
+- A webes `build` most már a GUI buildjét jelenti, a teljes adatépítés külön `npm run data:build` scriptre került.
+- A GUI whitelistelt artifactkatalógust használ preview és download támogatással.
+
+### Dokumentációs sweep
+
+- A README és az aktív dokumentáció web-only működésre frissült.
+- A régi CLI- és TUI-doksik kikerültek.
+- A migrációs leírás most már a webes működésre állást írja le.
+
 ## [0.6.5] - 2026-04-21
 
 ### ICS-kimeneti modell egyszerűsítése

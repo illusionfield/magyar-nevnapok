@@ -1,6 +1,6 @@
-#!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
 import {
   betoltStrukturaltFajlSzinkron,
@@ -51,15 +51,13 @@ const DEFAULT_CONFIG = {
   acceptRelatedAsAutomaticPrimary: false,
 };
 
-const args = parseArgs(process.argv.slice(2));
-
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * A `futtatPrimerNormalizaloRiportot` felépíti a normalizált primer riportot.
  */
-async function main() {
-  const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
-  const diffPath = path.resolve(process.cwd(), args.diff ?? DEFAULT_DIFF_PATH);
-  const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_OUTPUT_PATH);
+export async function futtatPrimerNormalizaloRiportot(opciok = {}) {
+  const inputPath = path.resolve(process.cwd(), opciok.input ?? DEFAULT_INPUT_PATH);
+  const diffPath = path.resolve(process.cwd(), opciok.diff ?? DEFAULT_DIFF_PATH);
+  const outputPath = path.resolve(process.cwd(), opciok.output ?? DEFAULT_OUTPUT_PATH);
 
   const wikiData = readMaybeZippedJson(inputPath);
   const legacyDiff = readJson(diffPath);
@@ -77,6 +75,13 @@ async function main() {
   console.log(`Napok: ${report.summary.totalDays}`);
   console.log(`Primer napok: ${report.stats.preferredNameCount}`);
   console.log(`Kézi átnézést igényel: ${report.summary.unresolved}`);
+
+  return {
+    report,
+    inputPath,
+    diffPath,
+    outputPath,
+  };
 }
 
 /**
@@ -749,7 +754,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  futtatPrimerNormalizaloRiportot(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

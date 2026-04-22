@@ -1,6 +1,6 @@
 /**
- * tui/primer-audit/view-model.mjs
- * A primer audit TUI új view-model és megjelenítési segédjei.
+ * web/shared/primer-audit/view-model.mjs
+ * Shared primer audit view-model helpers for the web workspace.
  */
 
 const collator = new Intl.Collator("hu", {
@@ -545,7 +545,8 @@ function buildMonthSummary(days) {
   return Array.from(honapMap.values()).sort((left, right) => left.month - right.month);
 }
 
-export function buildPrimerAuditViewModel(report) {
+export function buildPrimerAuditViewModel(report, options = {}) {
+  const includeNames = options.includeNames !== false;
   const mismatchDays = new Set(report?.validations?.mismatchMonthDays ?? []);
   const overrideDays = new Set(report?.validations?.overrideMonthDays ?? []);
   const days = (report?.months ?? []).flatMap((month) =>
@@ -614,79 +615,82 @@ export function buildPrimerAuditViewModel(report) {
   );
 
   const nameMap = new Map();
+  const names = includeNames
+    ? (() => {
+        for (const day of days) {
+          for (const source of ["raw", "legacy", "wiki", "normalized", "ranking", "hidden"]) {
+            const lista = day[source === "raw" ? "rawNames" : source] ?? [];
 
-  for (const day of days) {
-    for (const source of ["raw", "legacy", "wiki", "normalized", "ranking", "hidden"]) {
-      const lista = day[source === "raw" ? "rawNames" : source] ?? [];
+            for (const name of lista) {
+              const node = ensureNameNode(nameMap, name);
 
-      for (const name of lista) {
-        const node = ensureNameNode(nameMap, name);
+              if (!node) {
+                continue;
+              }
 
-        if (!node) {
-          continue;
+              markOccurrenceSource(node, day, name, source);
+            }
+          }
+
+          for (const name of day.commonPreferredNames ?? day.finalPrimaryNames ?? []) {
+            const node = ensureNameNode(nameMap, name);
+
+            if (!node) {
+              continue;
+            }
+
+            markOccurrenceSource(node, day, name, "final");
+          }
+
+          for (const name of day.localAddedPreferredNames ?? day.localSelectedNames ?? []) {
+            const node = ensureNameNode(nameMap, name);
+
+            if (!node) {
+              continue;
+            }
+
+            const occurrence = markOccurrenceSource(node, day, name, "local");
+            occurrence.localSelectable = true;
+            occurrence.statusFlags.local = true;
+          }
+
+          for (const entry of day.effectiveMissing ?? day.combinedMissing ?? day.sections?.hianyzok?.combinedMissing ?? []) {
+            const node = ensureNameNode(nameMap, entry.name);
+
+            if (!node) {
+              continue;
+            }
+
+            markMissingOccurrence(node, day, entry);
+          }
+
+          for (const entry of day.personalEntries ?? day.sections?.szemelyes?.entries ?? []) {
+            const node = ensureNameNode(nameMap, entry.name);
+
+            if (!node) {
+              continue;
+            }
+
+            const occurrence = ensureOccurrence(node, day);
+            occurrence.localSelectable ||= entry.localSelectable !== false;
+            occurrence.statusFlags.local ||= entry.localSelected === true;
+
+            if (entry.localSelected === true && !occurrence.sourceFlags.local) {
+              markOccurrenceSource(node, day, entry.name, "local");
+            }
+
+            if ((entry.similarPrimaries ?? []).length > 0) {
+              occurrence.similarPrimaries = uniqueKeepOrder([
+                ...(occurrence.similarPrimaries ?? []),
+                ...entry.similarPrimaries.map((item) => `${item.primaryName} (${item.relation})`),
+              ]);
+            }
+          }
         }
 
-        markOccurrenceSource(node, day, name, source);
-      }
-    }
-
-    for (const name of day.commonPreferredNames ?? day.finalPrimaryNames ?? []) {
-      const node = ensureNameNode(nameMap, name);
-
-      if (!node) {
-        continue;
-      }
-
-      markOccurrenceSource(node, day, name, "final");
-    }
-
-    for (const name of day.localAddedPreferredNames ?? day.localSelectedNames ?? []) {
-      const node = ensureNameNode(nameMap, name);
-
-      if (!node) {
-        continue;
-      }
-
-      const occurrence = markOccurrenceSource(node, day, name, "local");
-      occurrence.localSelectable = true;
-      occurrence.statusFlags.local = true;
-    }
-
-    for (const entry of day.effectiveMissing ?? day.combinedMissing ?? day.sections?.hianyzok?.combinedMissing ?? []) {
-      const node = ensureNameNode(nameMap, entry.name);
-
-      if (!node) {
-        continue;
-      }
-
-      markMissingOccurrence(node, day, entry);
-    }
-
-    for (const entry of day.personalEntries ?? day.sections?.szemelyes?.entries ?? []) {
-      const node = ensureNameNode(nameMap, entry.name);
-
-      if (!node) {
-        continue;
-      }
-
-      const occurrence = ensureOccurrence(node, day);
-      occurrence.localSelectable ||= entry.localSelectable !== false;
-      occurrence.statusFlags.local ||= entry.localSelected === true;
-
-      if (entry.localSelected === true && !occurrence.sourceFlags.local) {
-        markOccurrenceSource(node, day, entry.name, "local");
-      }
-
-      if ((entry.similarPrimaries ?? []).length > 0) {
-        occurrence.similarPrimaries = uniqueKeepOrder([
-          ...(occurrence.similarPrimaries ?? []),
-          ...entry.similarPrimaries.map((item) => `${item.primaryName} (${item.relation})`),
-        ]);
-      }
-    }
-  }
-
-  const names = finalizeNameNodes(nameMap);
+        return finalizeNameNodes(nameMap);
+      })()
+    : [];
   const queues = buildQueues(days);
   const monthSummary = buildMonthSummary(days);
 
@@ -710,7 +714,7 @@ export function buildPrimerAuditViewModel(report) {
     days,
     dayMap: new Map(days.map((day) => [day.monthDay, day])),
     names,
-    nameMap: new Map(names.map((name) => [name.name, name])),
+    nameMap: includeNames ? new Map(names.map((name) => [name.name, name])) : new Map(),
     queues,
     monthSummary,
   };

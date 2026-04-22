@@ -3,6 +3,7 @@
  * A hivatalos névjegyzékkel való összevetés és kivétellista-kezelés folyamata.
  */
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { printDataTable, printKeyValueTable, printValueGrid } from "../../kozos/terminal-tabla.mjs";
 import {
   betoltStrukturaltFajl,
@@ -19,15 +20,16 @@ const OFFICIAL_SOURCES = {
   female: "https://file.nytud.hu/osszesnoi.txt",
 };
 
-const args = parseArgs(process.argv.slice(2));
-
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * A `futtatHivatalosNevjegyzekAuditot` összeveti az adatbázist a hivatalos névjegyzékkel.
  */
-async function main() {
-  const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
-  const reportPath = path.resolve(process.cwd(), args.report ?? DEFAULT_REPORT_PATH);
-  const exceptionsPath = path.resolve(process.cwd(), args.exceptions ?? DEFAULT_EXCEPTIONS_PATH);
+export async function futtatHivatalosNevjegyzekAuditot(opciok = {}) {
+  const inputPath = path.resolve(process.cwd(), opciok.input ?? DEFAULT_INPUT_PATH);
+  const reportPath = path.resolve(process.cwd(), opciok.report ?? DEFAULT_REPORT_PATH);
+  const exceptionsPath = path.resolve(
+    process.cwd(),
+    opciok.exceptions ?? DEFAULT_EXCEPTIONS_PATH
+  );
   const payload = await betoltStrukturaltFajl(inputPath);
   const names = Array.isArray(payload.names) ? payload.names : [];
   const exceptions = await betoltKivetellistat(exceptionsPath);
@@ -70,8 +72,12 @@ async function main() {
   printComparison(comparison);
 
   if (hasDifferences(comparison)) {
-    process.exitCode = 1;
+    const hiba = new Error("Eltérés található a hivatalos névjegyzék és az adatbázis között.");
+    hiba.report = comparison;
+    throw hiba;
   }
+
+  return comparison;
 }
 
 /**
@@ -347,7 +353,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  futtatHivatalosNevjegyzekAuditot(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

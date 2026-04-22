@@ -13,26 +13,36 @@ const kozosGlobalisok = {
   clearTimeout: "readonly",
   console: "readonly",
   document: "readonly",
+  EventSource: "readonly",
   fetch: "readonly",
   globalThis: "readonly",
+  history: "readonly",
+  location: "readonly",
   navigator: "readonly",
   performance: "readonly",
+  PopStateEvent: "readonly",
   process: "readonly",
   setTimeout: "readonly",
   TextDecoder: "readonly",
   TextEncoder: "readonly",
+  WebSocket: "readonly",
   window: "readonly",
 };
 
 export default [
   {
-    ignores: ["node_modules/**", "output/**"],
+    ignores: ["dist/**", "node_modules/**", "output/**"],
   },
   {
-    files: ["**/*.{js,mjs}"],
+    files: ["**/*.{js,mjs,jsx}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
       globals: kozosGlobalisok,
     },
     rules: {

@@ -1,35 +1,57 @@
-# Migráció a régi scriptvilágból
+# Migráció a web-only modellre
 
 ## Mi változott?
 
-A korábbi, egymástól független root scriptfájlak helyét átvette:
+A projekt hardcut refaktorral teljesen **webes felület** alapú működésre állt át.
 
-- az egységes `nevnapok` CLI,
-- a deklarált pipeline,
-- az elsődleges YAML artifactkészlet,
-- az új domain-szerkezet.
+Ez azt jelenti, hogy:
+
+- a támogatott kezelőfelület a böngészős GUI,
+- a CLI és a TUI megszűnt,
+- nincs párhuzamos vagy átmeneti dual-run modell,
+- a package alkalmazásként működik tovább,
+- a pipeline, az auditok és a kimenetek továbbra is a fájlrendszert írják.
 
 ## Régi → új gondolkodás
 
-Régen:
+Korábban:
 
-- külön script futott külön feladatra,
-- JSON köztes fájlok keletkeztek,
-- a futási sorrend nehezen volt követhető.
+- külön CLI-parancsok és terminálos nézetek vezérelték a munkát,
+- a pipeline futtatása és az auditok tipikusan parancssorból indultak,
+- a Primer audit terminálos workspace-ként élt.
 
 Most:
 
-- a pipeline mondja meg a sorrendet,
-- a manifest mutatja az állapotot,
-- az artifactok helye és szerepe egyértelmű és irányadó,
-- a CLI és a TUI ugyanazt a szolgáltatásréteget használja,
-- és a névadatbázisból közvetlen CSV- és Excel-export is kérhető külön scriptírás nélkül.
+- a dashboard és a külön webes munkaterek adják a kezelőfelületet,
+- a pipeline, audit és export műveletek websocket műveleteken keresztül indulnak,
+- a Primer audit shared állapotgéppel, böngészős felületen működik,
+- minden hosszú művelet központi jobként fut live loggal.
 
-## Ajánlott új munkafolyamat
+## Új ajánlott workflow
+
+```bash
+  npm install
+  npm run dev
+```
+
+Majd a böngészőben:
+
+```text
+  http://127.0.0.1:3000
+```
+
+Külön célokra:
 
 ```bash
   npm run build
-  npm run cli -- pipeline allapot
-  npm run cli -- audit futtat mind
+  npm start
+  npm run data:build
   npm run ellenorzes
 ```
+
+## Mi maradt változatlan?
+
+- az igazság forrása továbbra is a `data/*`, az `output/*` és a `.local/nevnapok.local.yaml`,
+- a YAML maradt az elsődleges strukturált artifactformátum,
+- a Primer audit véglegesítő szerepe megmaradt,
+- az ICS továbbra is `single` vagy `split` modellben készül.

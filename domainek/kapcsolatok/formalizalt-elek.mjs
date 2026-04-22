@@ -4,20 +4,19 @@
  */
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { betoltStrukturaltFajl, mentStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
 
 const DEFAULT_INPUT_PATH = kanonikusUtvonalak.adatbazis.nevnapok;
 const DEFAULT_OUTPUT_PATH = kanonikusUtvonalak.adatbazis.formalizaltElek;
 
-const args = parseArgs(process.argv.slice(2));
-
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * A `futtatFormalizaltElekGeneralasat` a formalizált eredetleírásokból kereshető él-listát generál.
  */
-async function main() {
-  const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
-  const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_OUTPUT_PATH);
+export async function futtatFormalizaltElekGeneralasat(opciok = {}) {
+  const inputPath = path.resolve(process.cwd(), opciok.input ?? DEFAULT_INPUT_PATH);
+  const outputPath = path.resolve(process.cwd(), opciok.output ?? DEFAULT_OUTPUT_PATH);
 
   const payload = await betoltStrukturaltFajl(inputPath);
   const names = Array.isArray(payload.names) ? payload.names : [];
@@ -46,6 +45,12 @@ async function main() {
   await mentStrukturaltFajl(outputPath, output);
 
   console.log(`Mentve: ${edges.length} formalizált él ide: ${outputPath}`);
+
+  return {
+    output,
+    inputPath,
+    outputPath,
+  };
 }
 
 /**
@@ -217,7 +222,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  futtatFormalizaltElekGeneralasat(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

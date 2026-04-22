@@ -20,6 +20,7 @@ const projektGyoker = process.cwd();
 const kihagyottKonyvtarak = new Set([
   ".git",
   ".local",
+  "dist",
   "node_modules",
   "output",
   "tmp",

@@ -1,6 +1,6 @@
 /**
- * tui/primer-audit/state.mjs
- * Pure állapotkezelés a primer audit TUI-hoz.
+ * web/shared/primer-audit/state.mjs
+ * Pure state management shared by the primer audit web workspace.
  */
 
 import {
@@ -130,6 +130,8 @@ export function reducePrimerAuditState(state, action, viewModel) {
   const aktualis = normalizePrimerAuditState(state, viewModel);
 
   switch (action.type) {
+    case "replace_state":
+      return normalizePrimerAuditState(action.state, viewModel);
     case "sync":
       return aktualis;
     case "set_mode":
@@ -165,6 +167,120 @@ export function reducePrimerAuditState(state, action, viewModel) {
         ...aktualis,
         helpOpen: !aktualis.helpOpen,
       };
+    case "set_day_filter":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          dayFilterId: action.filterId,
+          dayIndex: 0,
+          dayPanel: "lista",
+        },
+        viewModel
+      );
+    case "set_name_filter":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          nameFilterId: action.filterId,
+          nameIndex: 0,
+          namePanel: "lista",
+        },
+        viewModel
+      );
+    case "set_day_sort":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          daySortId: action.sortId,
+          dayIndex: 0,
+        },
+        viewModel
+      );
+    case "set_name_sort":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          nameSortId: action.sortId,
+          nameIndex: 0,
+        },
+        viewModel
+      );
+    case "set_day_query":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          dayQuery: action.query ?? "",
+          dayIndex: 0,
+          dayPanel: "lista",
+        },
+        viewModel
+      );
+    case "set_name_query":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          nameQuery: action.query ?? "",
+          nameIndex: 0,
+          namePanel: "lista",
+        },
+        viewModel
+      );
+    case "set_day_index":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          dayIndex: action.index ?? 0,
+        },
+        viewModel
+      );
+    case "set_name_index":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          nameIndex: action.index ?? 0,
+        },
+        viewModel
+      );
+    case "set_day_panel":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          dayPanel: action.panel ?? "lista",
+        },
+        viewModel
+      );
+    case "set_name_panel":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          namePanel: action.panel ?? "lista",
+        },
+        viewModel
+      );
+    case "set_occurrence_index":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          nameOccurrenceIndex: action.index ?? 0,
+        },
+        viewModel
+      );
+    case "set_personal_index":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          dayPersonalIndex: action.index ?? 0,
+        },
+        viewModel
+      );
+    case "set_settings_index":
+      return normalizePrimerAuditState(
+        {
+          ...aktualis,
+          settingsIndex: action.index ?? 0,
+        },
+        viewModel
+      );
     case "toggle_drawer":
       return {
         ...aktualis,

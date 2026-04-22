@@ -3,6 +3,7 @@
  * Legacy, wiki és kézi felülírás alapján végső primerjegyzéket épít.
  */
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   areNameSetsEqual,
   DEFAULT_FINAL_PRIMARY_REGISTRY_PATH,
@@ -18,22 +19,20 @@ import {
 } from "./alap.mjs";
 import { mentStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 
-const args = parseArgs(process.argv.slice(2));
-
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * A `futtatVegsoPrimerEpiteset` legacy, wiki és kézi felülírás alapján végső primerjegyzéket épít.
  */
-async function main() {
+export async function futtatVegsoPrimerEpiteset(opciok = {}) {
   const legacyPath = path.resolve(
     process.cwd(),
-    args.legacy ?? DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH
+    opciok.legacy ?? DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH
   );
-  const wikiPath = path.resolve(process.cwd(), args.wiki ?? DEFAULT_WIKI_PRIMARY_REGISTRY_PATH);
+  const wikiPath = path.resolve(process.cwd(), opciok.wiki ?? DEFAULT_WIKI_PRIMARY_REGISTRY_PATH);
   const overridesPath = path.resolve(
     process.cwd(),
-    args.overrides ?? DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH
+    opciok.overrides ?? DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH
   );
-  const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_FINAL_PRIMARY_REGISTRY_PATH);
+  const outputPath = path.resolve(process.cwd(), opciok.output ?? DEFAULT_FINAL_PRIMARY_REGISTRY_PATH);
 
   const [legacyRegistry, wikiRegistry, overridesRegistry] = await Promise.all([
     loadPrimaryRegistry(legacyPath),
@@ -58,6 +57,14 @@ async function main() {
   console.log(`Pontos legacy–wiki egyezésű napok: ${payload.stats.exactAgreementDayCount}`);
   console.log(`Kézi felülírásos napok: ${payload.stats.overrideDayCount}`);
   console.log(`Figyelmeztetéses unió napok: ${payload.stats.warningUnionDayCount}`);
+
+  return {
+    payload,
+    legacyPath,
+    wikiPath,
+    overridesPath,
+    outputPath,
+  };
 }
 
 /**
@@ -333,7 +340,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  futtatVegsoPrimerEpiteset(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

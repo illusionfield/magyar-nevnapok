@@ -1,16 +1,20 @@
 # magyar-nevnapok
 
-Modern, MJS-alapú magyar névnap pipeline, amely egységes CLI-n keresztül kezeli
+Web-only, helyi használatra szánt magyar névnap alkalmazás.
 
-- a legacy primerjegyzék építését,
-- a Wikipédia primergyűjtést,
-- a végső primer-feloldást,
-- a teljes névadatbázis építését,
-- a formalizált él-lista generálását,
-- az ICS kimenetet,
-- valamint az auditokat és riportokat.
+A projekt **böngészős GUI-ra épülő, single-user Node monolit**:
 
-A projekt elsődleges felülete a `nevnapok` CLI. A strukturált artifactok alapértelmezett formátuma YAML.
+- a támogatott felület a webes kezelőfelület,
+- a **CLI/TUI megszűnt**, nincs párhuzamos vagy átmeneti működés,
+- az igazság forrása továbbra is a fájlrendszer:
+  - `.local/nevnapok.local.yaml`
+  - `data/*`
+  - `output/*`
+- a hosszú műveletek **egyetlen aktív job** modellen futnak,
+- a frontend és a backend alkalmazásszintű kommunikációja **websocketen** megy,
+- a GUI nem általános fájlböngésző, hanem **szerkesztő-központú munkatérkészlet**.
+
+A csomag alkalmazásként él tovább: **private repo-app**, nincs támogatott publikus JS API, nincs `bin`, nincs CLI-szerződés.
 
 ## Gyors indulás
 
@@ -20,170 +24,134 @@ Telepítés:
   npm install
 ```
 
-Súgó:
+Fejlesztői webes felület Vite middlewares módban:
 
 ```bash
-  npm run cli -- --help
+  npm run dev
 ```
 
-Pipeline állapot:
-
-```bash
-  npm run cli -- pipeline allapot
-```
-
-Teljes build:
+Production web build:
 
 ```bash
   npm run build
 ```
 
-CLI-ekvivalens:
+Web szerver indítása a buildelt appal:
 
 ```bash
-  npm run cli -- pipeline futtat teljes
+  npm start
 ```
 
-ICS generálás az elsődleges adatbázisból:
+Teljes adat/pipeline build belső vagy CI célra:
 
 ```bash
-  npm run cli -- kimenet general ics
+  npm run data:build
 ```
 
-CSV export az elsődleges adatbázisból:
-
-```bash
-  npm run cli -- kimenet general csv
-```
-
-Excel export az elsődleges adatbázisból:
-
-```bash
-  npm run cli -- kimenet general excel
-```
-
-Összes audit futtatása:
-
-```bash
-  npm run cli -- audit futtat mind
-```
-
-Primer audit összképe:
-
-```bash
-  npm run cli -- audit primer
-```
-
-Interaktív TUI:
-
-```bash
-  npm run tui
-```
-
-Közvetlen indítás a primer audit nézettel:
-
-```bash
-  npm run cli -- tui --nezet primer-audit
-```
-
-Lint:
+Minőségellenőrzés:
 
 ```bash
   npm run lint
-```
-
-Typecheck:
-
-```bash
   npm run typecheck
-```
-
-Teljes helyi ellenőrzés:
-
-```bash
+  npm test
   npm run ellenorzes
 ```
 
-Ez jelenleg a lint + typecheck + teszt gyors helyi köre.
-
-NPM audit:
-
-```bash
-  npm run audit
-```
-
-## Kanonikus könyvtárszerkezet
+Alapértelmezett futási cím:
 
 ```text
-  bin/          futtatható CLI indító
-  cli/          parancsdefiníciók és súgó
-  tui/          interaktív varázsló és áttekintő
-  pipeline/     lépésregiszter és manifest-kezelés
-  domainek/     üzleti logika domainenként szétválasztva
-  kozos/        YAML, fájlrendszer, validáció, terminál segédek
-  docs/         részletes magyar dokumentáció
-  data/         kézi források és kivétellisták
-  output/       generált elsődleges artifactok
+  http://127.0.0.1:3000
 ```
 
-## Kanonikus artifactok
+A `HOST` és `PORT` környezeti változóval felülbírálható.
 
-- `output/primer/legacy-primer.yaml`
-- `output/primer/wiki-primer.yaml`
-- `output/primer/vegso-primer.yaml`
-- `output/adatbazis/nevnapok.yaml`
-- `output/adatbazis/nevnapok.csv`
-- `output/adatbazis/nevnapok.xlsx`
-- `output/adatbazis/formalizalt-elek.yaml`
-- `output/naptar/nevnapok.ics` — az alapértelmezett, egyfájlos kimenet
-- `output/naptar/nevnapok-primary.ics` — a bontott kimenet alapértelmezett elsődleges naptára
-- `output/naptar/nevnapok-rest.ics` — a bontott kimenet alapértelmezett további naptára
-- `output/riportok/*.yaml`
-- `output/pipeline/manifest.yaml`
+## Webes munkaterek
 
-Kiemelt riportok:
+- `/` — **Dashboard**: operatív összkép, kapcsolat, jobállapot, KPI-k és gyors műveletek
+- `/pipeline` — **Pipeline**: lépésenként kibontott inspector és célzott futtatás
+- `/auditok` — **Auditok**: auditkatalógus, részletes inspectorok, a szerkeszthető források inline editorai
+- `/primer-audit` — **Primer audit**: havi csoportos, táblázatos inline editor a közös és helyi primerdöntésekhez
+- `/ics` — **ICS generálás**: teljes beállítófelület, mentett állapot + draft + előnézet, valamint letöltés
 
-- `output/riportok/primer-audit.yaml`
+## Kommunikációs modell
 
-Helyi, nem követett bemenet:
+A GUI támogatott szerződése:
 
+- egy websocket endpoint: `/ws`
+- egy letöltési endpoint-család: `/letoltes/:token`
+
+A websocket üzenetburkoló:
+
+- kliens kérés: `{ id, tipus, payload }`
+- szerver válasz: `{ replyTo, ok, data }`
+- szerver hiba: `{ replyTo, ok: false, error }`
+- szerver push esemény: `{ tipus, data }`
+
+A jobállapot és a live log websocket push eseményként érkezik:
+
+- `job:update`
+- `job:log`
+- `job:finished`
+
+A jobnapló nem teljes snapshotként kering, hanem capped log tail + inkrementális logesemény modellben.
+
+## Scriptkészlet
+
+- `npm run dev` — fejlesztői webes felület indítás Vite middlewares módban
+- `npm start` — a buildelt web app kiszolgálása Expressből
+- `npm run build` — webes felület build
+- `npm run data:build` — teljes adat/pipeline build
+- `npm run lint` — lint
+- `npm run typecheck` — statikus szintaxis- és entrypoint-ellenőrzés
+- `npm test` — automatizált tesztek
+- `npm run ellenorzes` — lint + typecheck + teszt + web build
+- `npm run audit` — dependency audit
+
+## Irányadó könyvtárszerkezet
+
+```text
+  web/          Express szerver, websocket réteg, React kliens és shared webes modulok
+  pipeline/     lépésregiszter, függőségek és manifest-kezelés
+  domainek/     üzleti logika domainenként szétválasztva
+  kozos/        YAML, fájlrendszer, validáció és közös segédek
+  docs/         részletes magyar dokumentáció
+  data/         kézi források és kivétellisták
+  output/       generált elsődleges kimenetek és riportok
+  .local/       nem követett helyi profilok
+```
+
+## Irányadó fájlok
+
+- `data/primary-registry-overrides.yaml`
+- `data/hivatalos-nevjegyzek-kivetelek.yaml`
 - `.local/nevnapok.local.yaml`
+- `output/adatbazis/nevnapok.yaml`
+- `output/primer/*.yaml`
+- `output/riportok/*.yaml`
+- `output/naptar/*.ics`
+- `output/pipeline/manifest.yaml`
 
 ## Fontos alapelvek
 
-- A YAML az elsődleges fájlformátum.
-- JSON export kérhető külön paranccsal.
-- CSV és Excel export közvetlenül kérhető a névadatbázisból.
-- A CLI és a TUI ugyanazt az alkalmazásszintű szolgáltatásréteget használja.
-- A pipeline lépései deklarált bemenetekkel és kimenetekkel működnek.
-- A hivatalos névjegyzék eltérései dokumentált kivétellistában vannak kezelve.
-- A közös, követett primerfelülírások mértékadó fájlja a `data/primary-registry-overrides.yaml`.
-- Az ICS-profil, a helyi primerprofil és a kézi helyi primernapok egy közös, nem követett helyi YAML-fájlban élnek: `.local/nevnapok.local.yaml`.
-- A helyi YAML `personalPrimary` blokkja a helyi primerforrást, a `Normalizált` / `Rangsor` módosítókat és a kézi helyi primernapokat tárolja.
-- A közös alap továbbra is a `data/primary-registry-overrides.yaml`, erre ül rá a helyi overlay a `.local/nevnapok.local.yaml` alapján.
-- A `Normalizált` / `Rangsor` módosító a Primer auditban véglegesül; az ICS-generálás ezt a véglegesített audit snapshotot használja, nem számolja újra.
-- Az `ics.partitionMode` két egyszerű kimeneti modellt kezel: `single` esetén egyetlen, minden nevet tartalmazó ICS készül, `split` esetén külön elsődleges és külön további naptár jön létre.
-- A scraper réteg Puppeteer 24-gyel is stabilan fut; a HUN-REN HTTP-forráshoz a projekt központi kompatibilitási launch-opciókat használ.
-- Az `ics` generálás publikus CLI-felülete már nem részletes kapcsolókkal dolgozik, hanem a mentett helyi YAML-profilt használja.
-- A TUI ICS nézete és a Primer audit helyi beállítási drawerje ugyanazt a helyi YAML-fájlt frissíti.
+- A projekt **web-only**.
+- Egyszerre pontosan **egy mutáló job** lehet aktív.
+- Aktív job mellett újabb mutáló websocket kérés **409** hibát kap.
+- A pipeline, az auditok és a kimenetek továbbra is fájlalapú kimeneteket írnak.
+- A Primer audit véglegesíti az elsődleges névlogikát a bontott ICS-kimenethez.
+- A `single` és `split` ICS-modell maradt érvényben.
+- A GUI elsődlegesen **editorokat** ad: auditforrás-szerkesztőt, primer inline editort és teljes ICS konfigurátort.
 
 ## Dokumentáció
 
 - [Áttekintés](docs/attekintes.md)
+- [Web GUI és websocket szerződés](docs/web-gui.md)
 - [Architektúra és domainhatárok](docs/architektura.md)
 - [Pipeline és manifest](docs/pipeline.md)
-- [Artifactum-specifikációk](docs/artifactumok.md)
-- [CLI referencia](docs/cli.md)
-- [TUI használat](docs/tui.md)
+- [Kimenetek és irányadó fájlok](docs/artifactumok.md)
 - [Források és dokumentált kivételek](docs/forrasok-es-kivetelek.md)
-- [Migráció a régi scriptvilágból](docs/migracio.md)
+- [Migráció a web-only modellre](docs/migracio.md)
 - [Változásnapló](CHANGELOG.md)
-- [0.6.5 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.5.md)
-- [0.6.4 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.4.md)
-- [0.6.3 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.3.md)
-- [0.6.2 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.2.md)
-- [0.6.1 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.1.md)
-- [0.6.0 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.6.0.md)
+- [0.7.0 kiadási jegyzetek](docs/kiadasi-jegyzetek/0.7.0.md)
 
 ## Megjegyzés a hivatalos névjegyzék-ellenőrzésről
 

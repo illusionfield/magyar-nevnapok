@@ -57,7 +57,7 @@ async function meghatarozLepesAllapot(lep, mindenLepes) {
 
     const fuggAllapot = await meghatarozLepesAllapot(fuggLep, mindenLepes);
     // A lépés saját fájlszintű frissessége önmagában nem elég: ha bármelyik függősége elavult,
-    // ezt a lépést is várakozó állapotúnak mutatjuk, hogy a CLI-ben tiszta legyen a teendősor.
+    // ezt a lépést is várakozó állapotúnak mutatjuk, hogy a webes állapotnézetben tiszta maradjon a teendősor.
     if (fuggAllapot !== "kesz") {
       return "fuggoseg-frissitesre-var";
     }

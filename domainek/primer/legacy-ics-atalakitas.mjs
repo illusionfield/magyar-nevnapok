@@ -3,6 +3,7 @@
  * A legacy ICS fájlból elsődleges primerjegyzéket előállító folyamat.
  */
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   buildPrimaryRegistryPayload,
   DEFAULT_LEGACY_ICS_PATH,
@@ -10,19 +11,23 @@ import {
 } from "./alap.mjs";
 import { mentStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 
-const args = parseArgs(process.argv.slice(2));
-
 /**
- * A `main` a modul közvetlen futtatási belépési pontja.
+ * A `futtatLegacyPrimerEpiteset` a legacy ICS-ből felépíti a primerjegyzéket.
  */
-async function main() {
-  const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_LEGACY_ICS_PATH);
-  const outputPath = path.resolve(process.cwd(), args.output ?? DEFAULT_PRIMARY_REGISTRY_PATH);
+export async function futtatLegacyPrimerEpiteset(opciok = {}) {
+  const inputPath = path.resolve(process.cwd(), opciok.input ?? DEFAULT_LEGACY_ICS_PATH);
+  const outputPath = path.resolve(process.cwd(), opciok.output ?? DEFAULT_PRIMARY_REGISTRY_PATH);
   const payload = await buildPrimaryRegistryPayload({ inputPath });
 
   await mentStrukturaltFajl(outputPath, payload);
 
   console.log(`Mentve: ${payload.days.length} legacy primer nap ide: ${outputPath}`);
+
+  return {
+    payload,
+    inputPath,
+    outputPath,
+  };
 }
 
 /**
@@ -59,7 +64,12 @@ function parseArgs(argv) {
   return options;
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+const kozvetlenFuttatas =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (kozvetlenFuttatas) {
+  futtatLegacyPrimerEpiteset(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}

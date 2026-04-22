@@ -27,3 +27,4 @@ output/
 credentials.json
 token.json
 data/primary-registry-overrides.local.yaml
+dist/

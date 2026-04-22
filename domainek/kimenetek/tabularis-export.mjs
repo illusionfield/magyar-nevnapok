@@ -307,7 +307,7 @@ function csvCellaba(ertek) {
  *
  * Külső production dependency helyett saját, tárolt ZIP-írást használunk, hogy a
  * projekt futásidejű lábnyoma kicsi maradjon, és az export továbbra is egyetlen
- * Node.js CLI-ből működjön.
+ * Node.js környezetben közvetlenül is működjön.
  */
 function epitXlsxMunkafuzet(munkalapok) {
   const rendezettMunkalapok = munkalapok.map((munkalap, index) => ({
