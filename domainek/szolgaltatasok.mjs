@@ -44,6 +44,7 @@ import {
   tartalmazHelyiPrimerKiegeszitest,
   vanNemAlapertelmezettHelyiPrimerBeallitas,
 } from "./primer/helyi-primer-felulirasok.mjs";
+import { allitAuditaltPrimerNapot as mentAuditaltPrimerNapot } from "./primer/auditalt-primer-registry.mjs";
 import { dedupeKeepOrder, parseMonthDay } from "./primer/alap.mjs";
 import { letezik } from "../kozos/fajlrendszer.mjs";
 import { createConsoleReporter, createReporter, withReporterConsole } from "../kozos/reporter.mjs";
@@ -494,7 +495,7 @@ export async function epitIcsPreviewt(beallitasok = {}, opciok = {}) {
 }
 
 /**
- * A `betoltKozosPrimerFelulirasokat` a követett primer-felülírási fájlt tölti be.
+ * A `betoltKozosPrimerFelulirasokat` a legacy, követett primer-felülírási fájlt tölti be.
  */
 export async function betoltKozosPrimerFelulirasokat() {
   const utvonal = kanonikusUtvonalak.kezi.primerFelulirasok;
@@ -545,6 +546,26 @@ export async function allitKozosPrimerNapot({ monthDay, preferredNames } = {}) {
     payload: nextPayload,
     monthDay: parsed.monthDay,
     preferredNames: nextNames,
+  };
+}
+
+/**
+ * Az `allitAuditaltPrimerNapot` a napi auditált teljes névlistát és primerlistát menti.
+ */
+export async function allitAuditaltPrimerNapot({ monthDay, names, preferredNames } = {}) {
+  const eredmeny = await mentAuditaltPrimerNapot({
+    monthDay,
+    names,
+    preferredNames,
+  });
+
+  return {
+    path: eredmeny.path,
+    payload: eredmeny.payload,
+    monthDay: eredmeny.day.monthDay,
+    names: eredmeny.day.names,
+    preferredNames: eredmeny.day.preferredNames,
+    auditedAt: eredmeny.day.auditedAt,
   };
 }
 

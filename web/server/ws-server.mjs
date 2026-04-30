@@ -1,5 +1,6 @@
 import { WebSocketServer } from "ws";
 import {
+  allitAuditaltPrimerNapot,
   allitHivatalosNevjegyzekKiveteleket,
   allitIcsBeallitasokat,
   allitKozosPrimerNapot,
@@ -20,7 +21,11 @@ import {
   buildIcsEditorModel,
   buildIcsPreviewModel,
   buildPipelineModel,
+  buildPrimerAuditDayNameDetailsModel,
+  buildPrimerAuditNameIndexModel,
+  buildPrimerAuditNameLetterModel,
   buildPrimerAuditMonthModel,
+  buildPrimerAuditNameDetailModel,
   buildPrimerAuditNamesModel,
   buildPrimerAuditSummaryModel,
 } from "./view-models.mjs";
@@ -249,6 +254,34 @@ async function handleRequest(context, request) {
           pageSize: payload.pageSize ?? 100,
         }),
       };
+    case "primer-audit:get-name-index":
+      return {
+        primerAuditNameIndex: await buildPrimerAuditNameIndexModel({
+          filterId: payload.filterId ?? "osszes",
+          query: payload.query ?? "",
+        }),
+      };
+    case "primer-audit:get-name-letter":
+      return {
+        primerAuditNameLetter: await buildPrimerAuditNameLetterModel({
+          letter: payload.letter ?? "",
+          filterId: payload.filterId ?? "osszes",
+          query: payload.query ?? "",
+        }),
+      };
+    case "primer-audit:get-name-detail":
+      return {
+        primerAuditNameDetail: await buildPrimerAuditNameDetailModel({
+          name: payload.name,
+        }),
+      };
+    case "primer-audit:get-day-name-details":
+      return {
+        primerAuditDayNameDetails: await buildPrimerAuditDayNameDetailsModel({
+          monthDay: payload.monthDay,
+          names: payload.names,
+        }),
+      };
     case "primer-audit:save-settings": {
       ensureNoActiveJob(context.jobManager);
       const settings = payload.settings ?? payload;
@@ -272,6 +305,44 @@ async function handleRequest(context, request) {
 
       await allitKozosPrimerNapot({
         monthDay,
+        preferredNames: payload.preferredNames ?? [],
+      });
+
+      const shouldRerun = payload.rerun !== false;
+      let job = null;
+
+      if (shouldRerun) {
+        job = await runJobAndWait(
+          context.jobManager,
+          {
+            kind: "audit",
+            target: "primer-audit",
+            workspace: "primer-audit",
+          },
+          ({ reporter }) =>
+            futtatPrimerAuditGyorsFrissitest({
+              reporter,
+            })
+        );
+      }
+
+      return {
+        job,
+        primerAuditSummary: await buildPrimerAuditSummaryModel(),
+        dashboard: await buildDashboardModel(context.jobManager.getState()),
+      };
+    }
+    case "primer-audit:save-audited-day": {
+      ensureNoActiveJob(context.jobManager);
+      const monthDay = String(payload.monthDay ?? "").trim();
+
+      if (!monthDay) {
+        throw createRequestError("Az auditált primer mentéshez kötelező a monthDay mező.");
+      }
+
+      await allitAuditaltPrimerNapot({
+        monthDay,
+        names: payload.names ?? [],
         preferredNames: payload.preferredNames ?? [],
       });
 

@@ -10,12 +10,15 @@ import {
   areNameSetsEqual,
   DEFAULT_FINAL_PRIMARY_REGISTRY_PATH,
   DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH,
-  DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH,
   DEFAULT_WIKI_PRIMARY_REGISTRY_PATH,
   loadPrimaryRegistry,
-  loadPrimaryRegistryOverrides,
   normalizeNameForMatch,
 } from "../primer/alap.mjs";
+import {
+  DEFAULT_AUDITED_PRIMARY_REGISTRY_PATH,
+  betoltAuditaltPrimerRegistryt,
+  buildAuditaltPrimerRegistryMap,
+} from "../primer/auditalt-primer-registry.mjs";
 import {
   formatNameList,
   printDataTable,
@@ -49,33 +52,6 @@ import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
 const DEFAULT_NORMALIZED_REGISTRY_PATH = kanonikusUtvonalak.primer.normalizaloRiport;
 const DEFAULT_INPUT_PATH = kanonikusUtvonalak.adatbazis.nevnapok;
 const DEFAULT_REPORT_PATH = kanonikusUtvonalak.riportok.vegsoPrimer;
-const EXPECTED_OVERRIDE_MONTH_DAYS = [
-  "01-01",
-  "01-02",
-  "02-13",
-  "02-21",
-  "04-21",
-  "04-27",
-  "05-01",
-  "05-09",
-  "05-24",
-  "06-03",
-  "06-05",
-  "06-07",
-  "06-17",
-  "07-28",
-  "07-29",
-  "08-26",
-  "09-23",
-  "10-07",
-  "10-14",
-  "10-20",
-  "10-23",
-  "11-02",
-  "12-03",
-  "12-11",
-  "12-16",
-];
 const SAMPLE_EXPECTATIONS = new Map([
   ["01-01", ["Fruzsina"]],
   ["01-02", ["Ábel"]],
@@ -106,9 +82,9 @@ async function main() {
     args.normalized ?? DEFAULT_NORMALIZED_REGISTRY_PATH
   );
   const inputPath = path.resolve(process.cwd(), args.input ?? DEFAULT_INPUT_PATH);
-  const overridesPath = path.resolve(
+  const auditedRegistryPath = path.resolve(
     process.cwd(),
-    args.overrides ?? DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH
+    args.audited ?? DEFAULT_AUDITED_PRIMARY_REGISTRY_PATH
   );
   const reportPath = path.resolve(process.cwd(), args.report ?? DEFAULT_REPORT_PATH);
 
@@ -117,14 +93,14 @@ async function main() {
     legacyRegistry,
     wikiRegistry,
     normalizedRegistry,
-    overridesRegistry,
+    auditedRegistry,
     inputPayload,
   ] = await Promise.all([
     loadPrimaryRegistry(finalRegistryPath),
     loadPrimaryRegistry(legacyRegistryPath),
     loadPrimaryRegistry(wikiRegistryPath),
     loadPrimaryRegistry(normalizedRegistryPath),
-    loadPrimaryRegistryOverrides(overridesPath),
+    betoltAuditaltPrimerRegistryt(auditedRegistryPath),
     readJson(inputPath),
   ]);
 
@@ -133,15 +109,15 @@ async function main() {
     legacyRegistryPayload: legacyRegistry.payload,
     wikiRegistryPayload: wikiRegistry.payload,
     normalizedRegistryPayload: normalizedRegistry.payload,
-    overridesPayload: overridesRegistry.payload,
+    auditedRegistryPayload: auditedRegistry.payload,
     inputPayload,
     inputs: {
       finalRegistryPath,
+      auditedRegistryPath,
       legacyRegistryPath,
       wikiRegistryPath,
       normalizedRegistryPath,
       inputPath,
-      overridesPath,
     },
   });
 
@@ -163,7 +139,7 @@ export function buildFinalPrimaryRegistryReport({
   legacyRegistryPayload,
   wikiRegistryPayload,
   normalizedRegistryPayload,
-  overridesPayload,
+  auditedRegistryPayload,
   inputPayload,
   inputs,
 }) {
@@ -171,9 +147,9 @@ export function buildFinalPrimaryRegistryReport({
   const legacyMap = buildRegistryMap(legacyRegistryPayload);
   const wikiMap = buildRegistryMap(wikiRegistryPayload);
   const normalizedMap = buildRegistryMap(normalizedRegistryPayload, { includeMetadata: true });
-  const overrideMap = buildOverrideMap(overridesPayload);
+  const auditedMap = auditedRegistryPayload ? buildAuditaltPrimerRegistryMap(auditedRegistryPayload) : new Map();
   const rawDayMap = buildRawDayMap(inputPayload);
-  const allMonthDays = Array.from(new Set([...finalMap.keys(), ...legacyMap.keys(), ...wikiMap.keys()])).sort(
+  const allMonthDays = Array.from(new Set([...finalMap.keys(), ...legacyMap.keys(), ...wikiMap.keys(), ...auditedMap.keys()])).sort(
     compareMonthDays
   );
   const finalPrimaryUniverse = buildFinalPrimaryUniverse(finalMap);
@@ -186,7 +162,7 @@ export function buildFinalPrimaryRegistryReport({
     const normalizedDay =
       normalizedMap.get(monthDay) ?? createEmptyDayEntry(monthDay, { includeMetadata: true });
     const rawDay = rawDayMap.get(monthDay) ?? createRawEmptyDayEntry(monthDay);
-    const overrideDay = overrideMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
+    const auditedDay = auditedMap.get(monthDay) ?? null;
     const hidden = rawDay.names.filter(
       (name) => !finalPrimaryUniverse.has(normalizeNameForMatch(name))
     );
@@ -198,12 +174,13 @@ export function buildFinalPrimaryRegistryReport({
       preferredNames: [...finalDay.preferredNames],
       legacy: [...legacyDay.preferredNames],
       wiki: [...wikiDay.preferredNames],
-      override: [...overrideDay.preferredNames],
+      audited: [...(auditedDay?.preferredNames ?? finalDay.preferredNames)],
       normalized: [...normalizedDay.preferredNames],
       ranking: [...rawDay.primaryRanked],
       hidden: uniqueSorted(hidden),
       source: finalDay.source ?? null,
       warning: Boolean(finalDay.warning),
+      auditedAt: auditedDay?.auditedAt ?? finalDay.auditedAt ?? null,
     };
 
     months[row.month - 1].rows.push(row);
@@ -214,8 +191,9 @@ export function buildFinalPrimaryRegistryReport({
     finalMap,
     legacyMap,
     wikiMap,
-    overridePayload: overridesPayload,
-    overrideMap,
+    auditedPayload: auditedRegistryPayload,
+    auditedMap,
+    rawDayMap,
   });
   const neverPrimary = buildNeverPrimaryList({ inputPayload, finalPrimaryUniverse });
   const neverPrimarySimilarPrimary = buildNeverPrimarySimilarPrimaryReport({
@@ -240,11 +218,11 @@ export function buildFinalPrimaryRegistryReport({
     generatedAt: new Date().toISOString(),
     inputs: {
       finalRegistryPath: path.relative(process.cwd(), inputs.finalRegistryPath),
+      auditedRegistryPath: inputs.auditedRegistryPath ? path.relative(process.cwd(), inputs.auditedRegistryPath) : null,
       legacyRegistryPath: path.relative(process.cwd(), inputs.legacyRegistryPath),
       wikiRegistryPath: path.relative(process.cwd(), inputs.wikiRegistryPath),
       normalizedRegistryPath: path.relative(process.cwd(), inputs.normalizedRegistryPath),
       inputPath: path.relative(process.cwd(), inputs.inputPath),
-      overridesPath: path.relative(process.cwd(), inputs.overridesPath),
     },
     finalRegistryStats: finalRegistryPayload.stats ?? null,
     validations,
@@ -259,8 +237,8 @@ export function buildFinalPrimaryRegistryReport({
 /**
  * A `buildValidations` felépíti a szükséges adatszerkezetet.
  */
-function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, overridePayload, overrideMap }) {
-  const overrideDuplicates = findDuplicateMonthDays(overridePayload?.days ?? []);
+function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, auditedPayload, auditedMap, rawDayMap }) {
+  const auditedDuplicates = findDuplicateMonthDays(auditedPayload?.days ?? []);
   const mismatchMonthDays = [];
 
   for (const monthDay of Array.from(new Set([...legacyMap.keys(), ...wikiMap.keys()])).sort(compareMonthDays)) {
@@ -272,31 +250,23 @@ function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, override
     }
   }
 
-  const overrideMonthDays = Array.from(overrideMap.keys()).sort(compareMonthDays);
-  const invalidOverrideNames = [];
+  const auditedMonthDays = Array.from(auditedMap.keys()).sort(compareMonthDays);
+  const unauditedMonthDays = auditedMonthDays.filter((monthDay) => !auditedMap.get(monthDay)?.auditedAt);
+  const sourceNameDriftMonthDays = auditedMonthDays.filter((monthDay) => {
+    const auditedDay = auditedMap.get(monthDay);
+    const rawDay = rawDayMap.get(monthDay) ?? createRawEmptyDayEntry(monthDay);
 
-  for (const monthDay of overrideMonthDays) {
-    const legacyDay = legacyMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
-    const wikiDay = wikiMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
-    const allowedNames = new Set(
-      [...legacyDay.preferredNames, ...wikiDay.preferredNames].map(normalizeNameForMatch)
+    return !areNameSetsEqual(auditedDay?.names ?? [], rawDay.names ?? []);
+  });
+  const finalRegistryMismatchDays = auditedMonthDays.filter((monthDay) => {
+    const auditedDay = auditedMap.get(monthDay);
+    const finalDay = finalMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
+
+    return (
+      !areNameSetsEqual(auditedDay?.names ?? [], finalDay.names ?? []) ||
+      !areNameSetsEqual(auditedDay?.preferredNames ?? [], finalDay.preferredNames ?? [])
     );
-
-    for (const name of overrideMap.get(monthDay)?.preferredNames ?? []) {
-      if (!allowedNames.has(normalizeNameForMatch(name))) {
-        invalidOverrideNames.push({ monthDay, name });
-      }
-    }
-  }
-
-  const missingOverrideDays = mismatchMonthDays.filter((monthDay) => !overrideMap.has(monthDay));
-  const extraOverrideDays = overrideMonthDays.filter((monthDay) => !mismatchMonthDays.includes(monthDay));
-  const unexpectedMismatchDays = mismatchMonthDays.filter(
-    (monthDay) => !EXPECTED_OVERRIDE_MONTH_DAYS.includes(monthDay)
-  );
-  const missingExpectedOverrideDays = EXPECTED_OVERRIDE_MONTH_DAYS.filter(
-    (monthDay) => !overrideMap.has(monthDay)
-  );
+  });
   const sampleChecks = Array.from(SAMPLE_EXPECTATIONS.entries()).map(([monthDay, expectedNames]) => {
     const actualNames = finalMap.get(monthDay)?.preferredNames ?? [];
     const ok = areNameListsExactlyEqual(actualNames, expectedNames);
@@ -319,20 +289,8 @@ function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, override
     hardFailures.push("A figyelmeztetéses uniós napok száma nem nulla.");
   }
 
-  if (overrideDuplicates.length > 0) {
-    hardFailures.push("Duplikált felülírási dátum található.");
-  }
-
-  if (invalidOverrideNames.length > 0) {
-    hardFailures.push("Van olyan felülírt név, amely nem szerepel a legacy/wiki primerforrásban.");
-  }
-
-  if (missingOverrideDays.length > 0 || extraOverrideDays.length > 0) {
-    hardFailures.push("A felülírási dátumkészlet nem fedi pontosan a legacy–wiki primereltéréseket.");
-  }
-
-  if (unexpectedMismatchDays.length > 0 || missingExpectedOverrideDays.length > 0) {
-    hardFailures.push("A jelenlegi primereltéréses napok listája eltér a rögzített 25 napos igazságtáblától.");
+  if (auditedDuplicates.length > 0) {
+    hardFailures.push("Duplikált auditált primer dátum található.");
   }
 
   if (sampleChecks.some((entry) => !entry.ok)) {
@@ -340,15 +298,14 @@ function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, override
   }
 
   return {
-    overrideDayCount: overrideMonthDays.length,
-    overrideDuplicates,
+    auditedDayCount: auditedMonthDays.filter((monthDay) => auditedMap.get(monthDay)?.auditedAt).length,
+    unauditedDayCount: unauditedMonthDays.length,
+    auditedDuplicates,
     mismatchMonthDays,
-    overrideMonthDays,
-    invalidOverrideNames,
-    missingOverrideDays,
-    extraOverrideDays,
-    unexpectedMismatchDays,
-    missingExpectedOverrideDays,
+    auditedMonthDays,
+    unauditedMonthDays,
+    sourceNameDriftMonthDays,
+    finalRegistryMismatchDays,
     sampleChecks,
     hardFailures,
     hardFailureCount: hardFailures.length,
@@ -581,27 +538,6 @@ function buildSummary({
 }
 
 /**
- * A `buildOverrideMap` felépíti a szükséges adatszerkezetet.
- */
-function buildOverrideMap(payload) {
-  if (!Array.isArray(payload?.days)) {
-    throw new Error("A felülírási payload nem tartalmaz érvényes days tömböt.");
-  }
-
-  const map = new Map();
-
-  for (const day of payload.days) {
-    map.set(day.monthDay, {
-      month: Number(day.month),
-      day: Number(day.day),
-      monthDay: day.monthDay,
-      preferredNames: uniqueKeepOrder(day.preferredNames ?? []),
-    });
-  }
-
-  return map;
-}
-/**
  * A `buildNeverPrimaryList` felépíti a szükséges adatszerkezetet.
  */
 function buildNeverPrimaryList({ inputPayload, finalPrimaryUniverse }) {
@@ -790,11 +726,11 @@ function printReport(report) {
     "Végső primerjegyzék – források",
     [
       ["Végső primerjegyzék", report.inputs.finalRegistryPath],
+      ["Auditált primer registry", report.inputs.auditedRegistryPath],
       ["Legacy primerjegyzék", report.inputs.legacyRegistryPath],
       ["Wiki primerjegyzék", report.inputs.wikiRegistryPath],
       ["Normalizált primerjegyzék", report.inputs.normalizedRegistryPath],
       ["Névadatbázis", report.inputs.inputPath],
-      ["Felülírásfájl", report.inputs.overridesPath],
     ],
     { titleStyle: ["bold", "cyan"] }
   );
@@ -804,12 +740,11 @@ function printReport(report) {
     [
       ["Végső napok száma", report.finalRegistryStats?.dayCount ?? report.months.flatMap((m) => m.rows).length],
       ["Figyelmeztetéses uniós napok", report.finalRegistryStats?.warningUnionDayCount ?? "—"],
-      ["Felülírt napok", report.validations.overrideDayCount],
+      ["Auditált napok", report.validations.auditedDayCount],
+      ["Nincs leokézva", report.validations.unauditedDayCount],
       ["Legacy–wiki primereltéréses napok", report.validations.mismatchMonthDays.length],
-      ["Duplikált felülírt napok", formatNameList(report.validations.overrideDuplicates, { maxItems: 8, maxLength: 48 })],
-      ["Hiányzó felülírt napok", formatNameList(report.validations.missingOverrideDays, { maxItems: 8, maxLength: 48 })],
-      ["Extra felülírt napok", formatNameList(report.validations.extraOverrideDays, { maxItems: 8, maxLength: 48 })],
-      ["Érvénytelen felülírt nevek", report.validations.invalidOverrideNames.length],
+      ["Forrásnév drift napok", report.validations.sourceNameDriftMonthDays.length],
+      ["Duplikált auditált napok", formatNameList(report.validations.auditedDuplicates, { maxItems: 8, maxLength: 48 })],
       ["Primer nélkül maradó nevek", report.summary.neverPrimaryCount],
       ["Ebből hasonló primerrel", report.summary.neverPrimaryWithSimilarPrimaryCount],
       ["Ebből hasonló primer nélkül", report.summary.neverPrimaryWithoutSimilarPrimaryCount],
@@ -934,6 +869,8 @@ function styleFinalSourceCell(row) {
   const sourceLabel =
     row.source === "manual-override"
       ? "kézi felülírás"
+      : row.source === "audited-registry"
+        ? "auditált registry"
       : row.source === "legacy-wiki-exact"
         ? "legacy = wiki"
         : row.source === "warning-union"
@@ -946,6 +883,10 @@ function styleFinalSourceCell(row) {
 
   if (row.source === "manual-override") {
     return styleText(sourceLabel, ["yellow"]);
+  }
+
+  if (row.source === "audited-registry") {
+    return styleText(sourceLabel, ["cyan"]);
   }
 
   if (row.source === "legacy-wiki-exact") {
@@ -965,6 +906,10 @@ function getMonthRowStyle(row) {
 
   if (row.source === "manual-override") {
     return ["yellow"];
+  }
+
+  if (row.source === "audited-registry") {
+    return ["cyan"];
   }
 
   if (row.source === "warning-union") {
@@ -1218,14 +1163,19 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (arg === "--overrides" && argv[index + 1]) {
-      options.overrides = argv[index + 1];
+    if ((arg === "--audited" || arg === "--overrides") && argv[index + 1]) {
+      options.audited = argv[index + 1];
       index += 1;
       continue;
     }
 
+    if (arg.startsWith("--audited=")) {
+      options.audited = arg.slice("--audited=".length);
+      continue;
+    }
+
     if (arg.startsWith("--overrides=")) {
-      options.overrides = arg.slice("--overrides=".length);
+      options.audited = arg.slice("--overrides=".length);
       continue;
     }
 

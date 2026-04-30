@@ -89,6 +89,11 @@ A jelenlegi főbb websocket műveletek:
 - `primer-audit:get-summary`
 - `primer-audit:get-month`
 - `primer-audit:get-names`
+- `primer-audit:get-name-index`
+- `primer-audit:get-name-letter`
+- `primer-audit:get-name-detail`
+- `primer-audit:get-day-name-details`
+- `primer-audit:save-audited-day`
 - `primer-audit:save-settings`
 - `primer-audit:save-common-day`
 - `primer-audit:save-local-day`
@@ -104,6 +109,11 @@ A fontosabb summary DTO-k szemantikája:
 - `audits:get-catalog` elsőrangúan visszaadja a `vegso-primer` és a `primer-nelkul-marado-nevek` auditot is,
 - `audits:get-detail-summary` és `audits:get-detail-month` egységes, strukturált szekciómodellel dolgozik,
 - `primer-audit:get-*` payload editor/snapshot szerepet tükröz, nem külön auditként viselkedik,
+- `primer-audit:get-name-index` csak az ABC kezdőbetűcsoportokat és számlálókat adja vissza,
+- `primer-audit:get-name-letter` lustán tölti be egy nyitott kezdőbetű táblázatos névsorát,
+- `primer-audit:get-day-name-details` a lenyíló napi editor nyitásakor előtölti az adott nap névdetailjeit,
+- `primer-audit:save-audited-day` a napi teljes auditált névlistát és a végső
+  primerlistát együtt menti a verziózott auditált registrybe,
 - `ics:preview` havi, sor-alapú előnézetet ad stabil `main` / `rest` naptárszerepekkel és külön névszintű detail payloadokkal.
 
 A `pipeline:run` kérés opcionálisan `confirmCrawlerRun: true` mezőt is fogad. Ez akkor kell, ha a futás web crawleres lépést indítana, és a szerver először `pipeline_confirmation_required` hibával megerősítést kér.
@@ -114,7 +124,16 @@ A `pipeline:run` kérés opcionálisan `confirmCrawlerRun: true` mezőt is fogad
 - A **Pipeline** oldal csoportos admin nézetet ad közérthetőbb státuszokkal.
 - Az **Auditok** oldal auditkatalógust és fluid részletes inspectort ad, blokkoló auditokkal elöl.
 - Az **Auditok** és a **Primer audit** nagy nézetei havi lazy részletlekéréssel töltődnek.
-- A **Primer audit** oldal primer editor, ahol a szerkesztői döntések audit-bizonyíték linkeken visszamutatnak a külön auditokra.
+- A **Primer audit** oldal napi audit dashboard: a jóváhagyott teljes névlista
+  és végső primerlista a `data/audited-primary-registry.yaml` fájlba kerül,
+  a legacy/wiki/normalizált/rangsorolt források pedig csak döntéstámogató
+  eltérésnézetek.
+- A **Primer audit / Nevek** nézet ABC accordionos, lazy betöltött táblázat:
+  a kezdőbetűcsoportok csak számlálókat kapnak, a konkrét névsor nyitáskor
+  töltődik. A névsorban külön, kisméretű `Napok` oszlop mutatja az összes
+  érintett dátumot rövidítés nélkül; a sor alatti névinfo külön fejléc
+  nélkül, kétoszlopos audit/alapadat blokkban és saját inline scrollos nyers
+  forrásblokkokkal jelenik meg.
 - Az **ICS** oldal live mentésű beállítófelületet, havi accordionos táblázatos előnézetet, névszintű részletpanelt és lazy nyers ICS-résznézetet ad.
 - A nyers terminálkimenet helyett a GUI strukturált HTML-táblákat, névrácsokat és összefoglaló blokkokat használ.
 

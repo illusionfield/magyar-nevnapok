@@ -8,10 +8,8 @@ import {
   alapertelmezettHelyiPrimerBeallitasok,
   uresHelyiPrimerFelulirasPayload,
 } from "../domainek/primer/helyi-primer-felulirasok.mjs";
-import {
-  loadPrimaryRegistry,
-  loadPrimaryRegistryOverrides,
-} from "../domainek/primer/alap.mjs";
+import { loadPrimaryRegistry } from "../domainek/primer/alap.mjs";
+import { betoltAuditaltPrimerRegistryt } from "../domainek/primer/auditalt-primer-registry.mjs";
 import { betoltStrukturaltFajl } from "../kozos/strukturalt-fajl.mjs";
 import { kanonikusUtvonalak } from "../kozos/utvonalak.mjs";
 
@@ -63,7 +61,7 @@ async function loadAuditGoldenFixture() {
     legacyRegistry,
     wikiRegistry,
     normalizedRegistry,
-    overridesRegistry,
+    auditedRegistry,
     inputPayload,
     trackedWikiVsLegacy,
     trackedPrimerNormalizalo,
@@ -72,7 +70,7 @@ async function loadAuditGoldenFixture() {
     loadPrimaryRegistry(kanonikusUtvonalak.primer.legacy),
     loadPrimaryRegistry(kanonikusUtvonalak.primer.wiki),
     loadPrimaryRegistry(kanonikusUtvonalak.primer.normalizaloRiport),
-    loadPrimaryRegistryOverrides(kanonikusUtvonalak.kezi.primerFelulirasok),
+    betoltAuditaltPrimerRegistryt(kanonikusUtvonalak.kezi.auditaltPrimerRegistry),
     betoltStrukturaltFajl(kanonikusUtvonalak.adatbazis.nevnapok),
     betoltStrukturaltFajl(kanonikusUtvonalak.riportok.wikiVsLegacy),
     betoltStrukturaltFajl(kanonikusUtvonalak.riportok.primerNormalizalo),
@@ -80,11 +78,11 @@ async function loadAuditGoldenFixture() {
 
   const inputs = {
     finalRegistryPath: kanonikusUtvonalak.primer.vegso,
+    auditedRegistryPath: kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
     legacyRegistryPath: kanonikusUtvonalak.primer.legacy,
     wikiRegistryPath: kanonikusUtvonalak.primer.wiki,
     normalizedRegistryPath: kanonikusUtvonalak.primer.normalizaloRiport,
     inputPath: kanonikusUtvonalak.adatbazis.nevnapok,
-    overridesPath: kanonikusUtvonalak.kezi.primerFelulirasok,
     reportPath: kanonikusUtvonalak.riportok.primerAudit,
     localConfigPath: kanonikusUtvonalak.helyi.nevnapokKonfig,
     localConfigSourcePath: kanonikusUtvonalak.helyi.nevnapokKonfig,
@@ -95,7 +93,7 @@ async function loadAuditGoldenFixture() {
     legacyRegistryPayload: legacyRegistry.payload,
     wikiRegistryPayload: wikiRegistry.payload,
     normalizedRegistryPayload: normalizedRegistry.payload,
-    overridesPayload: overridesRegistry.payload,
+    auditedRegistryPayload: auditedRegistry.payload,
     inputPayload,
     inputs,
   });
@@ -110,7 +108,7 @@ async function loadAuditGoldenFixture() {
     legacyRegistryPayload: legacyRegistry.payload,
     wikiRegistryPayload: wikiRegistry.payload,
     normalizedRegistryPayload: normalizedRegistry.payload,
-    overridesPayload: overridesRegistry.payload,
+    auditedRegistryPayload: auditedRegistry.payload,
     inputPayload,
     localSettings: alapertelmezettHelyiPrimerBeallitasok(),
     localOverridesPayload: uresHelyiPrimerFelulirasPayload(),
@@ -155,7 +153,9 @@ test("a végső primer riport megtartja a rögzített audit-first igazságtábl�
   const row1023 = findRow(finalReport.months, "10-23");
 
   assert.deepEqual(finalReport.validations.mismatchMonthDays, EXPECTED_MISMATCH_DAYS);
-  assert.equal(finalReport.validations.overrideDayCount, 25);
+  assert.equal(finalReport.validations.auditedDayCount, 0);
+  assert.equal(finalReport.validations.unauditedDayCount, 366);
+  assert.equal(finalReport.validations.sourceNameDriftMonthDays.length, 28);
   assert.equal(finalReport.validations.hardFailureCount, 0);
   assert.deepEqual(finalReport.validations.hardFailures, []);
   assert.equal(finalReport.validations.sampleChecks.every((entry) => entry.ok), true);
@@ -163,7 +163,8 @@ test("a végső primer riport megtartja a rögzített audit-first igazságtábl�
   assert.equal(finalReport.summary.neverPrimaryWithSimilarPrimaryCount, 956);
   assert.equal(finalReport.summary.neverPrimaryWithoutSimilarPrimaryCount, 2276);
   assert.deepEqual(row0102?.preferredNames, ["Ábel"]);
-  assert.equal(row0102?.source, "manual-override");
+  assert.equal(row0102?.source, "audited-registry");
+  assert.equal(row0102?.auditedAt, null);
   assert.deepEqual(row1023?.preferredNames, ["Gyöngyvér", "Gyöngyi"]);
 });
 
@@ -199,7 +200,8 @@ test("a primer-audit snapshot külön marad a forrásauditoktól, és üres hely
   assert.equal(primerAuditReport.summary.effectiveMissingCount, missingReport.summary.combinedMissingCount);
   assert.equal(primerAuditReport.summary.locallyResolvedMissingCount, 0);
   assert.equal(primerAuditReport.summary.localSelectedCount, 0);
-  assert.equal(primerAuditReport.summary.overrideDayCount, finalReport.validations.overrideDayCount);
+  assert.equal(primerAuditReport.summary.auditedDayCount, 0);
+  assert.equal(primerAuditReport.summary.unauditedDayCount, 366);
   assert.equal(primerAuditReport.summary.mismatchDayCount, finalReport.validations.mismatchMonthDays.length);
   assert.deepEqual(row0102?.commonPreferredNames, ["Ábel"]);
   assert.deepEqual(row0102?.effectivePreferredNames, ["Ábel"]);

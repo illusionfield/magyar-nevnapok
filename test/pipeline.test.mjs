@@ -74,9 +74,11 @@ async function copyPath(relativeSource, targetPath) {
 
 async function prepareWorkspace(rootDir) {
   await copyPath("data/nevnapok_tisztitott_regi_nevkeszlet.ics", path.join(rootDir, "data", "nevnapok_tisztitott_regi_nevkeszlet.ics"));
+  await copyPath("data/audited-primary-registry.yaml", path.join(rootDir, "data", "audited-primary-registry.yaml"));
   await copyPath("data/primary-registry-overrides.yaml", path.join(rootDir, "data", "primary-registry-overrides.yaml"));
   await copyPath("data/hivatalos-nevjegyzek-kivetelek.yaml", path.join(rootDir, "data", "hivatalos-nevjegyzek-kivetelek.yaml"));
   await copyPath("output/adatbazis/nevnapok.yaml", path.join(rootDir, "output", "adatbazis", "nevnapok.yaml"));
+  await copyPath("output/adatbazis/formalizalt-elek.yaml", path.join(rootDir, "output", "adatbazis", "formalizalt-elek.yaml"));
   await copyPath("output/primer", path.join(rootDir, "output", "primer"));
   await copyPath("output/riportok", path.join(rootDir, "output", "riportok"));
   await copyPath("output/pipeline/manifest.yaml", path.join(rootDir, "output", "pipeline", "manifest.yaml"));
@@ -480,6 +482,56 @@ test("a primer audit lazy websocket editorai mentik a követett és a helyi rét
   });
   assert.equal(Array.isArray(names.primerAuditNames.items), true);
 
+  const nameIndex = await client.request("primer-audit:get-name-index", {
+    filterId: "osszes",
+    query: "Ábel",
+  });
+  assert.equal(Array.isArray(nameIndex.primerAuditNameIndex.groups), true);
+  assert.equal(nameIndex.primerAuditNameIndex.totalItems > 0, true);
+  assert.equal(
+    nameIndex.primerAuditNameIndex.groups.some((group) => group.letter === "Á"),
+    true
+  );
+
+  const sourceSuggestionIndex = await client.request("primer-audit:get-name-index", {
+    filterId: "forras-javaslat",
+    query: "",
+  });
+  assert.equal(sourceSuggestionIndex.primerAuditNameIndex.totalItems > 0, true);
+
+  const sourceSuggestionLetter = sourceSuggestionIndex.primerAuditNameIndex.groups[0].letter;
+  const nameLetter = await client.request("primer-audit:get-name-letter", {
+    letter: sourceSuggestionLetter,
+    filterId: "forras-javaslat",
+    query: "",
+  });
+  assert.equal(nameLetter.primerAuditNameLetter.letter, sourceSuggestionLetter);
+  assert.equal(Array.isArray(nameLetter.primerAuditNameLetter.rows), true);
+  assert.equal(nameLetter.primerAuditNameLetter.rows.length > 0, true);
+  assert.equal(nameLetter.primerAuditNameLetter.rows.every((row) => row.letter === sourceSuggestionLetter), true);
+  assert.equal(nameLetter.primerAuditNameLetter.rows.every((row) => row.flags.hasSourceSuggestion === true), true);
+  assert.equal(Array.isArray(nameLetter.primerAuditNameLetter.rows[0].occurrences), true);
+  assert.equal(nameLetter.primerAuditNameLetter.rows[0].occurrences.length > 0, true);
+
+  const nameDetail = await client.request("primer-audit:get-name-detail", {
+    name: "Ábel",
+  });
+  assert.equal(nameDetail.primerAuditNameDetail.name, "Ábel");
+  assert.equal(Array.isArray(nameDetail.primerAuditNameDetail.occurrences), true);
+  assert.equal(typeof nameDetail.primerAuditNameDetail.description?.origin, "string");
+
+  const dayNameDetails = await client.request("primer-audit:get-day-name-details", {
+    monthDay: "01-02",
+    names: ["Ábel", "Bazil"],
+  });
+  assert.equal(dayNameDetails.primerAuditDayNameDetails.monthDay, "01-02");
+  assert.equal(dayNameDetails.primerAuditDayNameDetails.detailsByName["ábel"].name, "Ábel");
+  assert.equal(typeof dayNameDetails.primerAuditDayNameDetails.detailsByName["ábel"].description?.origin, "string");
+  assert.equal(
+    dayNameDetails.primerAuditDayNameDetails.detailsByName.bazil.formalizedEdges.length > 0,
+    true
+  );
+
   await client.request("primer-audit:save-local-day", {
     monthDay: "01-01",
     addedPreferredNames: ["Bazil"],
@@ -488,16 +540,19 @@ test("a primer audit lazy websocket editorai mentik a követett és a helyi rét
   const localConfig = await betoltStrukturaltFajl(path.join(workspace, ".local", "nevnapok.local.yaml"));
   assert.equal(localConfig.personalPrimary.days.some((entry) => entry.monthDay === "01-01"), true);
 
-  const commonSave = await client.request("primer-audit:save-common-day", {
+  const commonSave = await client.request("primer-audit:save-audited-day", {
     monthDay: "01-02",
+    names: ["Ábel", "Alpár"],
     preferredNames: ["Ábel", "Alpár"],
     rerun: true,
   });
   assert.equal(commonSave.primerAuditSummary.months.length, 12);
 
-  const trackedOverrides = await betoltStrukturaltFajl(path.join(workspace, "data", "primary-registry-overrides.yaml"));
-  const updatedDay = trackedOverrides.days.find((entry) => entry.monthDay === "01-02");
+  const auditedRegistry = await betoltStrukturaltFajl(path.join(workspace, "data", "audited-primary-registry.yaml"));
+  const updatedDay = auditedRegistry.days.find((entry) => entry.monthDay === "01-02");
+  assert.deepEqual(updatedDay.names, ["Ábel", "Alpár"]);
   assert.deepEqual(updatedDay.preferredNames, ["Ábel", "Alpár"]);
+  assert.equal(typeof updatedDay.auditedAt, "string");
 });
 
 test("a pipeline crawler safe guard hiány és anomália esetén megerősítést kér", async (t) => {

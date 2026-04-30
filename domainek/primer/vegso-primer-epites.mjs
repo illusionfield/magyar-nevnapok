@@ -1,6 +1,6 @@
 /**
  * domainek/primer/vegso-primer-epites.mjs
- * Legacy, wiki és kézi felülírás alapján végső primerjegyzéket épít.
+ * Az auditált primer registry alapján végső primerjegyzéket épít.
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,19 +8,22 @@ import {
   areNameSetsEqual,
   DEFAULT_FINAL_PRIMARY_REGISTRY_PATH,
   DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH,
-  DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH,
   DEFAULT_WIKI_PRIMARY_REGISTRY_PATH,
   dedupeKeepOrder,
   loadPrimaryRegistry,
-  loadPrimaryRegistryOverrides,
   normalizeNameForMatch,
   orderedUniqueNameUnion,
   parseMonthDay,
 } from "./alap.mjs";
+import {
+  DEFAULT_AUDITED_PRIMARY_REGISTRY_PATH,
+  betoltAuditaltPrimerRegistryt,
+  normalizalAuditaltPrimerRegistryPayload,
+} from "./auditalt-primer-registry.mjs";
 import { mentStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
 
 /**
- * A `futtatVegsoPrimerEpiteset` legacy, wiki és kézi felülírás alapján végső primerjegyzéket épít.
+ * A `futtatVegsoPrimerEpiteset` az auditált primer registryből végső primerjegyzéket épít.
  */
 export async function futtatVegsoPrimerEpiteset(opciok = {}) {
   const legacyPath = path.resolve(
@@ -28,41 +31,40 @@ export async function futtatVegsoPrimerEpiteset(opciok = {}) {
     opciok.legacy ?? DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH
   );
   const wikiPath = path.resolve(process.cwd(), opciok.wiki ?? DEFAULT_WIKI_PRIMARY_REGISTRY_PATH);
-  const overridesPath = path.resolve(
+  const auditedPath = path.resolve(
     process.cwd(),
-    opciok.overrides ?? DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH
+    opciok.audited ?? DEFAULT_AUDITED_PRIMARY_REGISTRY_PATH
   );
   const outputPath = path.resolve(process.cwd(), opciok.output ?? DEFAULT_FINAL_PRIMARY_REGISTRY_PATH);
 
-  const [legacyRegistry, wikiRegistry, overridesRegistry] = await Promise.all([
+  const [legacyRegistry, wikiRegistry, auditedRegistry] = await Promise.all([
     loadPrimaryRegistry(legacyPath),
     loadPrimaryRegistry(wikiPath),
-    loadPrimaryRegistryOverrides(overridesPath),
+    betoltAuditaltPrimerRegistryt(auditedPath),
   ]);
 
   const payload = buildFinalPrimaryRegistryPayload({
     legacyPayload: legacyRegistry.payload,
     wikiPayload: wikiRegistry.payload,
-    overridesPayload: overridesRegistry.payload,
+    auditedRegistryPayload: auditedRegistry.payload,
     inputs: {
       legacyPath,
       wikiPath,
-      overridesPath,
+      auditedPath,
     },
   });
 
   await mentStrukturaltFajl(outputPath, payload);
 
   console.log(`Mentve: ${payload.days.length} végső primer nap ide: ${outputPath}`);
-  console.log(`Pontos legacy–wiki egyezésű napok: ${payload.stats.exactAgreementDayCount}`);
-  console.log(`Kézi felülírásos napok: ${payload.stats.overrideDayCount}`);
-  console.log(`Figyelmeztetéses unió napok: ${payload.stats.warningUnionDayCount}`);
+  console.log(`Auditált napok: ${payload.stats.auditedDayCount}`);
+  console.log(`Még nem leokézott napok: ${payload.stats.unauditedDayCount}`);
 
   return {
     payload,
     legacyPath,
     wikiPath,
-    overridesPath,
+    auditedPath,
     outputPath,
   };
 }
@@ -71,12 +73,23 @@ export async function futtatVegsoPrimerEpiteset(opciok = {}) {
  * A `buildFinalPrimaryRegistryPayload` felépíti a szükséges adatszerkezetet.
  */
 export function buildFinalPrimaryRegistryPayload({
+  auditedRegistryPayload,
   legacyPayload,
   wikiPayload,
   overridesPayload,
   inputs,
   generatedAt = new Date().toISOString(),
 }) {
+  if (auditedRegistryPayload) {
+    return buildFinalPrimaryRegistryPayloadFromAudited({
+      auditedRegistryPayload,
+      legacyPayload,
+      wikiPayload,
+      inputs,
+      generatedAt,
+    });
+  }
+
   const legacyMap = buildRegistryMap(legacyPayload, "legacy");
   const wikiMap = buildRegistryMap(wikiPayload, "wiki");
   const overrideMap = buildOverridesMap(overridesPayload);
@@ -170,6 +183,64 @@ export function buildFinalPrimaryRegistryPayload({
       legacyPath: path.relative(process.cwd(), inputs.legacyPath),
       wikiPath: path.relative(process.cwd(), inputs.wikiPath),
       overridesPath: path.relative(process.cwd(), inputs.overridesPath),
+    },
+    stats,
+    days,
+  };
+}
+
+function buildFinalPrimaryRegistryPayloadFromAudited({
+  auditedRegistryPayload,
+  legacyPayload,
+  wikiPayload,
+  inputs,
+  generatedAt,
+}) {
+  const auditedPayload = normalizalAuditaltPrimerRegistryPayload(auditedRegistryPayload);
+  const legacyMap = buildRegistryMap(legacyPayload, "legacy");
+  const wikiMap = buildRegistryMap(wikiPayload, "wiki");
+  const days = auditedPayload.days.map((auditedDay) => {
+    const legacyDay = legacyMap.get(auditedDay.monthDay) ?? null;
+    const wikiDay = wikiMap.get(auditedDay.monthDay) ?? null;
+
+    return {
+      month: auditedDay.month,
+      day: auditedDay.day,
+      monthDay: auditedDay.monthDay,
+      names: [...auditedDay.names],
+      preferredNames: [...auditedDay.preferredNames],
+      legacyNames: [...(legacyDay?.preferredNames ?? [])],
+      wikiNames: [...(wikiDay?.preferredNames ?? [])],
+      overrideNames: [],
+      source: "audited-registry",
+      warning: false,
+      auditedAt: auditedDay.auditedAt,
+    };
+  });
+  const stats = {
+    dayCount: days.length,
+    preferredNameCount: days.reduce((sum, entry) => sum + entry.preferredNames.length, 0),
+    oneNameDays: days.filter((entry) => entry.preferredNames.length === 1).length,
+    twoNameDays: days.filter((entry) => entry.preferredNames.length === 2).length,
+    threeOrMoreNameDays: days.filter((entry) => entry.preferredNames.length >= 3).length,
+    auditedDayCount: days.filter((entry) => entry.auditedAt).length,
+    unauditedDayCount: days.filter((entry) => !entry.auditedAt).length,
+    exactAgreementDayCount: days.filter((entry) =>
+      areNameSetsEqual(entry.preferredNames, legacyMap.get(entry.monthDay)?.preferredNames ?? []) &&
+      areNameSetsEqual(entry.preferredNames, wikiMap.get(entry.monthDay)?.preferredNames ?? [])
+    ).length,
+    overrideDayCount: 0,
+    warningUnionDayCount: 0,
+  };
+
+  return {
+    version: 1,
+    generatedAt,
+    sourceFile: "auditált primer registry",
+    inputs: {
+      auditedRegistryPath: path.relative(process.cwd(), inputs.auditedPath),
+      legacyPath: path.relative(process.cwd(), inputs.legacyPath),
+      wikiPath: path.relative(process.cwd(), inputs.wikiPath),
     },
     stats,
     days,
@@ -315,14 +386,19 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (arg === "--overrides" && argv[index + 1]) {
-      options.overrides = argv[index + 1];
+    if ((arg === "--audited" || arg === "--overrides") && argv[index + 1]) {
+      options.audited = argv[index + 1];
       index += 1;
       continue;
     }
 
+    if (arg.startsWith("--audited=")) {
+      options.audited = arg.slice("--audited=".length);
+      continue;
+    }
+
     if (arg.startsWith("--overrides=")) {
-      options.overrides = arg.slice("--overrides=".length);
+      options.audited = arg.slice("--overrides=".length);
       continue;
     }
 

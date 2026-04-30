@@ -345,9 +345,9 @@ function buildAuditCatalogCardFromNormalizer(report) {
 
 function buildAuditCatalogCardFromFinal(report) {
   const validations = report?.validations ?? {};
-  const summary = report?.summary ?? {};
   const issueCount =
-    (validations.overrideDayCount ?? 0) +
+    (validations.unauditedDayCount ?? 0) +
+    safeArray(validations.sourceNameDriftMonthDays).length +
     safeArray(validations.mismatchMonthDays).length +
     (validations.hardFailureCount ?? 0);
 
@@ -358,9 +358,9 @@ function buildAuditCatalogCardFromFinal(report) {
     status: issueCount > 0 ? "warning" : "ok",
     generatedAt: formatTimestampLabel(report?.generatedAt),
     kpis: [
-      { label: "Felülírt napok", value: validations.overrideDayCount ?? 0 },
+      { label: "Nincs leokézva", value: validations.unauditedDayCount ?? 0 },
+      { label: "Forrás drift", value: safeArray(validations.sourceNameDriftMonthDays).length },
       { label: "Eltéréses napok", value: safeArray(validations.mismatchMonthDays).length },
-      { label: "Primer nélkül maradó nevek", value: summary.neverPrimaryCount ?? 0 },
     ],
   });
 }
@@ -692,18 +692,20 @@ function buildFinalSummarySections(report) {
       title: "Források",
       rows: [
         { label: "Végső primer", value: compactPathLabel(report?.inputs?.finalRegistryPath) },
+        { label: "Auditált primer registry", value: compactPathLabel(report?.inputs?.auditedRegistryPath) },
         { label: "Legacy primer", value: compactPathLabel(report?.inputs?.legacyRegistryPath) },
         { label: "Wiki primer", value: compactPathLabel(report?.inputs?.wikiRegistryPath) },
         { label: "Normalizált primer", value: compactPathLabel(report?.inputs?.normalizedRegistryPath) },
         { label: "Névadatbázis", value: compactPathLabel(report?.inputs?.inputPath) },
-        { label: "Felülírásfájl", value: compactPathLabel(report?.inputs?.overridesPath) },
       ],
     }),
     createKeyValueSection({
       id: "final-validation",
       title: "Validációs összkép",
       rows: [
-        { label: "Felülírt napok", value: validations.overrideDayCount ?? 0 },
+        { label: "Auditált napok", value: validations.auditedDayCount ?? 0 },
+        { label: "Nincs leokézva", value: validations.unauditedDayCount ?? 0 },
+        { label: "Forrás drift napok", value: safeArray(validations.sourceNameDriftMonthDays).length },
         { label: "Eltéréses napok", value: safeArray(validations.mismatchMonthDays).length },
         {
           label: "Kemény hibák",
@@ -1133,7 +1135,7 @@ function buildFinalMonthSummaries(months = []) {
     monthName: month.monthName ?? getMonthName(month.month),
     summary: {
       total: safeArray(month.rows).length,
-      mismatches: safeArray(month.rows).filter((row) => row.source === "manual-override" || row.warning === true).length,
+      mismatches: safeArray(month.rows).filter((row) => row.warning === true || !row.auditedAt).length,
     },
   }));
 }
@@ -1300,7 +1302,6 @@ async function buildAuditSummaryPayload(auditId) {
   if (auditId === "vegso-primer") {
     const report = await loadStructuredIfExists(kanonikusUtvonalak.riportok.vegsoPrimer);
     const validations = report?.validations ?? {};
-    const summary = report?.summary ?? {};
 
     return {
       id: auditId,
@@ -1310,10 +1311,11 @@ async function buildAuditSummaryPayload(auditId) {
       generatedAt: formatTimestampLabel(report?.generatedAt),
       status: buildAuditCatalogCardFromFinal(report).status,
       metrics: [
-        createMetric("Felülírt napok", validations.overrideDayCount ?? 0, (validations.overrideDayCount ?? 0) > 0 ? "warning" : "ok"),
+        createMetric("Auditált napok", validations.auditedDayCount ?? 0),
+        createMetric("Nincs leokézva", validations.unauditedDayCount ?? 0, (validations.unauditedDayCount ?? 0) > 0 ? "warning" : "ok"),
+        createMetric("Forrás drift", safeArray(validations.sourceNameDriftMonthDays).length, safeArray(validations.sourceNameDriftMonthDays).length > 0 ? "warning" : "ok"),
         createMetric("Eltéréses napok", safeArray(validations.mismatchMonthDays).length, safeArray(validations.mismatchMonthDays).length > 0 ? "warning" : "ok"),
         createMetric("Kemény hibák", validations.hardFailureCount ?? 0, (validations.hardFailureCount ?? 0) > 0 ? "danger" : "ok"),
-        createMetric("Primer nélkül maradó nevek", summary.neverPrimaryCount ?? 0, (summary.neverPrimaryCount ?? 0) > 0 ? "warning" : "ok"),
       ],
       sections: buildFinalSummarySections(report),
       monthSummaries: buildFinalMonthSummaries(report?.months),

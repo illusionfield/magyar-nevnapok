@@ -127,7 +127,7 @@ test("a shared primer audit view-model felépíti a napi és névlistákat", () 
 
   assert.equal(viewModel.days.length, 2);
   assert.equal(viewModel.names.length >= 3, true);
-  assert.equal(visiblePrimerAuditNapok(viewModel, initialState).length, 1);
+  assert.equal(visiblePrimerAuditNapok(viewModel, initialState).length, 2);
   assert.equal(visiblePrimerAuditNevek(viewModel, initialState).length >= 1, true);
 });
 

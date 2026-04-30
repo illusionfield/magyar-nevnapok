@@ -17,6 +17,9 @@ import {
 } from "../../domainek/naptar/ics-beallitasok.mjs";
 import { buildIcsPreviewNameDetailPayload } from "../../domainek/naptar/ics-generalas.mjs";
 import { parseMonthDay } from "../../domainek/primer/alap.mjs";
+import { letezik } from "../../kozos/fajlrendszer.mjs";
+import { betoltStrukturaltFajl } from "../../kozos/strukturalt-fajl.mjs";
+import { kanonikusUtvonalak } from "../../kozos/utvonalak.mjs";
 import { pipelineCsoportok, pipelineLepesek } from "../../pipeline/lepesek.mjs";
 import {
   PRIMER_AUDIT_NAP_SZUROK,
@@ -55,6 +58,11 @@ const timestampFormatter = new Intl.DateTimeFormat("hu-HU", {
   hour: "2-digit",
   minute: "2-digit",
   timeZone: "Europe/Budapest",
+});
+
+const nameLetterCollator = new Intl.Collator("hu", {
+  sensitivity: "variant",
+  numeric: true,
 });
 
 const EXTRA_ICS_FIELD_DEFS = {
@@ -257,6 +265,8 @@ function buildGroupSummary(rows = []) {
     local: rows.filter((row) => row.flags?.hasLocal).length,
     overrides: rows.filter((row) => row.flags?.isManualOverride).length,
     mismatches: rows.filter((row) => row.flags?.isValidationMismatch).length,
+    unaudited: rows.filter((row) => !row.auditedAt).length,
+    drift: rows.filter((row) => row.drift?.hasSourceNameDrift).length,
   };
 }
 
@@ -345,6 +355,7 @@ function buildPrimerCandidateNames(day) {
   return Array.from(
     new Set(
       [
+        ...safeArray(day.auditedNames),
         ...safeArray(day.rawNames),
         ...safeArray(day.legacy),
         ...safeArray(day.wiki),
@@ -356,6 +367,91 @@ function buildPrimerCandidateNames(day) {
       ].filter(Boolean)
     )
   ).sort((left, right) => left.localeCompare(right, "hu", { sensitivity: "base" }));
+}
+
+function normalizeNameKey(value) {
+  return String(value ?? "")
+    .normalize("NFC")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("hu");
+}
+
+function uniqueNames(values = []) {
+  const seen = new Set();
+  const result = [];
+
+  for (const value of values ?? []) {
+    const normalized = normalizeNameKey(value);
+
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    result.push(value);
+  }
+
+  return result;
+}
+
+function diffNames(left = [], right = []) {
+  const rightSet = new Set(safeArray(right).map(normalizeNameKey));
+
+  return safeArray(left).filter((value) => !rightSet.has(normalizeNameKey(value)));
+}
+
+function buildPrimerChipSources(day, candidateNames = []) {
+  const sourceEntries = [
+    ["audited", safeArray(day.auditedNames ?? day.names)],
+    ["final", safeArray(day.auditedPreferredNames ?? day.preferredNames ?? day.commonPreferredNames)],
+    ["legacy", safeArray(day.legacy)],
+    ["wiki", safeArray(day.wiki)],
+    ["normalized", safeArray(day.normalized)],
+    ["ranking", safeArray(day.ranking)],
+    ["raw", safeArray(day.rawNames)],
+    ["hidden", safeArray(day.hidden)],
+  ];
+  const byKey = new Map();
+
+  for (const [source, names] of sourceEntries) {
+    for (const name of names) {
+      const key = normalizeNameKey(name);
+
+      if (!key) {
+        continue;
+      }
+
+      byKey.set(key, uniqueNames([...(byKey.get(key) ?? []), source]));
+    }
+  }
+
+  return Object.fromEntries(candidateNames.map((name) => [name, byKey.get(normalizeNameKey(name)) ?? []]));
+}
+
+function buildPrimerDrift(day) {
+  const auditedNames = safeArray(day.auditedNames ?? day.names);
+  const sourceNames = safeArray(day.rawNames);
+  const auditedPreferredNames = safeArray(day.auditedPreferredNames ?? day.preferredNames ?? day.commonPreferredNames);
+  const sourcePreferredNames = uniqueNames([
+    ...safeArray(day.legacy),
+    ...safeArray(day.wiki),
+    ...safeArray(day.normalized),
+    ...safeArray(day.ranking),
+  ]);
+  const sourceOnlyNames = diffNames(sourceNames, auditedNames);
+  const auditedOnlyNames = diffNames(auditedNames, sourceNames);
+  const sourcePreferredOnlyNames = diffNames(sourcePreferredNames, auditedPreferredNames);
+  const auditedPreferredOnlyNames = diffNames(auditedPreferredNames, sourcePreferredNames);
+
+  return {
+    sourceOnlyNames,
+    auditedOnlyNames,
+    sourcePreferredOnlyNames,
+    auditedPreferredOnlyNames,
+    hasSourceNameDrift: sourceOnlyNames.length > 0 || auditedOnlyNames.length > 0,
+    hasPreferredSourceDrift: sourcePreferredOnlyNames.length > 0 || auditedPreferredOnlyNames.length > 0,
+  };
 }
 
 function areSameNameSets(left = [], right = []) {
@@ -414,16 +510,37 @@ function buildPrimerEvidence(day) {
 
 function buildPrimerDayRow(day, trackedMap = new Map()) {
   const candidateNames = buildPrimerCandidateNames(day);
+  const auditedNames = safeArray(day.auditedNames ?? day.names);
+  const auditedPreferredNames = safeArray(day.auditedPreferredNames ?? day.commonPreferredNames ?? day.preferredNames);
+  const drift = buildPrimerDrift({
+    ...day,
+    auditedNames,
+    auditedPreferredNames,
+  });
 
   return {
     month: day.month,
     day: day.day,
     monthDay: day.monthDay,
     dateLabel: formatMonthDayLabel(day.monthDay),
+    auditedAt: day.auditedAt ?? null,
+    auditedNames,
+    auditedPreferredNames,
+    sourceNames: safeArray(day.rawNames),
+    sourcePreferredByKind: {
+      legacy: safeArray(day.legacy),
+      wiki: safeArray(day.wiki),
+      normalized: safeArray(day.normalized),
+      ranking: safeArray(day.ranking),
+    },
+    drift,
+    chipSources: buildPrimerChipSources(day, candidateNames),
+    needsAudit: !day.auditedAt || drift.hasSourceNameDrift,
     commonPreferredNames: safeArray(day.commonPreferredNames),
     trackedPreferredNames: safeArray(trackedMap.get(day.monthDay)?.preferredNames),
     effectivePreferredNames: safeArray(day.effectivePreferredNames),
     effectiveMissingNames: safeArray(day.effectiveMissing).map((entry) => entry.name),
+    neverPrimaryNames: safeArray(day.effectiveMissing).map((entry) => entry.name),
     localAddedPreferredNames: safeArray(day.localAddedPreferredNames),
     rawNames: safeArray(day.rawNames),
     hiddenNames: safeArray(day.hidden),
@@ -456,6 +573,112 @@ function primerDayMatchesQuery(row, query) {
   ]);
 }
 
+function getNameInitialLetter(name) {
+  const firstChar = Array.from(String(name ?? "").trim())[0] ?? "";
+
+  if (!firstChar || !/\p{L}/u.test(firstChar)) {
+    return "#";
+  }
+
+  return firstChar.toLocaleUpperCase("hu-HU");
+}
+
+function compareNameLetters(left, right) {
+  if (left === right) {
+    return 0;
+  }
+
+  if (left === "#") {
+    return 1;
+  }
+
+  if (right === "#") {
+    return -1;
+  }
+
+  return nameLetterCollator.compare(left, right);
+}
+
+function buildNameSummary(rows = []) {
+  return {
+    total: rows.length,
+    missing: rows.filter((row) => row.flags?.hasMissing).length,
+    final: rows.filter((row) => row.flags?.hasFinal).length,
+    sourceSuggestion: rows.filter((row) => row.flags?.hasSourceSuggestion).length,
+    wikiLegacyMismatch: rows.filter((row) => row.flags?.hasWikiLegacyMismatch).length,
+    local: rows.filter((row) => row.flags?.hasLocal).length,
+    hidden: rows.filter((row) => row.flags?.hasHidden).length,
+  };
+}
+
+function nameEntryMatchesQuery(entry, query) {
+  const normalizedQuery = String(query ?? "").trim().toLocaleLowerCase("hu");
+
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return (
+    entry.name.toLocaleLowerCase("hu").includes(normalizedQuery) ||
+    safeArray(entry.occurrences).some((occurrence) =>
+      [
+        occurrence.monthDay,
+        formatMonthDayLabel(occurrence.monthDay),
+        ...(occurrence.effectivePreferredNames ?? []),
+        ...(occurrence.finalPrimaryNames ?? []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("hu")
+        .includes(normalizedQuery)
+    )
+  );
+}
+
+function enrichNameEntry(entry) {
+  return {
+    ...entry,
+    letter: getNameInitialLetter(entry.name),
+    occurrences: safeArray(entry.occurrences).map((occurrence) => ({
+      ...occurrence,
+      dateLabel: formatMonthDayLabel(occurrence.monthDay),
+    })),
+  };
+}
+
+function buildNameRow(entry) {
+  const enriched = enrichNameEntry(entry);
+  const occurrences = enriched.occurrences.map((occurrence) => ({
+    monthDay: occurrence.monthDay,
+    dateLabel: occurrence.dateLabel,
+    sourceIds: safeArray(occurrence.sourceIds),
+    statusIds: safeArray(occurrence.statusIds),
+    effectivePreferredNames: safeArray(occurrence.effectivePreferredNames),
+  }));
+
+  return {
+    name: enriched.name,
+    letter: enriched.letter,
+    counts: enriched.counts,
+    flags: enriched.flags,
+    sources: safeArray(enriched.sources),
+    occurrenceCount: enriched.occurrenceCount,
+    firstMonthDay: enriched.firstMonthDay,
+    occurrencePreview: occurrences.slice(0, 6),
+    occurrences,
+  };
+}
+
+function buildFilteredPrimerAuditNames(viewModel, options = {}) {
+  const filterId = String(options.filterId ?? "osszes");
+  const query = String(options.query ?? "").trim();
+
+  return sortPrimerAuditNevek(
+    safeArray(viewModel.names).filter((entry) => nameMatchesFilter(entry, filterId) && nameEntryMatchesQuery(entry, query)),
+    "abc"
+  );
+}
+
 function buildMonthResponse(month, rows = []) {
   return {
     month,
@@ -475,12 +698,12 @@ export async function buildPrimerAuditSummaryModel() {
     includeNames: false,
   });
   const todoRows = viewModel.days
-    .filter((day) => day.flags?.hasMissing || day.flags?.hasLocal || day.flags?.isManualOverride)
+    .filter((day) => !day.auditedAt || day.flags?.hasMissing || day.drift?.hasSourceNameDrift)
     .slice(0, 8)
     .map((day) => ({
       id: day.monthDay,
       title: formatMonthDayLabel(day.monthDay),
-      detail: `${safeArray(day.effectiveMissing).length} nyitott hiány • ${safeArray(day.localAddedPreferredNames).length} helyi hozzáadás`,
+      detail: `${day.auditedAt ? "leokézva" : "nincs leokézva"} • ${safeArray(day.effectiveMissing).length} primer nélkül maradó név`,
     }));
 
   return {
@@ -576,6 +799,264 @@ export async function buildPrimerAuditNamesModel(options = {}) {
     pageSize,
     totalItems,
     totalPages,
+  };
+}
+
+export async function buildPrimerAuditNameIndexModel(options = {}) {
+  const report = await betoltPrimerAuditAdata({
+    frissitRiport: false,
+  });
+  const viewModel = buildPrimerAuditViewModel(report, {
+    includeNames: true,
+  });
+  const filtered = buildFilteredPrimerAuditNames(viewModel, options).map(buildNameRow);
+  const groupsByLetter = new Map();
+
+  for (const row of filtered) {
+    if (!groupsByLetter.has(row.letter)) {
+      groupsByLetter.set(row.letter, []);
+    }
+
+    groupsByLetter.get(row.letter).push(row);
+  }
+
+  const groups = Array.from(groupsByLetter.entries())
+    .sort(([left], [right]) => compareNameLetters(left, right))
+    .map(([letter, rows]) => ({
+      letter,
+      label: letter,
+      count: rows.length,
+      summary: buildNameSummary(rows),
+    }));
+
+  return {
+    groups,
+    totalItems: filtered.length,
+  };
+}
+
+export async function buildPrimerAuditNameLetterModel(options = {}) {
+  const letter = String(options.letter ?? "").trim() || "#";
+  const report = await betoltPrimerAuditAdata({
+    frissitRiport: false,
+  });
+  const viewModel = buildPrimerAuditViewModel(report, {
+    includeNames: true,
+  });
+  const rows = buildFilteredPrimerAuditNames(viewModel, options)
+    .map(buildNameRow)
+    .filter((row) => row.letter === letter);
+
+  return {
+    letter,
+    label: letter,
+    summary: buildNameSummary(rows),
+    rows,
+  };
+}
+
+function buildNameDatabaseDetail(inputPayload, name) {
+  const normalized = normalizeNameKey(name);
+  const entry = safeArray(inputPayload?.names).find((item) => normalizeNameKey(item?.name) === normalized) ?? null;
+
+  if (!entry) {
+    return null;
+  }
+
+  return {
+    name: entry.name,
+    gender: entry.gender ?? null,
+    detailUrl: entry.detailUrl ?? null,
+    origin: entry.origin ?? null,
+    meaning: entry.meaning ?? null,
+    frequency: entry.frequency ?? null,
+    nicknames: safeArray(entry.nicknames),
+    relatedNames: safeArray(entry.relatedNames),
+    languageFeatures: entry.languageFeatures ?? null,
+    formalized: entry.formalized ?? null,
+    meta: entry.meta ?? null,
+    dayCount: safeArray(entry.days).length,
+    days: safeArray(entry.days).map((day) => ({
+      month: day.month,
+      day: day.day,
+      monthDay: day.monthDay,
+      primaryRegistry: day.primaryRegistry === true,
+      primaryLegacy: day.primaryLegacy === true,
+      primaryRanked: day.primaryRanked === true,
+      ranking: day.ranking ?? null,
+    })),
+    raw: entry,
+  };
+}
+
+async function betoltFormalizaltEleketHaVan() {
+  const utvonal = kanonikusUtvonalak.adatbazis.formalizaltElek;
+
+  if (!(await letezik(utvonal))) {
+    return null;
+  }
+
+  return betoltStrukturaltFajl(utvonal);
+}
+
+function buildFormalizedEdgeDetail(formalizedPayload, name) {
+  const normalized = normalizeNameKey(name);
+  const edges = safeArray(formalizedPayload?.edges).filter((edge) => {
+    const candidates = [
+      edge?.name,
+      ...safeArray(edge?.fromNames),
+      ...safeArray(edge?.toNames),
+    ];
+
+    return candidates.some((candidate) => normalizeNameKey(candidate) === normalized);
+  });
+
+  return {
+    sourceGeneratedAt: formalizedPayload?.generatedAt ?? null,
+    edgeCount: edges.length,
+    relationCounts: edges.reduce((acc, edge) => {
+      const code = edge?.relationCode ?? "unknown";
+      acc[code] = (acc[code] ?? 0) + 1;
+      return acc;
+    }, {}),
+    edges: edges.map((edge) => ({
+      id: edge.id ?? null,
+      name: edge.name ?? null,
+      relationCode: edge.relationCode ?? null,
+      relationLabel: edge.relationLabel ?? null,
+      relationTag: edge.relationTag ?? null,
+      raw: edge.raw ?? null,
+      normalized: edge.normalized ?? null,
+      uncertain: edge.uncertain === true,
+      canonicalized: edge.canonicalized === true,
+      fromText: edge.fromText ?? null,
+      toText: edge.toText ?? null,
+      fromKind: edge.fromKind ?? null,
+      toKind: edge.toKind ?? null,
+      fromNames: safeArray(edge.fromNames),
+      toNames: safeArray(edge.toNames),
+      qualifiers: safeArray(edge.qualifiers),
+      attributes: safeArray(edge.attributes),
+      days: safeArray(edge.days),
+      frequency: edge.frequency ?? null,
+      meta: edge.meta ?? null,
+      detailUrl: edge.detailUrl ?? null,
+      rawEdge: edge,
+    })),
+  };
+}
+
+function countNameInSource(days, name, getter) {
+  const normalized = normalizeNameKey(name);
+
+  return safeArray(days).filter((day) => safeArray(getter(day)).some((entry) => normalizeNameKey(entry) === normalized)).length;
+}
+
+function buildPrimerAuditNameDetailFromInputs({ name, viewModel, inputPayload, formalizedPayload }) {
+  const normalizedName = String(name ?? "").trim();
+
+  if (!normalizedName) {
+    throw new Error("A névrészlethez kötelező a name mező.");
+  }
+
+  const dayRows = safeArray(viewModel.days);
+  const nameEntry =
+    safeArray(viewModel.names).find((entry) => normalizeNameKey(entry.name) === normalizeNameKey(normalizedName)) ?? null;
+  const databaseDetail = buildNameDatabaseDetail(inputPayload, normalizedName);
+  const formalized = buildFormalizedEdgeDetail(formalizedPayload, normalizedName);
+  const occurrences = safeArray(nameEntry?.occurrences).map((occurrence) => {
+    const day = viewModel.dayMap.get(occurrence.monthDay) ?? {};
+
+    return {
+      ...occurrence,
+      dateLabel: formatMonthDayLabel(occurrence.monthDay),
+      auditedPrimaryCount: safeArray(day.commonPreferredNames).length,
+      sourcePrimaryCounts: {
+        legacy: safeArray(day.legacy).length,
+        wiki: safeArray(day.wiki).length,
+        normalized: safeArray(day.normalized).length,
+        ranking: safeArray(day.ranking).length,
+      },
+      auditedPreferredNames: safeArray(day.commonPreferredNames),
+    };
+  });
+
+  return {
+    name: databaseDetail?.name ?? nameEntry?.name ?? normalizedName,
+    description: databaseDetail,
+    formalized,
+    formalizedEdges: formalized.edges,
+    occurrenceCount: nameEntry?.occurrenceCount ?? databaseDetail?.dayCount ?? 0,
+    counts: {
+      ...(nameEntry?.counts ?? {}),
+      auditedPrimary: countNameInSource(dayRows, normalizedName, (day) => day.commonPreferredNames),
+      legacyPrimary: countNameInSource(dayRows, normalizedName, (day) => day.legacy),
+      wikiPrimary: countNameInSource(dayRows, normalizedName, (day) => day.wiki),
+      normalizedPrimary: countNameInSource(dayRows, normalizedName, (day) => day.normalized),
+      rankingPrimary: countNameInSource(dayRows, normalizedName, (day) => day.ranking),
+    },
+    occurrences,
+  };
+}
+
+export async function buildPrimerAuditNameDetailModel({ name } = {}) {
+  const [report, inputPayload, formalizedPayload] = await Promise.all([
+    betoltPrimerAuditAdata({
+      frissitRiport: false,
+    }),
+    betoltStrukturaltFajl(kanonikusUtvonalak.adatbazis.nevnapok),
+    betoltFormalizaltEleketHaVan(),
+  ]);
+  const viewModel = buildPrimerAuditViewModel(report, {
+    includeNames: true,
+  });
+
+  return buildPrimerAuditNameDetailFromInputs({
+    name,
+    viewModel,
+    inputPayload,
+    formalizedPayload,
+  });
+}
+
+export async function buildPrimerAuditDayNameDetailsModel({ monthDay, names = [] } = {}) {
+  const normalizedMonthDay = String(monthDay ?? "").trim();
+  const parsed = parseMonthDay(normalizedMonthDay);
+
+  if (!parsed) {
+    throw new Error("A napi névrészletekhez érvényes monthDay mező szükséges.");
+  }
+
+  const [report, inputPayload, formalizedPayload] = await Promise.all([
+    betoltPrimerAuditAdata({
+      frissitRiport: false,
+    }),
+    betoltStrukturaltFajl(kanonikusUtvonalak.adatbazis.nevnapok),
+    betoltFormalizaltEleketHaVan(),
+  ]);
+  const viewModel = buildPrimerAuditViewModel(report, {
+    includeNames: true,
+  });
+  const day = viewModel.dayMap.get(normalizedMonthDay) ?? null;
+  const fallbackNames = day
+    ? buildPrimerDayRow(day).candidateNames
+    : [];
+  const requestedNames = safeArray(names).filter(Boolean);
+  const detailNames = requestedNames.length > 0 ? requestedNames : fallbackNames;
+  const detailsByName = {};
+
+  for (const detailName of detailNames) {
+    detailsByName[normalizeNameKey(detailName)] = buildPrimerAuditNameDetailFromInputs({
+      name: detailName,
+      viewModel,
+      inputPayload,
+      formalizedPayload,
+    });
+  }
+
+  return {
+    monthDay: normalizedMonthDay,
+    detailsByName,
   };
 }
 
@@ -1039,7 +1520,7 @@ export async function buildDashboardModel(jobState = null) {
     buildPrimerAuditSummaryModel(),
   ]);
   const actionableQueue =
-    safeArray(primerSummary.overviewQueues).find((queue) => queue.azonosito === "akciozhato") ?? null;
+    safeArray(primerSummary.overviewQueues).find((queue) => queue.azonosito === "osszes") ?? null;
   const warningAudits = safeArray(audits.audits).filter((audit) => audit.status !== "ok");
 
   return {
@@ -1059,10 +1540,10 @@ export async function buildDashboardModel(jobState = null) {
       primerNow: {
         title: "Primer audit most",
         metrics: [
-          createMetric("Akciózható napok", actionableQueue?.count ?? 0, (actionableQueue?.count ?? 0) > 0 ? "warning" : "ok"),
+          createMetric("Összes nap", actionableQueue?.count ?? 0),
+          createMetric("Nincs leokézva", primerSummary.summary.unauditedDayCount ?? 0, (primerSummary.summary.unauditedDayCount ?? 0) > 0 ? "warning" : "ok"),
+          createMetric("Forrás drift", primerSummary.summary.sourceNameDriftDayCount ?? 0, (primerSummary.summary.sourceNameDriftDayCount ?? 0) > 0 ? "warning" : "ok"),
           createMetric("Nyitott hiány", primerSummary.summary.effectiveMissingCount ?? 0, (primerSummary.summary.effectiveMissingCount ?? 0) > 0 ? "warning" : "ok"),
-          createMetric("Helyi kijelölések", primerSummary.summary.localSelectedDayCount ?? 0),
-          createMetric("Eltéréses napok", primerSummary.summary.mismatchDayCount ?? 0, (primerSummary.summary.mismatchDayCount ?? 0) > 0 ? "warning" : "ok"),
         ],
         queues: safeArray(primerSummary.overviewQueues).map((queue) => ({
           id: queue.azonosito,
@@ -1080,6 +1561,8 @@ export async function buildDashboardModel(jobState = null) {
           monthName: month.monthName,
           total: month.summary?.total ?? 0,
           missing: month.summary?.missing ?? 0,
+          unaudited: month.summary?.unaudited ?? 0,
+          drift: month.summary?.drift ?? 0,
           local: month.summary?.local ?? 0,
           overrides: month.summary?.overrides ?? 0,
           mismatches: month.summary?.mismatches ?? 0,

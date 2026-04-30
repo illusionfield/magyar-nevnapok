@@ -44,7 +44,7 @@ Jelenleg ide került a Primer audit közös state- és view-model rétege, hogy 
 Az üzleti logika helye, domainenként szétválasztva.
 
 - `forrasok/` — adatkinyerés és forrásadapterek
-- `primer/` — primerjegyzékek, felülírások, helyi overlay
+- `primer/` — auditált primer registry, primerjegyzékek és helyi overlay
 - `kapcsolatok/` — formalizált élek és kapcsolati nézetek
 - `naptar/` — ICS-generálás és konfigurációs modell
 - `auditok/` — riportok, összevetések, diagnosztikai ellenőrzések

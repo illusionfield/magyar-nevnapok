@@ -6,14 +6,15 @@ A projekt elsődleges kimenetei továbbra is fájlalapúak. A webes felület eze
 
 ### Kézi, követett források
 
-- `data/primary-registry-overrides.yaml` — közös, követett primerdöntések a legacy/wiki eltérések feloldására
+- `data/audited-primary-registry.yaml` — verziózott, kézzel auditált napi teljes névlista és végső primerlista
+- `data/primary-registry-overrides.yaml` — legacy kompatibilitási és migrációs bemenet; nem aktív végső primerforrás
 - `data/hivatalos-nevjegyzek-kivetelek.yaml` — dokumentált kivételek a hivatalos névjegyzék auditjához
 
 ### Helyi, nem követett profil
 
 - `.local/nevnapok.local.yaml` — helyi ICS-beállítások és helyi primer overlay
 
-A helyi profil nem helyettesíti a közös auditokat; csak személyes réteg a közös, auditált alap fölött.
+A helyi profil nem helyettesíti az auditált registryt; csak személyes réteg a közös, auditált alap fölött. A saját primerlogika külön későbbi átalakítás tárgya.
 
 ## Primerlánc kimenetei
 
@@ -23,6 +24,8 @@ A helyi profil nem helyettesíti a közös auditokat; csak személyes réteg a k
 - `output/primer/normalizalo-riport.yaml`
 
 Ezek közül a legfontosabb a `vegso-primer.yaml`, mert sok felhasználónál ez már közvetlenül felhasználható primer adatbázis. Emiatt a minőségét külön auditok és golden regressziós tesztek is védik.
+
+A `vegso-primer.yaml` a `data/audited-primary-registry.yaml` normalizált kimenete. A legacy, wiki, normalizált és rangsorolt primerforrások továbbra is lefutnak, de csak eltérésjelző és auditsegéd szerepük van; pipeline-futtatás nem írja át automatikusan az auditált registryt.
 
 ## Elsőrangú auditriportok
 
@@ -48,19 +51,27 @@ Kiemelten fontos kettő:
 
 ## Primer editor snapshot
 
+- `data/audited-primary-registry.yaml`
 - `output/riportok/primer-audit.yaml`
 
-Ez a fájl **nem a külön auditok helyettesítője**. A szerepe:
+Az auditált primer source of truth a `data/audited-primary-registry.yaml`.
+Ebben naponta együtt él a teljes auditált névlista, a végső primerlista és az
+utolsó jóváhagyási időbélyeg. A pipeline-források nem írják felül ezt a fájlt:
+csak driftet, eltérést és javaslatot adnak az auditfelületnek.
+
+A `primer-audit.yaml` **nem a külön auditok helyettesítője**. A szerepe:
 
 - szerkesztői snapshot,
-- közös és helyi primerdöntések egyben látható nézete,
+- az auditált primerdöntések és a forráseltérések egyben látható nézete,
 - a webes primer editor adatforrása,
 - a külön auditokból származó bizonyítékok leképezése.
 
 Gyakorlati szabály:
 
 - ha azt kell eldönteni, hogy **miért rossz vagy vitatott** a primer, a külön auditokat kell nézni,
-- ha azt kell szerkeszteni, hogy **mi legyen az eredő primerállapot**, a `primer-audit.yaml` a megfelelő nézet.
+- ha azt kell szerkeszteni, hogy **mi legyen az eredő primerállapot**, a
+  Primer audit felület az auditált registryt menti, majd ebből készül a végső
+  primerkimenet.
 
 ## Adatbázis és exportkimenetek
 

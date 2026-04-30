@@ -9,13 +9,15 @@ import { fileURLToPath } from "node:url";
 import {
   DEFAULT_FINAL_PRIMARY_REGISTRY_PATH,
   DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH,
-  DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH,
   DEFAULT_WIKI_PRIMARY_REGISTRY_PATH,
   loadPrimaryRegistry,
-  loadPrimaryRegistryOverrides,
   normalizeNameForMatch,
   parseMonthDay,
 } from "../primer/alap.mjs";
+import {
+  DEFAULT_AUDITED_PRIMARY_REGISTRY_PATH,
+  betoltAuditaltPrimerRegistryt,
+} from "../primer/auditalt-primer-registry.mjs";
 import {
   betoltHelyiPrimerBeallitasokat,
   betoltHelyiPrimerFelulirasokat,
@@ -53,7 +55,7 @@ export async function buildPrimerAuditReport({
   legacyRegistryPayload,
   wikiRegistryPayload,
   normalizedRegistryPayload,
-  overridesPayload,
+  auditedRegistryPayload,
   inputPayload,
   localSettings,
   localOverridesPayload,
@@ -64,7 +66,7 @@ export async function buildPrimerAuditReport({
     legacyRegistryPayload,
     wikiRegistryPayload,
     normalizedRegistryPayload,
-    overridesPayload,
+    auditedRegistryPayload,
     inputPayload,
     inputs,
   });
@@ -103,6 +105,9 @@ export async function buildPrimerAuditReport({
       commonPreferredNames: finalPrimaryNames,
       source: finalRow.source ?? null,
       warning: Boolean(finalRow.warning),
+      auditedAt: finalRow.auditedAt ?? null,
+      auditedNames: [...(finalRow.names ?? [])],
+      auditedPreferredNames: finalPrimaryNames,
       names: [...(finalRow.names ?? [])],
       rawNames: [...(rawDay.names ?? [])],
       legacy: [...(finalRow.legacy ?? [])],
@@ -174,7 +179,9 @@ export async function buildPrimerAuditReport({
       wikiRegistryPath: path.relative(process.cwd(), inputs.wikiRegistryPath),
       normalizedRegistryPath: path.relative(process.cwd(), inputs.normalizedRegistryPath),
       inputPath: path.relative(process.cwd(), inputs.inputPath),
-      overridesPath: path.relative(process.cwd(), inputs.overridesPath),
+      auditedRegistryPath: inputs.auditedRegistryPath
+        ? path.relative(process.cwd(), inputs.auditedRegistryPath)
+        : null,
       localConfigPath: path.relative(process.cwd(), inputs.localConfigPath),
       localConfigSourcePath: path.relative(process.cwd(), inputs.localConfigSourcePath),
     },
@@ -207,6 +214,9 @@ export async function buildPrimerAuditReport({
       localOnlySelectedCount: 0,
       hardFailureCount: finalReport.validations?.hardFailureCount ?? 0,
       mismatchDayCount: finalReport.validations?.mismatchMonthDays?.length ?? 0,
+      auditedDayCount: finalReport.validations?.auditedDayCount ?? 0,
+      unauditedDayCount: finalReport.validations?.unauditedDayCount ?? 0,
+      sourceNameDriftDayCount: finalReport.validations?.sourceNameDriftMonthDays?.length ?? 0,
       overrideDayCount: finalReport.validations?.overrideDayCount ?? 0,
       neverPrimaryCount: finalReport.summary?.neverPrimaryCount ?? 0,
       neverPrimaryWithSimilarPrimaryCount:
@@ -258,6 +268,7 @@ function createEmptyFinalRow(monthDay) {
     hidden: [],
     source: null,
     warning: false,
+    auditedAt: null,
   };
 }
 
@@ -731,19 +742,19 @@ export async function futtatPrimerAuditMunkafolyamat(opciok = {}) {
     opciok.normalized ?? DEFAULT_NORMALIZED_REGISTRY_PATH
   );
   const inputPath = path.resolve(process.cwd(), opciok.input ?? DEFAULT_INPUT_PATH);
-  const overridesPath = path.resolve(
+  const auditedRegistryPath = path.resolve(
     process.cwd(),
-    opciok.overrides ?? DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH
+    opciok.audited ?? DEFAULT_AUDITED_PRIMARY_REGISTRY_PATH
   );
   const reportPath = path.resolve(process.cwd(), opciok.report ?? DEFAULT_REPORT_PATH);
   const localConfigPath = path.resolve(process.cwd(), opciok.local ?? DEFAULT_LOCAL_CONFIG_PATH);
-  const [finalRegistry, legacyRegistry, wikiRegistry, normalizedRegistry, overridesRegistry, inputPayload, localSettings, localOverrides] =
+  const [finalRegistry, legacyRegistry, wikiRegistry, normalizedRegistry, auditedRegistry, inputPayload, localSettings, localOverrides] =
     await Promise.all([
       loadPrimaryRegistry(finalRegistryPath),
       loadPrimaryRegistry(legacyRegistryPath),
       loadPrimaryRegistry(wikiRegistryPath),
       loadPrimaryRegistry(normalizedRegistryPath),
-      loadPrimaryRegistryOverrides(overridesPath),
+      betoltAuditaltPrimerRegistryt(auditedRegistryPath),
       betoltStrukturaltFajl(inputPath),
       betoltHelyiPrimerBeallitasokat(localConfigPath),
       betoltHelyiPrimerFelulirasokat(localConfigPath),
@@ -754,7 +765,7 @@ export async function futtatPrimerAuditMunkafolyamat(opciok = {}) {
     legacyRegistryPayload: legacyRegistry.payload,
     wikiRegistryPayload: wikiRegistry.payload,
     normalizedRegistryPayload: normalizedRegistry.payload,
-    overridesPayload: overridesRegistry.payload,
+    auditedRegistryPayload: auditedRegistry.payload,
     inputPayload,
     localSettings: localSettings.settings,
     localOverridesPayload: localOverrides.payload,
@@ -764,7 +775,7 @@ export async function futtatPrimerAuditMunkafolyamat(opciok = {}) {
       wikiRegistryPath,
       normalizedRegistryPath,
       inputPath,
-      overridesPath,
+      auditedRegistryPath,
       localConfigPath,
       localConfigSourcePath: localOverrides.sourcePath,
       reportPath,
@@ -839,14 +850,19 @@ function parseArgs(argv = []) {
       continue;
     }
 
-    if (arg === "--overrides" && argv[index + 1]) {
-      options.overrides = argv[index + 1];
+    if ((arg === "--audited" || arg === "--overrides") && argv[index + 1]) {
+      options.audited = argv[index + 1];
       index += 1;
       continue;
     }
 
+    if (arg.startsWith("--audited=")) {
+      options.audited = arg.slice("--audited=".length);
+      continue;
+    }
+
     if (arg.startsWith("--overrides=")) {
-      options.overrides = arg.slice("--overrides=".length);
+      options.audited = arg.slice("--overrides=".length);
       continue;
     }
 

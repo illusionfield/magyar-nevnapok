@@ -73,6 +73,7 @@ async function copyPath(relativeSource, targetPath) {
 
 async function prepareWorkspace(rootDir) {
   await copyPath("data/nevnapok_tisztitott_regi_nevkeszlet.ics", path.join(rootDir, "data", "nevnapok_tisztitott_regi_nevkeszlet.ics"));
+  await copyPath("data/audited-primary-registry.yaml", path.join(rootDir, "data", "audited-primary-registry.yaml"));
   await copyPath("data/primary-registry-overrides.yaml", path.join(rootDir, "data", "primary-registry-overrides.yaml"));
   await copyPath("output/adatbazis/nevnapok.yaml", path.join(rootDir, "output", "adatbazis", "nevnapok.yaml"));
   await copyPath("output/primer", path.join(rootDir, "output", "primer"));
@@ -83,10 +84,22 @@ async function prepareWorkspace(rootDir) {
   const localConfigPath = path.join(rootDir, ".local", "nevnapok.local.yaml");
   await fs.writeFile(localConfigPath, `${JSON.stringify(createLocalConfig(), null, 2)}\n`, "utf8");
   const manifestText = await fs.readFile(manifestPath, "utf8");
+  const finalPrimaryGeneratedAtMatch = manifestText.match(
+    /stepId:\s+vegso-primer-feloldas[\s\S]*?generatedAt:\s+([0-9TZ:.-]+)/u
+  );
   const generatedAtMatch = manifestText.match(
     /stepId:\s+audit-primer-audit[\s\S]*?generatedAt:\s+([0-9TZ:.-]+)/u
   );
+  const finalPrimaryReferenceTime = finalPrimaryGeneratedAtMatch
+    ? Date.parse(finalPrimaryGeneratedAtMatch[1])
+    : Date.now();
   const referenceTime = generatedAtMatch ? Date.parse(generatedAtMatch[1]) : Date.now();
+  const stableSourceTime = new Date(finalPrimaryReferenceTime - 60_000);
+  await fs.utimes(
+    path.join(rootDir, "data", "audited-primary-registry.yaml"),
+    stableSourceTime,
+    stableSourceTime
+  );
   const future = new Date(referenceTime + 60_000);
   await fs.utimes(localConfigPath, future, future);
 }

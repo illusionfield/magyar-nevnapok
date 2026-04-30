@@ -71,7 +71,10 @@ A `HOST` és `PORT` környezeti változóval felülbírálható.
 
 - `/` — **Dashboard**: audit-first irányítópult, ahol azonnal látszik, hol hibás vagy vitatott a primer, mely auditok blokkolnak, és mely napok igényelnek kézi döntést
 - `/auditok` — **Auditok**: elsőrangú auditkatalógus, strukturált összefoglalók, havi bontások és a szerkeszthető auditforrások inline editorai
-- `/primer-audit` — **Primer audit**: primer editor snapshot a közös és helyi döntésekhez, forrásbizonyíték-linkekkel visszakötve a külön auditokhoz
+- `/primer-audit` — **Primer audit**: napi audit dashboard, amely a
+  verziózott `data/audited-primary-registry.yaml` teljes névlistáit és végső
+  primerlistáit menti, a forrásauditokat pedig döntéstámogató eltérésként
+  mutatja
 - `/pipeline` — **Pipeline**: csoportos, adminisztratív állapotnézet közérthető státuszokkal és célzott futtatással
 - `/ics` — **ICS generálás**: live mentésű beállítófelület, havi accordionos táblázatos előnézet, névszintű részletek és letöltés
 
@@ -150,7 +153,8 @@ A `job:log` megmarad másodlagos, technikai kiegészítésnek, capped tail + ink
 
 ## Irányadó fájlok
 
-- `data/primary-registry-overrides.yaml`
+- `data/audited-primary-registry.yaml`
+- `data/primary-registry-overrides.yaml` — legacy kompatibilitási és migrációs bemenet
 - `data/hivatalos-nevjegyzek-kivetelek.yaml`
 - `.local/nevnapok.local.yaml`
 - `output/primer/*.yaml`
@@ -166,6 +170,7 @@ A `job:log` megmarad másodlagos, technikai kiegészítésnek, capped tail + ink
 - Egyszerre pontosan **egy mutáló job** lehet aktív.
 - Aktív job mellett újabb mutáló websocket kérés **409** hibát kap.
 - A pipeline és az auditok továbbra is fájlalapú kimeneteket írnak.
+- A végső primer irányadó forrása a verziózott, kézzel auditált `data/audited-primary-registry.yaml`; a legacy/wiki/normalizált/rangsorolt források auditsegédek.
 - A `vegso-primer` és a `primer-nelkul-marado-nevek` audit blokkoló auditként is kiemelt helyet kap.
 - A `primer-audit` primer editor snapshot, amely a külön auditok bizonyítékait leképezi, nem helyettesíti.
 - Az ICS-fájlok generálása nem pipeline-feladat, hanem az `/ics` munkatérről indított külön művelet.

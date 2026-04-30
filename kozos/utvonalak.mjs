@@ -13,6 +13,7 @@ export const kanonikusUtvonalak = {
   },
   kezi: {
     legacyIcs: path.join(gyoker, "data", "nevnapok_tisztitott_regi_nevkeszlet.ics"),
+    auditaltPrimerRegistry: path.join(gyoker, "data", "audited-primary-registry.yaml"),
     primerFelulirasok: path.join(gyoker, "data", "primary-registry-overrides.yaml"),
     hivatalosNevjegyzekKivetelek: path.join(
       gyoker,

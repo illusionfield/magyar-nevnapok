@@ -1,0 +1,9910 @@
+version: 1
+generatedAt: 2026-04-30T00:00:00.000Z
+source: initial unaudited baseline from current generated registry and name database
+days:
+  - month: 1
+    day: 1
+    monthDay: 01-01
+    names:
+      - Aglája
+      - Algernon
+      - Csoma
+      - Csombor
+      - Csomor
+      - Eufrozina
+      - Fruzsina
+      - Konkordia
+      - Odiló
+      - Ruzsinka
+      - Tóbiás
+      - Vasziliki
+      - Vazul
+      - Bazil
+    preferredNames:
+      - Fruzsina
+    auditedAt: null
+  - month: 1
+    day: 2
+    monthDay: 01-02
+    names:
+      - Ábel
+      - Acsád
+      - Ákos
+      - Andon
+      - Aszpázia
+      - Bazil
+      - Bazsó
+      - Bertil
+      - Bertold
+      - Ditmár
+      - Fáni
+      - Fanni
+      - Gergely
+      - Gregor
+      - Makár
+      - Odiló
+      - Odisszeusz
+      - Stefánia
+      - Ulisszesz
+      - Vászoly
+      - Alpár
+    preferredNames:
+      - Ábel
+    auditedAt: null
+  - month: 1
+    day: 3
+    monthDay: 01-03
+    names:
+      - Benammi
+      - Benjámin
+      - Benjamin
+      - Dzsenifer
+      - Dzsenna
+      - Dzsenni
+      - Filadelfia
+      - Genovéva
+      - Gvenda
+      - Gvendolin
+      - Gyöngyvér
+      - Hermina
+      - Kardos
+      - Néva
+      - Zsinett
+    preferredNames:
+      - Genovéva
+      - Benjámin
+    auditedAt: null
+  - month: 1
+    day: 4
+    monthDay: 01-04
+    names:
+      - Aggeus
+      - Andon
+      - Angéla
+      - Angelika
+      - Angyal
+      - Angyalka
+      - Benáta
+      - Benedetta
+      - Benedikta
+      - Beneditta
+      - Isua
+      - Izabella
+      - Leona
+      - Rut
+      - Titusz
+    preferredNames:
+      - Leona
+      - Titusz
+    auditedAt: null
+  - month: 1
+    day: 5
+    monthDay: 01-05
+    names:
+      - Amadil
+      - Amáta
+      - Árpád
+      - Dalia
+      - Deli
+      - Ede
+      - Ellák
+      - Emili
+      - Emília
+      - Emilia
+      - Emiliána
+      - Gáspár
+      - Simeon
+      - Simon
+      - Talamér
+      - Táltos
+    preferredNames:
+      - Simon
+    auditedAt: null
+  - month: 1
+    day: 6
+    monthDay: 01-06
+    names:
+      - Anasztáz
+      - Arek
+      - Baltazár
+      - Boldizsár
+      - Epifánia
+      - Gáspár
+      - Konor
+      - Lícia
+      - Melchior
+      - Melhior
+      - Menyhért
+      - Rafaéla
+      - Rafaella
+    preferredNames:
+      - Boldizsár
+    auditedAt: null
+  - month: 1
+    day: 7
+    monthDay: 01-07
+    names:
+      - Artúr
+      - Atilla
+      - Attila
+      - Bálint
+      - Ellina
+      - Etele
+      - Lucián
+      - Luciána
+      - Lüszi
+      - Lüszien
+      - Melánia
+      - Nikétás
+      - Rajmond
+      - Rajmund
+      - Sziglind
+      - Valentin
+      - Valentínó
+      - Ramóna
+    preferredNames:
+      - Ramóna
+      - Attila
+    auditedAt: null
+  - month: 1
+    day: 8
+    monthDay: 01-08
+    names:
+      - Anasztáz
+      - Apollinár
+      - Apollinária
+      - Erhard
+      - Ince
+      - Jukundusz
+      - Jutas
+      - Jutocsa
+      - Keve
+      - Kövecs
+      - Polina
+      - Polla
+      - Szevér
+      - Szeverián
+      - Szeverin
+      - Szeverina
+      - Szoren
+      - Szorin
+      - Szörénd
+      - Szörény
+      - Tácia
+      - Tas
+      - Virág
+      - Zerénd
+      - Zerind
+      - Gyöngyvér
+    preferredNames:
+      - Gyöngyvér
+    auditedAt: null
+  - month: 1
+    day: 9
+    monthDay: 01-09
+    names:
+      - Aleszja
+      - Alesszia
+      - Alexia
+      - Dzsúlió
+      - Hont
+      - Julián
+      - Juliánusz
+      - Júliusz
+      - Lícia
+      - Marcel
+      - Marcell
+      - Marcselló
+      - Vladek
+      - Zulejka
+      - Zsülien
+    preferredNames:
+      - Marcell
+    auditedAt: null
+  - month: 1
+    day: 10
+    monthDay: 01-10
+    names:
+      - Agád
+      - Agaton
+      - Aldó
+      - Bács
+      - Bacsó
+      - Melani
+      - Melánia
+      - Vilma
+      - Vilmos
+    preferredNames:
+      - Melánia
+    auditedAt: null
+  - month: 1
+    day: 11
+    monthDay: 01-11
+    names:
+      - Agáta
+      - Ágota
+      - Baltazár
+      - Eutim
+      - Honoráta
+      - Szalvia
+      - Tasziló
+      - Tézeusz
+      - Vazul
+      - Zsálya
+    preferredNames:
+      - Ágota
+    auditedAt: null
+  - month: 1
+    day: 12
+    monthDay: 01-12
+    names:
+      - Árkád
+      - Arkád
+      - Árkos
+      - Benke
+      - Bors
+      - Borsa
+      - Cézár
+      - Cezarin
+      - Cezarina
+      - Erna
+      - Ernella
+      - Erneszt
+      - Erneszta
+      - Ernesztin
+      - Ernesztina
+      - Ernesztó
+      - Ernő
+      - Guidó
+      - Gujdó
+      - Kaplon
+      - Kaplony
+      - Karion
+      - Keszi
+      - Kesző
+      - Ketel
+      - Tánya
+      - Tatjána
+      - Veronika
+      - Veronka
+    preferredNames:
+      - Ernő
+    auditedAt: null
+  - month: 1
+    day: 13
+    monthDay: 01-13
+    names:
+      - Csongor
+      - Gotfrid
+      - Hiláriusz
+      - Hilmár
+      - Ivett
+      - Ivetta
+      - Judit
+      - Milágrosz
+      - Ronel
+      - Veca
+      - Vera
+      - Veron
+      - Verona
+      - Veronika
+      - Veronka
+      - Vidor
+      - Zonga
+      - Zongor
+      - Zsongor
+    preferredNames:
+      - Veronika
+    auditedAt: null
+  - month: 1
+    day: 14
+    monthDay: 01-14
+    names:
+      - Amidala
+      - Ámon
+      - Ámos
+      - Anada
+      - Árven
+      - Bódog
+      - Edömér
+      - Evolet
+      - Fadett
+      - Félix
+      - Firtos
+      - Gotfrid
+      - Hiláriusz
+      - Idril
+      - Ilárion
+      - Kitana
+      - Larion
+      - Malakiás
+      - Oresztész
+      - Orion
+      - Tamina
+      - Uri
+      - Uriás
+      - Uriel
+      - Uros
+      - Vidor
+    preferredNames:
+      - Bódog
+    auditedAt: null
+  - month: 1
+    day: 15
+    monthDay: 01-15
+    names:
+      - Alfréd
+      - Aurél
+      - Guidó
+      - Gujdó
+      - Imbert
+      - Itala
+      - Klarissza
+      - Lóránd
+      - Loránd
+      - Lóránt
+      - Loránt
+      - Makár
+      - Mauríció
+      - Mauró
+      - Mike
+      - Mór
+      - Móric
+      - Pál
+      - Pálos
+      - Romed
+      - Sándor
+      - Szidor
+      - Uzon
+      - Vító
+      - Vitus
+    preferredNames:
+      - Lóránt
+      - Loránd
+    auditedAt: null
+  - month: 1
+    day: 16
+    monthDay: 01-16
+    names:
+      - Ahmed
+      - Benkő
+      - Enrikó
+      - Ernik
+      - Fáni
+      - Fanni
+      - Godó
+      - Gotfrid
+      - Gusztáv
+      - Henrik
+      - Honor
+      - Honorát
+      - Honorátusz
+      - Honóriusz
+      - Izidor
+      - Janina
+      - Kara
+      - Karád
+      - Karcsa
+      - Karsa
+      - Marcel
+      - Marcell
+      - Marcselló
+      - Otelló
+      - Ottó
+      - Ozor
+      - Ozora
+      - Priszcilla
+      - Stefánia
+      - Stefi
+      - Szidor
+      - Uzon
+    preferredNames:
+      - Gusztáv
+    auditedAt: null
+  - month: 1
+    day: 17
+    monthDay: 01-17
+    names:
+      - Antal
+      - Anton
+      - Antos
+      - Aszter
+      - Drasek
+      - Leonetta
+      - Oros
+      - Roxán
+      - Roxána
+      - Rozalinda
+      - Uros
+      - Antónia
+    preferredNames:
+      - Antónia
+      - Antal
+    auditedAt: null
+  - month: 1
+    day: 18
+    monthDay: 01-18
+    names:
+      - Ammar
+      - Aténa
+      - Aténé
+      - Atina
+      - Beatricse
+      - Beatrisz
+      - Beatrix
+      - Fausztina
+      - Gyöngy
+      - Kücsid
+      - Lizandra
+      - Margit
+      - Özséb
+      - Pál
+      - Pálos
+      - Piri
+      - Pirit
+      - Piros
+      - Piroska
+      - Pósa
+    preferredNames:
+      - Piroska
+    auditedAt: null
+  - month: 1
+    day: 19
+    monthDay: 01-19
+    names:
+      - Absa
+      - Gajána
+      - Kanut
+      - Kenéz
+      - Lilu
+      - Margit
+      - Márió
+      - Máriusz
+      - Márta
+      - Márti
+      - Sára
+      - Sári
+      - Sarolta
+      - Sáron
+      - Seron
+      - Szelli
+      - Szultána
+      - Vázsony
+      - Veronika
+      - Veronka
+      - Zara
+    preferredNames:
+      - Sára
+      - Márió
+    auditedAt: null
+  - month: 1
+    day: 20
+    monthDay: 01-20
+    names:
+      - Eutim
+      - Fábián
+      - Fabiána
+      - Fábió
+      - Fabó
+      - Henni
+      - Özséb
+      - Sebestyén
+      - Sebő
+      - Sebők
+      - Szebasztián
+      - Tímea
+    preferredNames:
+      - Fábián
+      - Sebestyén
+    auditedAt: null
+  - month: 1
+    day: 21
+    monthDay: 01-21
+    names:
+      - Ági
+      - Aglent
+      - Ágnes
+      - Agnéta
+      - Anissza
+      - Bara
+      - Baranka
+      - Enzó
+      - Epifánia
+      - Étán
+      - Inez
+    preferredNames:
+      - Ágnes
+    auditedAt: null
+  - month: 1
+    day: 22
+    monthDay: 01-22
+    names:
+      - Anasztáz
+      - Artemisz
+      - Artemízia
+      - Artúr
+      - Cinella
+      - Cinna
+      - Cintia
+      - Délia
+      - Dormán
+      - Dormánd
+      - Dormánka
+      - Surány
+      - Surd
+      - Szindi
+      - Szirén
+      - Szíriusz
+      - Teodolinda
+      - Vince
+      - Vincent
+    preferredNames:
+      - Vince
+      - Artúr
+    auditedAt: null
+  - month: 1
+    day: 23
+    monthDay: 01-23
+    names:
+      - Alfonz
+      - Amázia
+      - Bertram
+      - Emerencia
+      - Emerika
+      - Emerka
+      - Emese
+      - Frej
+      - Freja
+      - Ildefonz
+      - János
+      - Mária
+      - Rajmond
+      - Rajmund
+      - Zelma
+    preferredNames:
+      - Zelma
+      - Rajmund
+    auditedAt: null
+  - month: 1
+    day: 24
+    monthDay: 01-24
+    names:
+      - Balár
+      - Bános
+      - Bertram
+      - Era
+      - Erik
+      - Erika
+      - Erk
+      - Ferenc
+      - Metella
+      - Miléna
+      - Oxána
+      - Surány
+      - Surd
+      - Szaléz
+      - Szalók
+      - Szénia
+      - Taddeus
+      - Tádé
+      - Tadeusz
+      - Timóteus
+      - Timóteusz
+      - Vera
+      - Veronika
+      - Veronka
+      - Xénia
+      - Xenodiké
+      - Timót
+    preferredNames:
+      - Timót
+    auditedAt: null
+  - month: 1
+    day: 25
+    monthDay: 01-25
+    names:
+      - Anriett
+      - Apostol
+      - Bottyán
+      - Enrikó
+      - Ernik
+      - Etta
+      - Heni
+      - Henriett
+      - Henrietta
+      - Henrik
+      - Milen
+      - Miló
+      - Pál
+      - Pálos
+      - Péter
+      - Pető
+      - Petres
+      - Petrik
+      - Saul
+    preferredNames:
+      - Pál
+    auditedAt: null
+  - month: 1
+    day: 26
+    monthDay: 01-26
+    names:
+      - Balambér
+      - Bátony
+      - Gobert
+      - Oberon
+      - Paula
+      - Polikárp
+      - Ticián
+      - Timó
+      - Timót
+      - Timóteus
+      - Timóteusz
+      - Titánia
+      - Titanilla
+      - Titti
+      - Tittína
+      - Titusz
+      - Vanda
+      - Viktorina
+    preferredNames:
+      - Paula
+      - Vanda
+    auditedAt: null
+  - month: 1
+    day: 27
+    monthDay: 01-27
+    names:
+      - Andelin
+      - Andelina
+      - Angéla
+      - Angélia
+      - Angelika
+      - Angyal
+      - Angyalka
+      - Batus
+      - Bohus
+      - Botár
+      - Botos
+      - Géla
+      - János
+      - Krizosztom
+      - Lotár
+      - Nyina
+      - Ulászló
+      - Vincencia
+    preferredNames:
+      - Angelika
+    auditedAt: null
+  - month: 1
+    day: 28
+    monthDay: 01-28
+    names:
+      - Ágnes
+      - Amadé
+      - Amadea
+      - Amadeusz
+      - Amadó
+      - Amál
+      - Amália
+      - Ameli
+      - Amilla
+      - Amondó
+      - Apol
+      - Apolka
+      - Apollónia
+      - Evron
+      - Gréta
+      - Gréte
+      - Gréti
+      - Inez
+      - Károly
+      - Manassé
+      - Manfréd
+      - Manfréda
+      - Margit
+      - Mirázs
+      - Péter
+      - Petrik
+      - Sármen
+      - Tamás
+      - Toma
+      - Karola
+    preferredNames:
+      - Károly
+      - Karola
+    auditedAt: null
+  - month: 1
+    day: 29
+    monthDay: 01-29
+    names:
+      - Adala
+      - Adél
+      - Adélia
+      - Della
+      - Eta
+      - Etelka
+      - Ferenc
+      - Hunyad
+      - Szaléz
+      - Szalók
+      - Valér
+      - Valérió
+    preferredNames:
+      - Adél
+    auditedAt: null
+  - month: 1
+    day: 30
+    monthDay: 01-30
+    names:
+      - Adelgund
+      - Adelgunda
+      - Aminta
+      - Bars
+      - Barsz
+      - Franklin
+      - Fremont
+      - Gellért
+      - Gerd
+      - Gerda
+      - Gerhárd
+      - Hiacinta
+      - Jácinta
+      - Martina
+      - Martinella
+      - Martinka
+      - Orgona
+      - Robin
+      - Taciána
+      - Tanita
+    preferredNames:
+      - Gerda
+      - Martina
+    auditedAt: null
+  - month: 1
+    day: 31
+    monthDay: 01-31
+    names:
+      - Aton
+      - Círus
+      - Csörsz
+      - Geminián
+      - Ivár
+      - János
+      - Ludovika
+      - Lujza
+      - Lujzi
+      - Marcella
+      - Péter
+      - Petrik
+      - Vulfia
+      - Zella
+      - Zelli
+      - Zenon
+      - Zsella
+    preferredNames:
+      - Marcella
+    auditedAt: null
+  - month: 2
+    day: 1
+    monthDay: 02-01
+    names:
+      - Birgit
+      - Brett
+      - Brigi
+      - Brigitta
+      - Britani
+      - Britta
+      - Cinnia
+      - Dzsindzser
+      - Efraim
+      - Fiametta
+      - Fiamma
+      - Ignác
+      - Imogén
+      - Innocencia
+      - Kincső
+      - Szevér
+      - Szorin
+      - Vincencia
+      - Virgínia
+    preferredNames:
+      - Ignác
+    auditedAt: null
+  - month: 2
+    day: 2
+    monthDay: 02-02
+    names:
+      - Aida
+      - Apor
+      - Aporka
+      - Bodó
+      - Brúnó
+      - Brútusz
+      - Dzsindzser
+      - Johanna
+      - Karolina
+      - Mária
+      - Opika
+      - Teofánia
+      - Tifani
+      - Virgínia
+    preferredNames:
+      - Aida
+      - Karolina
+    auditedAt: null
+  - month: 2
+    day: 3
+    monthDay: 02-03
+    names:
+      - Airton
+      - Arion
+      - Balassa
+      - Balázs
+      - Balmaz
+      - Belinda
+      - Blazsena
+      - Celerina
+      - Csinszka
+      - Izrael
+      - Nelzon
+      - Oszkár
+      - Oszlár
+      - Sebes
+    preferredNames:
+      - Balázs
+    auditedAt: null
+  - month: 2
+    day: 4
+    monthDay: 02-04
+    names:
+      - Andi
+      - Andorás
+      - András
+      - Andrea
+      - Andrej
+      - Androméda
+      - Bereniké
+      - Csenge
+      - Csengele
+      - Csönge
+      - Gabriella
+      - Gilbert
+      - Holló
+      - Janka
+      - Jára
+      - Jarmila
+      - Johanna
+      - Kada
+      - Oana
+      - Ormos
+      - Rabán
+      - Ráchel
+      - Ráhel
+      - Rákhel
+      - Róbert
+      - Robertó
+      - Ronetta
+      - Veronika
+      - Veronka
+    preferredNames:
+      - Ráhel
+      - Csenge
+    auditedAt: null
+  - month: 2
+    day: 5
+    monthDay: 02-05
+    names:
+      - Abiáta
+      - Adelaida
+      - Adelheid
+      - Agáta
+      - Ágota
+      - Agrippína
+      - Akilina
+      - Albin
+      - Alida
+      - Elke
+      - Etelka
+      - Ingrid
+      - Izrael
+      - Jáfet
+      - Kolos
+      - Kolozs
+      - Léda
+      - Modeszta
+      - Modesztusz
+      - Sanel
+    preferredNames:
+      - Ingrid
+      - Ágota
+    auditedAt: null
+  - month: 2
+    day: 6
+    monthDay: 02-06
+    names:
+      - Agmánd
+      - Ajándék
+      - Áldor
+      - Amand
+      - Amanda
+      - Dárkó
+      - Ditte
+      - Dolli
+      - Dóra
+      - Dorabella
+      - Dóri
+      - Dorina
+      - Dorinka
+      - Dorit
+      - Dorka
+      - Dorkás
+      - Dorkász
+      - Dorotea
+      - Doroti
+      - Dorotina
+      - Dorottya
+      - Dotti
+      - Gara
+      - Gaszton
+      - Kalliszta
+      - Korvin
+      - Manda
+      - Mendi
+      - Menodóra
+      - Monor
+      - Ora
+      - Réka
+      - Szamanta
+      - Szilvánusz
+      - Tétisz
+      - Ticiána
+      - Titán
+      - Titánia
+      - Titanilla
+      - Titusz
+      - Tódor
+    preferredNames:
+      - Dorottya
+      - Dóra
+    auditedAt: null
+  - month: 2
+    day: 7
+    monthDay: 02-07
+    names:
+      - Ankisza
+      - Bié
+      - Delfina
+      - Európa
+      - Főbe
+      - Ilitia
+      - Ízisz
+      - Megara
+      - Métisz
+      - Richárd
+      - Rihárd
+      - Rikárdó
+      - Ripszima
+      - Rómeó
+      - Romuald
+      - Romvald
+      - Szüntüké
+      - Taisza
+      - Terestyén
+      - Tódor
+      - Trisztán
+      - Zafira
+      - Zéla
+      - Zélia
+    preferredNames:
+      - Tódor
+      - Rómeó
+    auditedAt: null
+  - month: 2
+    day: 8
+    monthDay: 02-08
+    names:
+      - Aranka
+      - Ari
+      - Bagamér
+      - Effi
+      - Elfrida
+      - Jáél
+      - Jáhel
+      - Jakobina
+      - János
+      - Jeromos
+      - Jutas
+      - Jutocsa
+      - Salamon
+      - Szelemér
+      - Zsáklin
+      - Zsaklin
+    preferredNames:
+      - Aranka
+    auditedAt: null
+  - month: 2
+    day: 9
+    monthDay: 02-09
+    names:
+      - Abigél
+      - Aladin
+      - Alarik
+      - Alekszej
+      - Alex
+      - Apollónia
+      - Ciceró
+      - Cirill
+      - Dalton
+      - Denton
+      - Donald
+      - Era
+      - Erik
+      - Erika
+      - Erk
+      - Erős
+      - Marcián
+      - Marián
+      - Rajnáld
+      - Rajnald
+      - Reinhard
+      - Ron
+      - Ronald
+      - Ronaldó
+      - Roni
+      - Szabin
+    preferredNames:
+      - Alex
+      - Abigél
+    auditedAt: null
+  - month: 2
+    day: 10
+    monthDay: 02-10
+    names:
+      - Eldon
+      - Elen
+      - Ella
+      - Elli
+      - Elvira
+      - Harlám
+      - Pál
+      - Pálos
+      - Ronen
+      - Skolasztika
+      - Vilmos
+    preferredNames:
+      - Elvira
+    auditedAt: null
+  - month: 2
+    day: 11
+    monthDay: 02-11
+    names:
+      - Adolf
+      - Bertil
+      - Bertold
+      - Bozsena
+      - Dezsider
+      - Dezső
+      - Elek
+      - Inge
+      - Mária
+      - Marietta
+      - Paszkál
+      - Paszkália
+      - Teodolinda
+      - Teodóra
+      - Titánia
+      - Titanilla
+      - Titti
+      - Tittína
+    preferredNames:
+      - Bertold
+      - Marietta
+    auditedAt: null
+  - month: 2
+    day: 12
+    monthDay: 02-12
+    names:
+      - Álea
+      - Bán
+      - Erátó
+      - Eulália
+      - Lida
+      - Lídia
+      - Lilla
+      - Lívia
+      - Reginald
+      - Rinaldó
+      - Rona
+    preferredNames:
+      - Lívia
+      - Lídia
+    auditedAt: null
+  - month: 2
+    day: 13
+    monthDay: 02-13
+    names:
+      - Benignusz
+      - Ella
+      - Elli
+      - Füzike
+      - Gergely
+      - Gregor
+      - Jordán
+      - Katalin
+      - Leila
+      - Lejla
+      - Lejle
+      - Lemmi
+      - Levente
+      - Linda
+      - Maura
+      - Relinda
+    preferredNames:
+      - Ella
+      - Linda
+      - Levente
+    auditedAt: null
+  - month: 2
+    day: 14
+    monthDay: 02-14
+    names:
+      - Bálint
+      - Brúnó
+      - Cirill
+      - Göncöl
+      - Joszina
+      - Jozefa
+      - Jozefina
+      - Józsa
+      - Kirill
+      - Konrád
+      - Kurt
+      - Kürt
+      - Metód
+      - Valentin
+      - Valentínó
+    preferredNames:
+      - Valentin
+      - Bálint
+    auditedAt: null
+  - month: 2
+    day: 15
+    monthDay: 02-15
+    names:
+      - Alfréd
+      - Fausztina
+      - Fausztusz
+      - Georgina
+      - Gina
+      - Györgyi
+      - Györgyike
+      - Jordán
+      - Jordána
+      - Kenese
+      - Kolos
+      - Kolozs
+      - Szeveréd
+      - Szigfrid
+      - Uldin
+      - Zsorzsett
+    preferredNames:
+      - Kolos
+      - Georgina
+    auditedAt: null
+  - month: 2
+    day: 16
+    monthDay: 02-16
+    names:
+      - Dániel
+      - Dános
+      - Eliána
+      - Éliás
+      - Eliot
+      - Eponin
+      - Filep
+      - Filip
+      - Filippa
+      - Filippó
+      - Fülöp
+      - Ilán
+      - Illés
+      - Józsiás
+      - Juli
+      - Juliána
+      - Julianna
+      - Julinka
+      - Juliska
+      - Julka
+      - Júnó
+      - Juszuf
+      - Lianna
+      - Lilla
+      - Lula
+      - Lulu
+      - Sámuel
+      - Zámor
+    preferredNames:
+      - Lilla
+      - Julianna
+    auditedAt: null
+  - month: 2
+    day: 17
+    monthDay: 02-17
+    names:
+      - Ajándok
+      - Alekszej
+      - Alex
+      - Donát
+      - Donátó
+      - Egyed
+      - Elek
+      - Emőd
+      - Hina
+      - Lukács
+      - Marcián
+      - Nanae
+      - Zílió
+    preferredNames:
+      - Donát
+    auditedAt: null
+  - month: 2
+    day: 18
+    monthDay: 02-18
+    names:
+      - Berna
+      - Bernadett
+      - Bernardina
+      - Bolivár
+      - Detti
+      - Dettina
+      - Flavián
+      - Flávió
+      - Fláviusz
+      - Göncöl
+      - Konkordia
+      - Konrád
+      - Leó
+      - Leon
+      - Nadett
+      - Oszama
+      - Simeon
+      - Simon
+      - Szilvánusz
+    preferredNames:
+      - Bernadett
+    auditedAt: null
+  - month: 2
+    day: 19
+    monthDay: 02-19
+    names:
+      - Anda
+      - Borbás
+      - Borocs
+      - Buda
+      - Eija
+      - Eliza
+      - Elizabet
+      - Göncöl
+      - Kabos
+      - Konrád
+      - Kunó
+      - Kürt
+      - Manszvét
+      - Manszvéta
+      - Oszvald
+      - Szanna
+      - Zámor
+      - Zana
+      - Zsana
+      - Zsanna
+      - Zsazsa
+      - Zsuzsa
+      - Zsuzsánna
+      - Zsuzsanna
+      - Zsuzsi
+      - Zsuzska
+    preferredNames:
+      - Zsuzsanna
+    auditedAt: null
+  - month: 2
+    day: 20
+    monthDay: 02-20
+    names:
+      - Aladár
+      - Álmos
+      - Amadil
+      - Amáta
+      - Elemér
+      - Leó
+      - Leon
+      - Leona
+      - Paula
+      - Pauletta
+      - Paulin
+      - Paulina
+      - Polett
+      - Szilvánusz
+      - Tíra
+    preferredNames:
+      - Aladár
+      - Álmos
+    auditedAt: null
+  - month: 2
+    day: 21
+    monthDay: 02-21
+    names:
+      - Bódog
+      - Eleanor
+      - Elenor
+      - Eleonóra
+      - Elinor
+      - Germán
+      - Gorán
+      - Gyeke
+      - Györe
+      - György
+      - Györk
+      - Györke
+      - Lenóra
+      - Leona
+      - Leonóra
+      - Nóra
+      - Nóri
+      - Patony
+      - Péter
+      - Petrik
+      - Zakari
+      - Zakariás
+      - Zelmira
+    preferredNames:
+      - Eleonóra
+      - Zelmira
+    auditedAt: null
+  - month: 2
+    day: 22
+    monthDay: 02-22
+    names:
+      - Gerzson
+      - Gréta
+      - Gréte
+      - Gréti
+      - Keve
+      - Kövecs
+      - Lándor
+      - Leander
+      - Leandró
+      - Leándrosz
+      - Margit
+      - Margita
+      - Margitta
+      - Margó
+      - Pál
+      - Pálos
+      - Péter
+      - Petrik
+      - Tas
+      - Túlia
+      - Zétény
+    preferredNames:
+      - Gerzson
+    auditedAt: null
+  - month: 2
+    day: 23
+    monthDay: 02-23
+    names:
+      - Alfréd
+      - Alfréda
+      - Antigon
+      - Balambér
+      - Fáta
+      - Hasszán
+      - Kardos
+      - Lázár
+      - Lázó
+      - Mirtill
+      - Ottó
+      - Péter
+      - Petrik
+      - Polikárp
+      - Romána
+      - Romina
+      - Rominett
+      - Szemere
+      - Szirén
+    preferredNames:
+      - Alfréd
+    auditedAt: null
+  - month: 2
+    day: 24
+    monthDay: 02-24
+    names:
+      - Darina
+      - Darinka
+      - Edömér
+      - Etel
+      - Eunika
+      - Euniké
+      - Hedvig
+      - Hetti
+      - János
+      - Jávorka
+      - Jázmin
+      - Mahmud
+      - Mateó
+      - Mateusz
+      - Mattenai
+      - Mátyás
+      - Mátyus
+    preferredNames:
+      - Mátyás
+    auditedAt: null
+  - month: 2
+    day: 25
+    monthDay: 02-25
+    names:
+      - Cézár
+      - Décse
+      - Frederik
+      - Frederíkó
+      - Gécsa
+      - Géza
+      - Kos
+      - Narmin
+      - Serihen
+      - Tacitusz
+      - Tar
+      - Taráz
+      - Tarcal
+      - Tarcsa
+      - Tarsa
+      - Tege
+      - Valburga
+      - Vanda
+      - Vásti
+    preferredNames:
+      - Géza
+    auditedAt: null
+  - month: 2
+    day: 26
+    monthDay: 02-26
+    names:
+      - Alek
+      - Alexander
+      - Edentina
+      - Edina
+      - Edna
+      - Gécsa
+      - Géza
+      - Gyécsa
+      - Győző
+      - Izabel
+      - Izabell
+      - Izabella
+      - Nesztor
+      - Ottokár
+      - Porfir
+      - Rodelinda
+      - Sándor
+      - Viktor
+    preferredNames:
+      - Edina
+    auditedAt: null
+  - month: 2
+    day: 27
+    monthDay: 02-27
+    names:
+      - Akács
+      - Ákos
+      - Antea
+      - Antigoné
+      - Balambér
+      - Balda
+      - Baldó
+      - Bátor
+      - Éneás
+      - Gábor
+      - Gabos
+      - Gábriel
+      - Hős
+      - Lantos
+      - László
+      - Leander
+      - Orfeusz
+      - Valdemár
+      - Valdó
+      - Vikram
+    preferredNames:
+      - Ákos
+      - Bátor
+    auditedAt: null
+  - month: 2
+    day: 28
+    monthDay: 02-28
+    names:
+      - Antoanett
+      - Antónia
+      - Antoniett
+      - Antonietta
+      - Cvi
+      - Elemér
+      - Enki
+      - Ilmár
+      - Osszián
+      - Oszvald
+      - Ozsvát
+      - Román
+      - Románó
+    preferredNames:
+      - Elemér
+    auditedAt: null
+  - month: 2
+    day: 29
+    monthDay: 02-29
+    names:
+      - Elemér
+    preferredNames:
+      - Elemér
+    auditedAt: null
+  - month: 3
+    day: 1
+    monthDay: 03-01
+    names:
+      - Albin
+      - Albina
+      - Cseperke
+      - Csepke
+      - Dakó
+      - Dávid
+      - Davina
+      - Dókus
+      - Dózsa
+      - Eudoxia
+      - Félix
+      - Gyopár
+      - Gyopárka
+      - Leontina
+      - Lionella
+      - Szecső
+      - Szulejka
+      - Tóbia
+      - Veszta
+      - Zólyom
+      - Zotmund
+      - Zulejka
+    preferredNames:
+      - Albin
+    auditedAt: null
+  - month: 3
+    day: 2
+    monthDay: 03-02
+    names:
+      - Absa
+      - Absolon
+      - Anriett
+      - Axel
+      - Enrikó
+      - Ernik
+      - Etta
+      - Harri
+      - Harriet
+      - Hendri
+      - Heni
+      - Henriett
+      - Henrietta
+      - Henrik
+      - Kada
+      - Károly
+      - Lél
+      - Lujza
+      - Szendile
+    preferredNames:
+      - Lujza
+    auditedAt: null
+  - month: 3
+    day: 3
+    monthDay: 03-03
+    names:
+      - Aszter
+      - Darnel
+      - Frigyes
+      - Gunda
+      - Irma
+      - Kámea
+      - Kamília
+      - Kamilia
+      - Kamilla
+      - Kornél
+      - Kornélia
+      - Kornéliusz
+      - Kunigunda
+      - Küne
+      - Marinusz
+      - Mirkó
+      - Nélia
+      - Oszkár
+      - Rebeka
+      - Ticiána
+    preferredNames:
+      - Kornélia
+    auditedAt: null
+  - month: 3
+    day: 4
+    monthDay: 03-04
+    names:
+      - Adriána
+      - Adrienn
+      - Arián
+      - Arina
+      - Bajnok
+      - Brútusz
+      - Jádránka
+      - Kazimír
+      - Kázmér
+      - Lúciusz
+      - Zorán
+    preferredNames:
+      - Kázmér
+    auditedAt: null
+  - month: 3
+    day: 5
+    monthDay: 03-05
+    names:
+      - Adriána
+      - Adrienn
+      - Arina
+      - Geraszim
+      - Kiron
+      - Oliva
+      - Olivér
+      - Olívia
+      - Olivia
+      - Özséb
+      - Teofil
+      - Virgil
+      - Virgília
+      - Adrián
+      - Adorján
+    preferredNames:
+      - Adrián
+      - Adorján
+    auditedAt: null
+  - month: 3
+    day: 6
+    monthDay: 03-06
+    names:
+      - Ágnes
+      - Elvira
+      - Felicita
+      - Felicitás
+      - Felicitász
+      - Fridolin
+      - Gotlíb
+      - Hannadóra
+      - Inez
+      - Kolett
+      - Koletta
+      - Koriolán
+      - Kozett
+      - Miró
+      - Perpétua
+      - Leonóra
+    preferredNames:
+      - Leonóra
+      - Inez
+    auditedAt: null
+  - month: 3
+    day: 7
+    monthDay: 03-07
+    names:
+      - Anima
+      - Emeka
+      - Luna
+      - Minóna
+      - Perpétua
+      - Rupert
+      - Tamás
+      - Toma
+      - Tomaj
+      - Ubul
+    preferredNames:
+      - Tamás
+    auditedAt: null
+  - month: 3
+    day: 8
+    monthDay: 03-08
+    names:
+      - Apolló
+      - Apollónia
+      - Beáta
+      - Csolt
+      - Dzsúlió
+      - Edizon
+      - Filemon
+      - János
+      - Juliánusz
+      - Júliusz
+      - Kada
+      - Merlin
+      - Sion
+      - Szilvánusz
+      - Zoltán
+      - Zsülien
+    preferredNames:
+      - Zoltán
+    auditedAt: null
+  - month: 3
+    day: 9
+    monthDay: 03-09
+    names:
+      - Ajád
+      - Almira
+      - Domán
+      - Dománd
+      - Dominik
+      - Domokos
+      - Domos
+      - Elmira
+      - Elvira
+      - Fáni
+      - Fanni
+      - Franciska
+      - Gergely
+      - Gorán
+      - Gregor
+      - György
+      - Györk
+      - Györke
+      - Katalin
+      - Metód
+    preferredNames:
+      - Fanni
+      - Franciska
+    auditedAt: null
+  - month: 3
+    day: 10
+    monthDay: 03-10
+    names:
+      - Anaszta
+      - Anasztáz
+      - Anasztázia
+      - Atalanta
+      - Atos
+      - Atosz
+      - Csingiz
+      - Dzsingiz
+      - Ede
+      - Édua
+      - Emil
+      - Emilián
+      - Etele
+      - Etre
+      - Gaura
+      - Gusztáv
+      - Ilda
+      - Ildikó
+      - Ipoly
+      - Itala
+      - Kada
+      - Kadicsa
+      - Kadisa
+      - Kadocsa
+      - Kadosa
+      - Kamília
+      - Kamilia
+      - Kamilla
+      - Kán
+      - Kandid
+      - Kandida
+      - Kolos
+      - Kolozs
+      - Melissza
+      - Melitta
+      - Nasztázia
+      - Nyeste
+      - Priszcilla
+      - Teofil
+      - Valér
+      - Valérió
+    preferredNames:
+      - Ildikó
+    auditedAt: null
+  - month: 3
+    day: 11
+    monthDay: 03-11
+    names:
+      - Aladár
+      - Benkő
+      - Borbolya
+      - Borostyán
+      - Bors
+      - Borsa
+      - Borsika
+      - Jábin
+      - Kadicsa
+      - Kadisa
+      - Kadocsa
+      - Kadosa
+      - Konstantin
+      - Ramiel
+      - Ramirez
+      - Ramiró
+      - Riza
+      - Romárió
+      - Szilárd
+      - Szofron
+      - Szofrónia
+      - Terézia
+      - Tímea
+      - Ulrik
+    preferredNames:
+      - Szilárd
+    auditedAt: null
+  - month: 3
+    day: 12
+    monthDay: 03-12
+    names:
+      - Domán
+      - Egbert
+      - Engelhard
+      - Gergely
+      - Gorán
+      - Gregor
+      - György
+      - Györk
+      - Györke
+      - Ince
+      - Maximilián
+      - Mikán
+      - Miksa
+      - Szibella
+      - Szibill
+      - Teofánia
+      - Tifani
+    preferredNames:
+      - Gergely
+    auditedAt: null
+  - month: 3
+    day: 13
+    monthDay: 03-13
+    names:
+      - Ajtony
+      - Arabella
+      - Arita
+      - Arvid
+      - Árvin
+      - Burak
+      - Csolt
+      - Egyed
+      - Ica
+      - Ida
+      - Krisztián
+      - Leander
+      - Leandró
+      - Leándrosz
+      - Lizander
+      - Lizandra
+      - Patrícia
+      - Rodel
+      - Roderik
+      - Rodina
+      - Rodrigó
+      - Rozina
+      - Rut
+      - Salamon
+      - Solt
+      - Zina
+      - Zinka
+      - Zoltán
+    preferredNames:
+      - Krisztián
+      - Ajtony
+    auditedAt: null
+  - month: 3
+    day: 14
+    monthDay: 03-14
+    names:
+      - Anakin
+      - Berzsián
+      - Dengezik
+      - Frodó
+      - Gandalf
+      - Jára
+      - Jarmila
+      - Matild
+      - Matilda
+      - Méta
+      - Metta
+      - Paulin
+      - Paulina
+      - Pólika
+      - Tilda
+      - Tilla
+    preferredNames:
+      - Matild
+    auditedAt: null
+  - month: 3
+    day: 15
+    monthDay: 03-15
+    names:
+      - Elektra
+      - Keled
+      - Kelemen
+      - Kelemér
+      - Kelen
+      - Kristóf
+      - Krisztofer
+      - Liem
+      - Ludovika
+      - Lujza
+      - Lukrécia
+      - Perenna
+      - Sudár
+      - Sudárka
+      - Zakária
+      - Zakariás
+    preferredNames:
+      - Kristóf
+    auditedAt: null
+  - month: 3
+    day: 16
+    monthDay: 03-16
+    names:
+      - Ábris
+      - Anriett
+      - Aszáf
+      - Azár
+      - Bálint
+      - Cirják
+      - Cirjék
+      - Devecser
+      - Enrikó
+      - Ernik
+      - Esma
+      - Eszmeralda
+      - Euzébia
+      - Geréb
+      - Helmut
+      - Heni
+      - Henriett
+      - Henrietta
+      - Henrik
+      - Herbert
+      - Hiláriusz
+      - Jetta
+      - Jetti
+      - Nóna
+      - Nona
+      - Nónusz
+      - Őzike
+      - Valentin
+      - Valentínó
+      - Vidor
+      - Zádor
+      - Zádorka
+    preferredNames:
+      - Henrietta
+    auditedAt: null
+  - month: 3
+    day: 17
+    monthDay: 03-17
+    names:
+      - Gertrúd
+      - Gertrúdisz
+      - Jozefina
+      - József
+      - Nóna
+      - Nona
+      - Nonna
+      - Páris
+      - Patrícius
+      - Patrik
+      - Petúr
+      - Trudi
+    preferredNames:
+      - Patrik
+      - Gertrúd
+    auditedAt: null
+  - month: 3
+    day: 18
+    monthDay: 03-18
+    names:
+      - Alek
+      - Alexander
+      - Alexandra
+      - Cirill
+      - Diandra
+      - Ede
+      - Eduárd
+      - Eduárda
+      - Eduárdó
+      - Edvárd
+      - Edvarda
+      - Nárcisz
+      - Narcissza
+      - Narcisszusz
+      - Sándor
+      - Szalvátor
+      - Szandró
+      - Szibill
+    preferredNames:
+      - Sándor
+      - Ede
+    auditedAt: null
+  - month: 3
+    day: 19
+    monthDay: 03-19
+    names:
+      - Árlen
+      - Arlen
+      - Bánk
+      - Jozefa
+      - Jozefin
+      - Jozefina
+      - Józsa
+      - József
+      - Krizantusz
+    preferredNames:
+      - Bánk
+      - József
+    auditedAt: null
+  - month: 3
+    day: 20
+    monthDay: 03-20
+    names:
+      - Áhim
+      - Alexa
+      - Alexandra
+      - Azár
+      - Csák
+      - Dilen
+      - Dilon
+      - Hubert
+      - Huberta
+      - Ipoly
+      - Irma
+      - Jákim
+      - Joachim
+      - Joáhim
+      - Joákim
+      - Joakim
+      - Klaudetta
+      - Klaudia
+      - Klaudiána
+      - Kötöny
+      - Mauríció
+      - Mauró
+      - Mór
+      - Móric
+      - Sugár
+      - Sugárka
+      - Volfram
+    preferredNames:
+      - Klaudia
+    auditedAt: null
+  - month: 3
+    day: 21
+    monthDay: 03-21
+    names:
+      - Bahar
+      - Bánk
+      - Bekő
+      - Bence
+      - Bende
+      - Bene
+      - Benedek
+      - Benedikt
+      - Benediktusz
+      - Benett
+      - Benitó
+      - Gergely
+      - Gregor
+      - Hadriel
+      - Hóvirág
+      - Jázon
+      - Kelda
+      - Klausz
+      - Kolja
+      - Miklós
+      - Napsugár
+      - Niki
+      - Nikol
+      - Nikola
+      - Nikolett
+      - Nikoletta
+      - Nyikoláj
+      - Rajka
+      - Tavasz
+      - Tavaszka
+      - Veszna
+    preferredNames:
+      - Benedek
+    auditedAt: null
+  - month: 3
+    day: 22
+    monthDay: 03-22
+    names:
+      - Beáta
+      - Csilla
+      - Csillag
+      - Emmet
+      - Filemon
+      - Katalin
+      - Lea
+      - Léla
+      - Lia
+      - Oktáv
+      - Oktávián
+      - Parker
+      - Relinda
+      - Vazul
+      - Izolda
+    preferredNames:
+      - Izolda
+      - Beáta
+    auditedAt: null
+  - month: 3
+    day: 23
+    monthDay: 03-23
+    names:
+      - Appia
+      - Ápril
+      - Áprilka
+      - Balabán
+      - Emő
+      - Emőke
+      - Kartal
+      - Odin
+      - Ottó
+      - Údó
+    preferredNames:
+      - Emőke
+    auditedAt: null
+  - month: 3
+    day: 24
+    monthDay: 03-24
+    names:
+      - Almár
+      - Almiréna
+      - Eldon
+      - Ella
+      - Elli
+      - Elton
+      - Gábor
+      - Gabos
+      - Gábriel
+      - Gabriella
+      - Jella
+      - Kapolcs
+      - Karen
+      - Karin
+      - Karina
+      - Katalin
+      - Katarina
+      - Katerina
+      - Katrin
+      - Katrina
+      - Ketrin
+      - Simeon
+    preferredNames:
+      - Gábor
+      - Karina
+    auditedAt: null
+  - month: 3
+    day: 25
+    monthDay: 03-25
+    names:
+      - Ancilla
+      - Annunciáta
+      - Cézár
+      - Ders
+      - Derzs
+      - Ernák
+      - Ernye
+      - Frézia
+      - Humbert
+      - Irén
+      - Iréne
+      - Irénke
+      - Irina
+      - Írisz
+      - Irnik
+      - Isméria
+      - Izméne
+      - Jernő
+      - Kristóf
+      - Lúcia
+      - Mandola
+      - Mandorla
+      - Mária
+      - Marinella
+      - Mátka
+      - Umbertó
+    preferredNames:
+      - Irén
+      - Írisz
+    auditedAt: null
+  - month: 3
+    day: 26
+    monthDay: 03-26
+    names:
+      - Dusán
+      - Dusánka
+      - Dusmáta
+      - Emánuel
+      - Emanuéla
+      - Immánuel
+      - Lara
+      - Larissza
+      - Lehel
+      - Leonóra
+      - Manka
+      - Manó
+      - Manolita
+      - Mánuel
+      - Manuel
+      - Manuéla
+      - Manuela
+      - Manuella
+      - Maxima
+      - Mendel
+      - Tormás
+      - Torna
+      - Torontál
+      - Turul
+    preferredNames:
+      - Emánuel
+    auditedAt: null
+  - month: 3
+    day: 27
+    monthDay: 03-27
+    names:
+      - Ágosta
+      - Alpár
+      - Archibald
+      - Auguszta
+      - Augusztina
+      - Habib
+      - Hajnal
+      - Hajnalka
+      - Hajni
+      - János
+      - Lida
+      - Lídia
+      - Lígia
+      - Marót
+      - Monti
+      - Nikodémia
+      - Nikodémus
+      - Nikodémusz
+      - Rupert
+      - Ruperta
+    preferredNames:
+      - Hajnalka
+    auditedAt: null
+  - month: 3
+    day: 28
+    monthDay: 03-28
+    names:
+      - Delinda
+      - Gede
+      - Gedeon
+      - Gedő
+      - Gejza
+      - Gida
+      - Hanna
+      - Hannaliza
+      - Hannaróza
+      - Hanni
+      - Ixion
+      - Janina
+      - János
+      - Johanna
+      - Kapisztrán
+      - Katapán
+      - Maja
+      - Szixtin
+      - Szixtina
+      - Szixtusz
+    preferredNames:
+      - Johanna
+      - Gedeon
+    auditedAt: null
+  - month: 3
+    day: 29
+    monthDay: 03-29
+    names:
+      - Ágosta
+      - Auguszta
+      - Augusztina
+      - Baksa
+      - Baracs
+      - Barangó
+      - Bercel
+      - Bertil
+      - Bertold
+      - Bertolda
+      - Cirill
+      - Dioméd
+      - Gerle
+      - Jónás
+      - Orda
+      - Réva
+      - Taksony
+    preferredNames:
+      - Auguszta
+    auditedAt: null
+  - month: 3
+    day: 30
+    monthDay: 03-30
+    names:
+      - Ádin
+      - Amadé
+      - Amadea
+      - Amadeusz
+      - Amadó
+      - Amondó
+      - Guidó
+      - Gujdó
+      - Izidor
+      - Zalán
+    preferredNames:
+      - Zalán
+    auditedAt: null
+  - month: 3
+    day: 31
+    monthDay: 03-31
+    names:
+      - Akács
+      - Ákos
+      - Árpád
+      - Balbina
+      - Ben
+      - Béni
+      - Benjámin
+      - Benjamin
+      - Benjamina
+      - Benő
+      - Guidó
+      - Gujdó
+      - Jelek
+      - Johanna
+      - Kornélia
+      - Üllő
+    preferredNames:
+      - Árpád
+    auditedAt: null
+  - month: 4
+    day: 1
+    monthDay: 04-01
+    names:
+      - Agád
+      - Agapion
+      - Annakarina
+      - Annakata
+      - Annaléna
+      - Annalilla
+      - Annamíra
+      - Annamira
+      - Annaréka
+      - Annaróza
+      - Annavirág
+      - Annelin
+      - Árden
+      - Hugó
+      - Pál
+      - Pálos
+      - Urbán
+      - Zsüsztin
+    preferredNames:
+      - Hugó
+    auditedAt: null
+  - month: 4
+    day: 2
+    monthDay: 04-02
+    names:
+      - Áron
+      - Ferenc
+      - Harun
+      - Lévi
+      - Mária
+      - Múzsa
+      - Ottokár
+      - Teodózia
+      - Tünde
+      - Tündi
+      - Viggó
+    preferredNames:
+      - Áron
+    auditedAt: null
+  - month: 4
+    day: 3
+    monthDay: 04-03
+    names:
+      - Arinka
+      - Buda
+      - Hóvirág
+      - Indira
+      - Irén
+      - Iréne
+      - Irénke
+      - Irina
+      - Keresztély
+      - Keresztes
+      - Krizsán
+      - Lira
+      - Líria
+      - Múzsa
+      - Richárd
+      - Rihárd
+      - Rikárdó
+      - Sükösd
+      - Szixtusz
+      - Ulpián
+    preferredNames:
+      - Richárd
+      - Buda
+    auditedAt: null
+  - month: 4
+    day: 4
+    monthDay: 04-04
+    names:
+      - Annabori
+      - Izidor
+      - Jáde
+      - Johara
+      - Kerény
+      - Kincs
+      - Kincse
+      - Platina
+      - Platón
+      - Topáz
+      - Zejnep
+    preferredNames:
+      - Izidor
+    auditedAt: null
+  - month: 4
+    day: 5
+    monthDay: 04-05
+    names:
+      - Honoráta
+      - Irén
+      - Iréne
+      - Irénke
+      - Irina
+      - Julianna
+      - Kreszcencia
+      - Lianna
+      - Sejbán
+      - Szaján
+      - Teodóra
+      - Vince
+      - Vincent
+    preferredNames:
+      - Vince
+    auditedAt: null
+  - month: 4
+    day: 6
+    monthDay: 04-06
+    names:
+      - Atlasz
+      - Balzsam
+      - Bíbor
+      - Bíbora
+      - Bíboranna
+      - Bíborka
+      - Celeszta
+      - Celesztin
+      - Celesztina
+      - Csát
+      - Dénes
+      - Denisz
+      - Dienes
+      - Rúben
+      - Ruben
+      - Ruven
+      - Szellő
+      - Szellőke
+      - Szixtin
+      - Szixtina
+      - Szixtusz
+      - Szkarlett
+      - Taksony
+      - Vilmos
+    preferredNames:
+      - Bíborka
+      - Vilmos
+    auditedAt: null
+  - month: 4
+    day: 7
+    monthDay: 04-07
+    names:
+      - Armand
+      - Armanda
+      - Armandina
+      - Armandó
+      - Ármin
+      - Árpád
+      - Asszunta
+      - Azucséna
+      - Herman
+      - Jelek
+      - József
+      - Kreszcencia
+      - Lotár
+      - Manna
+      - Mária
+      - Szenta
+      - Urzulina
+      - Zenta
+    preferredNames:
+      - Herman
+    auditedAt: null
+  - month: 4
+    day: 8
+    monthDay: 04-08
+    names:
+      - Dénes
+      - Denisz
+      - Dienes
+      - Júlia
+      - Julilla
+      - Valter
+      - Zsejke
+      - Zselyke
+      - Zsüliett
+    preferredNames:
+      - Dénes
+    auditedAt: null
+  - month: 4
+    day: 9
+    monthDay: 04-09
+    names:
+      - Csoma
+      - Csombor
+      - Csomor
+      - Döme
+      - Dömötör
+      - Dusán
+      - Dusánka
+      - Dusmáta
+      - Erhard
+      - Lél
+      - Nadett
+      - Psziché
+      - Szecső
+      - Vince
+      - Vincent
+    preferredNames:
+      - Erhard
+    auditedAt: null
+  - month: 4
+    day: 10
+    monthDay: 04-10
+    names:
+      - Dára
+      - Ezékiel
+      - Ezel
+      - Fulvia
+      - Miltiádész
+      - Polidor
+      - Radamesz
+      - Terenc
+      - Zsolt
+    preferredNames:
+      - Zsolt
+    auditedAt: null
+  - month: 4
+    day: 11
+    monthDay: 04-11
+    names:
+      - Ariel
+      - Ariéla
+      - Ariella
+      - Arlett
+      - Gemma
+      - Glenda
+      - Glória
+      - Godiva
+      - Klió
+      - Leó
+      - Leon
+      - Leona
+      - Leoni
+      - Szaniszló
+    preferredNames:
+      - Szaniszló
+      - Leó
+    auditedAt: null
+  - month: 4
+    day: 12
+    monthDay: 04-12
+    names:
+      - Baldvin
+      - Csaba
+      - Csanád
+      - Csobád
+      - Csobajd
+      - Gyula
+      - Konstantin
+      - Oxána
+      - Sába
+      - Sebő
+      - Szilárd
+      - Zenina
+      - Zénó
+      - Zenobiusz
+    preferredNames:
+      - Gyula
+    auditedAt: null
+  - month: 4
+    day: 13
+    monthDay: 04-13
+    names:
+      - Hermina
+      - Ica
+      - Ida
+      - Martin
+      - Márton
+      - Marton
+      - Martos
+      - Mína
+      - Minka
+      - Minna
+      - Norma
+    preferredNames:
+      - Ida
+    auditedAt: null
+  - month: 4
+    day: 14
+    monthDay: 04-14
+    names:
+      - Bendit
+      - Bene
+      - Benedek
+      - Benedikt
+      - Benediktusz
+      - Benett
+      - Benitó
+      - Euszták
+      - Gusztáv
+      - Jusztin
+      - Lava
+      - Lavínia
+      - Lida
+      - Lídia
+      - Max
+      - Maxim
+      - Maximusz
+      - Tibor
+      - Tiborc
+      - Tomázia
+      - Tomazina
+      - Zsüsztin
+    preferredNames:
+      - Tibor
+    auditedAt: null
+  - month: 4
+    day: 15
+    monthDay: 04-15
+    names:
+      - Adaora
+      - Áfonya
+      - Agnabella
+      - Aisa
+      - Aisah
+      - Ajra
+      - Akaiéna
+      - Aldó
+      - Alirán
+      - Allegra
+      - Aloé
+      - Ánizs
+      - Arenta
+      - Artiana
+      - Avitál
+      - Cézár
+      - Cinka
+      - Csaga
+      - Csalka
+      - Ékes
+      - Fanna
+      - Késav
+      - Neszta
+      - Nyeste
+      - Oktávia
+      - Ozirisz
+      - Szovárd
+      - Tas
+      - Úna
+      - Anasztázia
+    preferredNames:
+      - Tas
+      - Anasztázia
+    auditedAt: null
+  - month: 4
+    day: 16
+    monthDay: 04-16
+    names:
+      - Áhim
+      - Bánk
+      - Bános
+      - Bene
+      - Benedek
+      - Benedikt
+      - Benediktusz
+      - Benett
+      - Benitó
+      - Berna
+      - Bernadett
+      - Bernadetta
+      - Bernarda
+      - Bernardina
+      - Cecilián
+      - Csongor
+      - Detti
+      - Dettina
+      - Enikő
+      - Jákim
+      - Joachim
+      - Joáhim
+      - Joákim
+      - Joakim
+      - József
+      - Karim
+      - Kerim
+      - Lambert
+      - Lamberta
+      - Naróttama
+      - Tercia
+      - Zsüsztin
+    preferredNames:
+      - Csongor
+    auditedAt: null
+  - month: 4
+    day: 17
+    monthDay: 04-17
+    names:
+      - Anaszta
+      - Anasztázia
+      - Anicét
+      - Anicéta
+      - Árnika
+      - Asma
+      - Barka
+      - Csongor
+      - Holden
+      - Ince
+      - Izidóra
+      - Kiara
+      - Klára
+      - Megyer
+      - Nasztázia
+      - Nefelejcs
+      - Neste
+      - Neszta
+      - Nyeste
+      - Radiszló
+      - Radó
+      - Ralf
+      - Raúl
+      - Raul
+      - Rázsony
+      - Rezső
+      - Rolf
+      - Rudolf
+      - Rudolfina
+      - Zia
+      - Zongor
+      - Zsongor
+    preferredNames:
+      - Rudolf
+    auditedAt: null
+  - month: 4
+    day: 18
+    monthDay: 04-18
+    names:
+      - Aladár
+      - Apolló
+      - Hermina
+      - Ilma
+      - Lambert
+      - Uzon
+      - Uzor
+      - Verner
+      - Andrea
+    preferredNames:
+      - Ilma
+      - Andrea
+    auditedAt: null
+  - month: 4
+    day: 19
+    monthDay: 04-19
+    names:
+      - Dzserald
+      - Emma
+      - Emmet
+      - Emmi
+      - Ezékiel
+      - Galatea
+      - Gerold
+      - Gilda
+      - Girót
+      - Kocsárd
+      - Leó
+      - Leon
+      - Malvin
+      - Malvina
+      - Orália
+      - Timona
+      - Zserald
+      - Zseráldin
+      - Zseraldin
+      - Zseraldina
+    preferredNames:
+      - Emma
+    auditedAt: null
+  - month: 4
+    day: 20
+    monthDay: 04-20
+    names:
+      - Aladár
+      - Aladin
+      - Alarik
+      - Dejte
+      - Göncöl
+      - Keán
+      - Konrád
+      - Odett
+      - Odetta
+      - Odil
+      - Odília
+      - Tihamér
+      - Tivadar
+      - Töhötöm
+      - Vincencia
+    preferredNames:
+      - Tivadar
+    auditedAt: null
+  - month: 4
+    day: 21
+    monthDay: 04-21
+    names:
+      - Abelárd
+      - Adolár
+      - Anasztáz
+      - Anzelm
+      - Anzelma
+      - Göncöl
+      - Konrád
+      - Simeon
+      - Szaszkia
+      - Szelma
+      - Zeke
+      - Zekő
+      - Zelma
+      - Zelmira
+      - Zsombor
+    preferredNames:
+      - Konrád
+      - Zelmira
+    auditedAt: null
+  - month: 4
+    day: 22
+    monthDay: 04-22
+    names:
+      - Csilla
+      - Csillagvirág
+      - Émi
+      - Kájusz
+      - Kéla
+      - Kelemen
+      - Kelen
+      - Leonid
+      - Leonidász
+      - Naómi
+      - Naomi
+      - Noa
+      - Noam
+      - Noé
+      - Noémi
+      - Szemira
+      - Szemirámisz
+      - Tábita
+      - Tácia
+      - Tánya
+      - Tatjána
+      - Vaszília
+      - Zaman
+      - Zorba
+    preferredNames:
+      - Noémi
+      - Csilla
+    auditedAt: null
+  - month: 4
+    day: 23
+    monthDay: 04-23
+    names:
+      - Achilles
+      - Achillesz
+      - Adalbert
+      - Adalberta
+      - Adalbertina
+      - Ahillész
+      - Albert
+      - Béla
+      - Egon
+      - Egyed
+      - Fortuna
+      - Fortunáta
+      - Gellért
+      - Gerhárd
+      - Gorán
+      - György
+      - Györk
+      - Györke
+      - Héla
+      - Hella
+      - Ila
+      - Ilka
+      - Illa
+      - Ilma
+      - Ilon
+      - Ilona
+      - Ilonka
+      - Ilus
+      - Iluska
+      - Norma
+      - Sándor
+      - Vojta
+      - Zílió
+    preferredNames:
+      - Béla
+    auditedAt: null
+  - month: 4
+    day: 24
+    monthDay: 04-24
+    names:
+      - Baján
+      - Becse
+      - Bojána
+      - Bojta
+      - Bojtor
+      - Bojtorján
+      - Bonifác
+      - Bónis
+      - Csaba
+      - Debóra
+      - Egbert
+      - Egberta
+      - Egmont
+      - Fidél
+      - Fidélia
+      - Gaszton
+      - Gorán
+      - Gyöngyvirág
+      - György
+      - Györgyi
+      - Györgyike
+      - Györk
+      - Györke
+      - Honóriusz
+      - Hunor
+      - Hunóra
+      - Hunorka
+      - Hümér
+      - Kardos
+      - Kászon
+      - Melióra
+      - Meliton
+      - Melitta
+      - Nefelejcs
+      - Sába
+      - Sebő
+      - Simon
+      - Vajta
+      - Vata
+    preferredNames:
+      - György
+    auditedAt: null
+  - month: 4
+    day: 25
+    monthDay: 04-25
+    names:
+      - Ajnácska
+      - Ajsa
+      - Ángyán
+      - Ányos
+      - Ervin
+      - Ervina
+      - Ervínia
+      - Everard
+      - Hajnácska
+      - Izmael
+      - Kalliszta
+      - Kasszandra
+      - Márk
+      - Markel
+      - Márkus
+      - Márkusz
+      - Niké
+    preferredNames:
+      - Márk
+    auditedAt: null
+  - month: 4
+    day: 26
+    monthDay: 04-26
+    names:
+      - Ervin
+      - Ervina
+      - Ervínia
+      - Kilit
+      - Klétus
+      - Mara
+      - Marcel
+      - Marcell
+      - Marcselló
+      - Mária
+      - Peregrina
+      - Tihamér
+    preferredNames:
+      - Ervin
+    auditedAt: null
+  - month: 4
+    day: 27
+    monthDay: 04-27
+    names:
+      - Anasztáz
+      - Árisz
+      - Arisztid
+      - Mariann
+      - Marianna
+      - Monszerát
+      - Péter
+      - Petrik
+      - Petúnia
+      - Pintyőke
+      - Poppea
+      - Suriel
+      - Tas
+      - Tullia
+      - Vern
+      - Zeta
+      - Zetta
+      - Zita
+      - Ziza
+      - Zizi
+      - Zuriel
+    preferredNames:
+      - Mariann
+      - Zita
+    auditedAt: null
+  - month: 4
+    day: 28
+    monthDay: 04-28
+    names:
+      - Aszter
+      - Bulcsú
+      - Dorisz
+      - Fedóra
+      - Ménrót
+      - Nimród
+      - Pál
+      - Pálos
+      - Páris
+      - Patony
+      - Patrícia
+      - Patrícius
+      - Patrik
+      - Teodóra
+      - Valéria
+      - Vélia
+      - Vitália
+      - Vitálij
+      - Vitális
+      - Vitályos
+      - Vitéz
+      - Vitold
+      - Vitolda
+    preferredNames:
+      - Valéria
+    auditedAt: null
+  - month: 4
+    day: 29
+    monthDay: 04-29
+    names:
+      - Antónia
+      - Hugó
+      - Kata
+      - Katalin
+      - Kati
+      - Katica
+      - Katinka
+      - Kató
+      - Kátya
+      - Péter
+      - Pető
+      - Petres
+      - Petrik
+      - Petur
+      - Róbert
+      - Roberta
+      - Robertin
+      - Robertina
+      - Robertó
+      - Robina
+      - Robinetta
+      - Tertullia
+      - Tihamér
+    preferredNames:
+      - Péter
+    auditedAt: null
+  - month: 4
+    day: 30
+    monthDay: 04-30
+    names:
+      - Ajtony
+      - Buzád
+      - Buzát
+      - Darla
+      - Hilda
+      - Holda
+      - Ilda
+      - Ildikó
+      - Karina
+      - Katalin
+      - Kitti
+      - Mariann
+      - Marianna
+      - Pió
+      - Piusz
+      - Rozamunda
+      - Rozmarin
+      - Rozmaring
+      - Szófia
+      - Szofia
+      - Tercia
+      - Tertullia
+      - Tivadar
+      - Zsófia
+    preferredNames:
+      - Katalin
+      - Kitti
+    auditedAt: null
+  - month: 5
+    day: 1
+    monthDay: 05-01
+    names:
+      - Amarill
+      - Amarilla
+      - Amarillisz
+      - Amator
+      - Bánk
+      - Bene
+      - Benedek
+      - Benedikt
+      - Benediktusz
+      - Benett
+      - Benignusz
+      - Benitó
+      - Berta
+      - Fédra
+      - Filep
+      - Filip
+      - Filippó
+      - Florianna
+      - Florina
+      - Fülöp
+      - Izaura
+      - Izóra
+      - Jakab
+      - Jákob
+      - Járed
+      - Jefte
+      - Jeremi
+      - Jeremiás
+      - József
+      - Keled
+      - Maja
+      - Peónia
+      - Peregrina
+      - Pipó
+      - Szvetlána
+      - Tétény
+      - Tibold
+      - Zobor
+      - Zsaklin
+      - Zsigmond
+    preferredNames:
+      - Fülöp
+      - Jakab
+      - Zsaklin
+    auditedAt: null
+  - month: 5
+    day: 2
+    monthDay: 05-02
+    names:
+      - Atanáz
+      - Borisz
+      - Gereben
+      - Minerva
+      - Nétus
+      - Nétusz
+      - Pellegrin
+      - Peregrin
+      - Peregrina
+      - Ráchel
+      - Ráhel
+      - Rákhel
+      - Zoé
+      - Zója
+      - Zoja
+      - Zsigmond
+    preferredNames:
+      - Zsigmond
+    auditedAt: null
+  - month: 5
+    day: 3
+    monthDay: 05-03
+    names:
+      - Alek
+      - Alexander
+      - Antonella
+      - Antónia
+      - Eutímia
+      - Filep
+      - Filip
+      - Filippó
+      - Fülöp
+      - Horác
+      - Horáció
+      - Horáciusz
+      - Irma
+      - Ivola
+      - Jakab
+      - Jákob
+      - Junior
+      - Juvenál
+      - Letta
+      - Lex
+      - Maura
+      - Sándor
+      - Seherezádé
+      - Téna
+      - Ténia
+      - Tímea
+      - Timon
+      - Timóteus
+      - Timóteusz
+      - Ugor
+      - Viola
+      - Violet
+      - Violetta
+      - Viorika
+      - Zsaklin
+    preferredNames:
+      - Irma
+      - Tímea
+    auditedAt: null
+  - month: 5
+    day: 4
+    monthDay: 05-04
+    names:
+      - Amál
+      - Amália
+      - Ameli
+      - Amélia
+      - Antónia
+      - Bulcsú
+      - Elma
+      - Flórián
+      - Florianna
+      - Florina
+      - Flóris
+      - Fóris
+      - Gotárd
+      - Gothárd
+      - Kocsárd
+      - László
+      - Móni
+      - Mónika
+      - Pelágiusz
+      - Szilvánusz
+    preferredNames:
+      - Flórián
+      - Mónika
+    auditedAt: null
+  - month: 5
+    day: 5
+    monthDay: 05-05
+    names:
+      - Andzseló
+      - Angelus
+      - Angelusz
+      - Árvácska
+      - Erna
+      - Gotárd
+      - Gothárd
+      - Györgyi
+      - Györgyike
+      - Iduna
+      - Irén
+      - Iréne
+      - Irénke
+      - Irina
+      - Judit
+      - Jutta
+      - Kocsárd
+      - Nyék
+      - Pió
+      - Piusz
+      - Viola
+      - Violenta
+      - Violett
+    preferredNames:
+      - Györgyi
+    auditedAt: null
+  - month: 5
+    day: 6
+    monthDay: 05-06
+    names:
+      - Ditta
+      - Elíz
+      - Eliz
+      - Evetke
+      - Federika
+      - Frida
+      - Friderika
+      - Ica
+      - Ida
+      - Iduna
+      - Ivett
+      - Ivetta
+      - Janek
+      - Janó
+      - János
+      - Judit
+      - Ovídiusz
+      - Szavéta
+      - Tamara
+      - Tankréd
+      - Zsóka
+    preferredNames:
+      - Ivett
+      - Frida
+    auditedAt: null
+  - month: 5
+    day: 7
+    monthDay: 05-07
+    names:
+      - Bendegúz
+      - Dalma
+      - Dexter
+      - Germán
+      - Giza
+      - Gizella
+      - Késa
+      - Napóleon
+      - Szaniszló
+      - Zelka
+    preferredNames:
+      - Gizella
+    auditedAt: null
+  - month: 5
+    day: 8
+    monthDay: 05-08
+    names:
+      - Acsád
+      - Akács
+      - Dezideráta
+      - Dezidéria
+      - Gécsa
+      - Géza
+      - Győző
+      - Iduna
+      - Mihály
+      - Mika
+      - Misa
+      - Misel
+      - Miske
+      - Misó
+      - Mizse
+      - Ottokár
+      - Péter
+      - Petrik
+      - Szantána
+      - Ulla
+      - Ulrika
+    preferredNames:
+      - Mihály
+    auditedAt: null
+  - month: 5
+    day: 9
+    monthDay: 05-09
+    names:
+      - Édua
+      - Fehérke
+      - Gergely
+      - Gerő
+      - Gorán
+      - Gregor
+      - György
+      - Györk
+      - Györke
+      - Hófehérke
+      - Karla
+      - Karola
+      - Karolin
+      - Karolina
+      - Katalin
+      - Kristóf
+      - Mirna
+      - Sarlott
+      - Sarolta
+      - Katinka
+    preferredNames:
+      - Gergely
+      - Katinka
+    auditedAt: null
+  - month: 5
+    day: 10
+    monthDay: 05-10
+    names:
+      - Aina
+      - Ainó
+      - Ajna
+      - Ajnó
+      - Alda
+      - Antónia
+      - Armand
+      - Ármin
+      - Blandina
+      - Cserne
+      - Csikó
+      - Csörsz
+      - Filadelfia
+      - Gardénia
+      - Gernot
+      - Gordána
+      - Gordon
+      - Jávorka
+      - Jázmin
+      - Jób
+      - Koridon
+      - Míra
+      - Mira
+      - Miranda
+      - Mirka
+      - Pálma
+      - Palmira
+      - Szolanzs
+    preferredNames:
+      - Pálma
+      - Ármin
+    auditedAt: null
+  - month: 5
+    day: 11
+    monthDay: 05-11
+    names:
+      - Fábiusz
+      - Fabríció
+      - Ferenc
+      - Filep
+      - Filip
+      - Filippó
+      - Fülöp
+      - Guidó
+      - Gujdó
+      - Izidor
+      - Jakab
+      - Jákob
+      - Kalliszta
+      - Majlát
+      - Mályva
+      - Marvin
+      - Mirandella
+      - Mirandola
+      - Mirandolína
+      - Mirea
+      - Tibád
+    preferredNames:
+      - Ferenc
+    auditedAt: null
+  - month: 5
+    day: 12
+    monthDay: 05-12
+    names:
+      - Achilles
+      - Achillesz
+      - Adonika
+      - Ahillész
+      - Böngér
+      - Dalma
+      - Domicella
+      - Domitilla
+      - Gemma
+      - Germán
+      - Gyöngy
+      - Gyöngyi
+      - Gyöngyike
+      - Gyöngyös
+      - Gyöngyvirág
+      - Imelda
+      - Ivána
+      - Ivica
+      - Johanna
+      - Korália
+      - Korall
+      - Násfa
+      - Nerella
+      - Nerina
+      - Pongor
+      - Pongrác
+      - Viktor
+    preferredNames:
+      - Pongrác
+    auditedAt: null
+  - month: 5
+    day: 13
+    monthDay: 05-13
+    names:
+      - Belián
+      - Dulcinea
+      - Fatima
+      - Fatime
+      - Gellért
+      - Gerda
+      - Gerhárd
+      - Glenda
+      - Glória
+      - Imola
+      - Ivána
+      - Karácson
+      - Noel
+      - Ofélia
+      - Róbert
+      - Roberta
+      - Robertó
+      - Robina
+      - Robinzon
+      - Szervác
+    preferredNames:
+      - Imola
+      - Szervác
+    auditedAt: null
+  - month: 5
+    day: 14
+    monthDay: 05-14
+    names:
+      - Aglája
+      - Beke
+      - Bekény
+      - Bekes
+      - Bonca
+      - Bonifác
+      - Gemma
+      - Gyöngy
+      - Gyöngyi
+      - Gyöngyike
+      - Gyöngyös
+      - Gyöngyvirág
+      - Julianna
+      - Korália
+      - Korall
+      - Lianna
+      - Násfa
+      - Ompoly
+      - Paszkál
+      - Paszkália
+    preferredNames:
+      - Bonifác
+    auditedAt: null
+  - month: 5
+    day: 15
+    monthDay: 05-15
+    names:
+      - Bodza
+      - Denisza
+      - Denissza
+      - Deniza
+      - Dezsér
+      - Dionízia
+      - Diotíma
+      - Döníz
+      - Fürtike
+      - Izaura
+      - Izidor
+      - Izor
+      - Izóra
+      - Izsák
+      - János
+      - Médea
+      - Rupert
+      - Szofi
+      - Szófia
+      - Szofia
+      - Szonja
+      - Upor
+      - Zosja
+      - Zsófi
+      - Zsófia
+    preferredNames:
+      - Zsófia
+      - Szonja
+    auditedAt: null
+  - month: 5
+    day: 16
+    monthDay: 05-16
+    names:
+      - Babér
+      - Barack
+      - Berkenye
+      - Botond
+      - Brenda
+      - Búzavirág
+      - Cseresznye
+      - Dió
+      - Fahéj
+      - Gerbera
+      - Gesztenye
+      - Gyömbér
+      - Hannibál
+      - Ilang
+      - János
+      - Kalpavalli
+      - Koronilla
+      - Leóti
+      - Levízia
+      - Móka
+      - Mózes
+      - Músza
+      - Nepomuk
+      - Neszrin
+      - Oliána
+      - Pellegrin
+      - Peregrin
+      - Pipacs
+      - Primula
+      - Sáfrány
+      - Simon
+      - Szamóca
+      - Szébra
+      - Szemerke
+      - Ubul
+      - Ugod
+      - Vanilla
+      - Veselke
+      - Zea
+    preferredNames:
+      - Botond
+      - Mózes
+    auditedAt: null
+  - month: 5
+    day: 17
+    monthDay: 05-17
+    names:
+      - Andor
+      - Andos
+      - Benája
+      - Brúnó
+      - Fábiusz
+      - Klemátisz
+      - Paszkál
+      - Paszkália
+      - Pasztorella
+      - Rezeda
+      - Szalók
+      - Szolón
+    preferredNames:
+      - Paszkál
+    auditedAt: null
+  - month: 5
+    day: 18
+    monthDay: 05-18
+    names:
+      - Alexandra
+      - Alexandrin
+      - Alexandrina
+      - Blandina
+      - Bódog
+      - Era
+      - Erik
+      - Erika
+      - Erk
+      - Erős
+      - Félix
+      - Hamid
+      - Hanga
+      - Kámea
+      - Kamília
+      - Kamilia
+      - Kamilla
+      - Klaudia
+      - Szandra
+      - Szendi
+      - Toszka
+    preferredNames:
+      - Erik
+      - Alexandra
+    auditedAt: null
+  - month: 5
+    day: 19
+    monthDay: 05-19
+    names:
+      - Alvián
+      - Alvin
+      - Bernadetta
+      - Bernarda
+      - Buda
+      - Celesztin
+      - Celesztina
+      - Dukász
+      - Emiliána
+      - Ivó
+      - Ivon
+      - Ivonn
+      - Káldor
+      - Milán
+      - Milana
+      - Nitái
+      - Norik
+      - Tuzson
+      - Vulkán
+    preferredNames:
+      - Milán
+      - Ivó
+    auditedAt: null
+  - month: 5
+    day: 20
+    monthDay: 05-20
+    names:
+      - Arszák
+      - Balabán
+      - Berárd
+      - Bernadetta
+      - Bernárd
+      - Bernarda
+      - Bernát
+      - Felícia
+      - Galamb
+      - Gerle
+      - Hanna
+      - Hanni
+      - Jemima
+      - Johanna
+      - Kolomba
+      - Kolombina
+      - Mimma
+      - Palóma
+      - Paloma
+      - Tália
+    preferredNames:
+      - Bernát
+      - Felícia
+    auditedAt: null
+  - month: 5
+    day: 21
+    monthDay: 05-21
+    names:
+      - Andorás
+      - András
+      - Andrej
+      - Dévald
+      - Eleni
+      - Konstantin
+      - Mirella
+      - Ozmin
+      - Teobald
+      - Teobalda
+      - Teofil
+      - Teofila
+      - Tibold
+      - Vajda
+    preferredNames:
+      - Konstantin
+    auditedAt: null
+  - month: 5
+    day: 22
+    monthDay: 05-22
+    names:
+      - Atos
+      - Boáz
+      - Bogárka
+      - Dzsúlió
+      - Elena
+      - Emil
+      - Fiametta
+      - Fiamma
+      - Júlia
+      - Julián
+      - Julianna
+      - Juliánusz
+      - Júliusz
+      - Marsal
+      - Renáta
+      - Rita
+      - Ritta
+      - Román
+      - Romána
+      - Románó
+      - Romina
+      - Temes
+      - Ugocsa
+      - Ugron
+      - Uljána
+      - Zsülien
+      - Zsüliett
+    preferredNames:
+      - Rita
+      - Júlia
+    auditedAt: null
+  - month: 5
+    day: 23
+    monthDay: 05-23
+    names:
+      - Dés
+      - Dézi
+      - Dezsider
+      - Dezső
+      - Holli
+      - Mikes
+      - Norma
+      - Renáta
+      - Röné
+      - Vilmos
+    preferredNames:
+      - Dezső
+    auditedAt: null
+  - month: 5
+    day: 24
+    monthDay: 05-24
+    names:
+      - Csepel
+      - Eliza
+      - Eszter
+      - Godvin
+      - Hadassa
+      - Hanka
+      - Jana
+      - Mária
+      - Miléna
+      - Simeon
+      - Simon
+      - Szimka
+      - Szimóna
+      - Szimonett
+      - Szimonetta
+      - Szófia
+      - Szofia
+      - Vanessza
+      - Véta
+      - Vince
+      - Vincent
+      - Zsófia
+    preferredNames:
+      - Eliza
+      - Eszter
+      - Vanessza
+    auditedAt: null
+  - month: 5
+    day: 25
+    monthDay: 05-25
+    names:
+      - Bagita
+      - Bársony
+      - Bársonyka
+      - Béda
+      - Bedecs
+      - Bedő
+      - Csatád
+      - Gergely
+      - Gorán
+      - Gregor
+      - György
+      - Györk
+      - Györke
+      - Madlen
+      - Madléna
+      - Magda
+      - Magdaléna
+      - Magdi
+      - Magdó
+      - Magdolna
+      - Maléna
+      - Márk
+      - Márkus
+      - Márkusz
+      - Marléne
+      - Nefeli
+      - Orbán
+      - Szófia
+      - Szofia
+      - Urbán
+      - Urbána
+      - Zsófia
+    preferredNames:
+      - Orbán
+    auditedAt: null
+  - month: 5
+    day: 26
+    monthDay: 05-26
+    names:
+      - Aladár
+      - Berengár
+      - Elektra
+      - Evelin
+      - Evelina
+      - Filep
+      - Filip
+      - Filippó
+      - Fülöp
+      - Godó
+      - Gyöngyvér
+      - Mandel
+      - Nyék
+      - Szemere
+      - Szendrő
+    preferredNames:
+      - Evelin
+      - Fülöp
+    auditedAt: null
+  - month: 5
+    day: 27
+    monthDay: 05-27
+    names:
+      - Ágas
+      - Ágoston
+      - Gyula
+      - Hella
+      - Kenza
+      - Neó
+      - Paszkál
+      - Pelbárt
+      - Randolf
+      - Szörénke
+    preferredNames:
+      - Hella
+    auditedAt: null
+  - month: 5
+    day: 28
+    monthDay: 05-28
+    names:
+      - Ágas
+      - Agmánd
+      - Ágost
+      - Ágoston
+      - Almira
+      - Bod
+      - Csanád
+      - Elmira
+      - Emil
+      - Germán
+      - Kara
+      - Karád
+      - Karcsa
+      - Karsa
+      - Lucián
+      - Lüszi
+      - Lüszien
+      - Perjámos
+      - Uránia
+      - Vilhelma
+      - Vilma
+      - Vilmos
+    preferredNames:
+      - Emil
+      - Csanád
+    auditedAt: null
+  - month: 5
+    day: 29
+    monthDay: 05-29
+    names:
+      - Adelmár
+      - Aléna
+      - Almiréna
+      - Batu
+      - Csingiz
+      - Dzsingiz
+      - Elmár
+      - Jukundusz
+      - Kán
+      - Kond
+      - Kund
+      - Kunó
+      - Mária
+      - Max
+      - Maxim
+      - Maximusz
+      - Melióra
+      - Melodi
+      - Melódia
+      - Teodózia
+      - Magdolna
+    preferredNames:
+      - Magdolna
+    auditedAt: null
+  - month: 5
+    day: 30
+    monthDay: 05-30
+    names:
+      - Dezsér
+      - Dezsider
+      - Dezső
+      - Dzsenet
+      - Dzsenna
+      - Dzsenni
+      - Félix
+      - Ferdinánd
+      - Ferdinanda
+      - Fernanda
+      - Fernándó
+      - Fernandó
+      - Hanna
+      - Hanni
+      - Jaina
+      - Jana
+      - Janina
+      - Janka
+      - Janna
+      - Jenni
+      - Jente
+      - Joana
+      - Johanka
+      - Johanna
+      - Jována
+      - Nanda
+      - Nandin
+      - Nándor
+      - Vaszília
+      - Vászoly
+      - Vazul
+      - Vázsony
+      - Zsanett
+      - Zsanin
+      - Zsanina
+    preferredNames:
+      - Janka
+      - Zsanett
+    auditedAt: null
+  - month: 5
+    day: 31
+    monthDay: 05-31
+    names:
+      - Aldó
+      - Angéla
+      - Angyal
+      - Angyalka
+      - Dalida
+      - Hermiás
+      - Hermiusz
+      - Mária
+      - Matild
+      - Matilda
+      - Metella
+      - Nilla
+      - Petronella
+      - Petrónia
+      - Petróniusz
+      - Szona
+      - Szonóra
+      - Tilda
+      - Tilla
+      - Villő
+      - Zenge
+    preferredNames:
+      - Petronella
+      - Angéla
+    auditedAt: null
+  - month: 6
+    day: 1
+    monthDay: 06-01
+    names:
+      - Angéla
+      - Angélia
+      - Bóbita
+      - Fortunát
+      - Fortunátó
+      - Göncöl
+      - Gracián
+      - Graciána
+      - Graciella
+      - Hortenzia
+      - Júnó
+      - Jusztin
+      - Konrád
+      - Kunó
+      - Merilin
+      - Paméla
+      - Pamela
+      - Pamfil
+      - Pandóra
+      - Pandora
+      - Paulin
+      - Paulina
+      - Simeon
+      - Szemira
+      - Szemirámisz
+      - Tünde
+      - Tündér
+      - Tündi
+    preferredNames:
+      - Tünde
+    auditedAt: null
+  - month: 6
+    day: 2
+    monthDay: 06-02
+    names:
+      - Ábel
+      - Amélia
+      - Ármin
+      - Ármina
+      - Blandina
+      - Csilla
+      - Erazmus
+      - Etele
+      - Etre
+      - Eugén
+      - Gemella
+      - Geminián
+      - Irma
+      - Jenő
+      - Kármen
+      - Karmen
+      - Kornél
+      - Péter
+      - Petrik
+      - Razmus
+      - Rézmán
+      - Rúna
+      - Vénusz
+      - Anita
+    preferredNames:
+      - Kármen
+      - Anita
+    auditedAt: null
+  - month: 6
+    day: 3
+    monthDay: 06-03
+    names:
+      - Bérc
+      - Bercel
+      - Berec
+      - Cecília
+      - Cecilián
+      - Célia
+      - Cicelle
+      - Cili
+      - Cilla
+      - Ingmár
+      - Kevin
+      - Klotild
+      - Seila
+      - Sejla
+      - Tilda
+      - Zília
+    preferredNames:
+      - Cecília
+      - Klotild
+    auditedAt: null
+  - month: 6
+    day: 4
+    monthDay: 06-04
+    names:
+      - Bulcsú
+      - Fatima
+      - Fatime
+      - Ferenc
+      - Kerény
+      - Kerubin
+      - Kerubina
+      - Szvetlana
+      - Vérbulcsú
+    preferredNames:
+      - Bulcsú
+    auditedAt: null
+  - month: 6
+    day: 5
+    monthDay: 06-05
+    names:
+      - Bán
+      - Béke
+      - Békés
+      - Bonifác
+      - Damír
+      - Doroteó
+      - Fatima
+      - Fatime
+      - Ferdinánd
+      - Fernándó
+      - Fernandó
+      - Nándor
+      - Reginald
+      - Regő
+      - Szantínó
+      - Valéria
+      - Zena
+      - Zenina
+      - Zenke
+      - Zina
+      - Zinaida
+      - Zinajda
+      - Zinka
+    preferredNames:
+      - Fatima
+      - Fatime
+    auditedAt: null
+  - month: 6
+    day: 6
+    monthDay: 06-06
+    names:
+      - Artemisz
+      - Artemízia
+      - Cinderella
+      - Cinella
+      - Cinna
+      - Cintia
+      - Dante
+      - Delani
+      - Délia
+      - Felícia
+      - Filep
+      - Filip
+      - Filippó
+      - Fülöp
+      - Gilbert
+      - Klaudia
+      - Klaudió
+      - Klaudiusz
+      - Kolos
+      - Kolozs
+      - Norbert
+      - Norberta
+      - Norisz
+      - Norm
+      - Norman
+      - Norton
+      - Szindi
+      - Szintia
+    preferredNames:
+      - Cintia
+      - Norbert
+    auditedAt: null
+  - month: 6
+    day: 7
+    monthDay: 06-07
+    names:
+      - Ariadna
+      - Ariadné
+      - Arianna
+      - Arienn
+      - Berengár
+      - Énók
+      - Énok
+      - Gotlíb
+      - Jeremi
+      - Jeremiás
+      - Kasztor
+      - Kocsárd
+      - Oriána
+      - Róbert
+      - Robertó
+      - Robin
+      - Sebes
+      - Seherezádé
+      - Robertina
+    preferredNames:
+      - Róbert
+      - Robertina
+    auditedAt: null
+  - month: 6
+    day: 8
+    monthDay: 06-08
+    names:
+      - Ádér
+      - Ágnes
+      - Elga
+      - Élon
+      - Helga
+      - Izabella
+      - Kalipszó
+      - Kalli
+      - Kalliopé
+      - Medárd
+      - Medárda
+      - Opál
+      - Tas
+      - Vilmos
+      - Zaránd
+    preferredNames:
+      - Medárd
+    auditedAt: null
+  - month: 6
+    day: 9
+    monthDay: 06-09
+    names:
+      - Anabel
+      - Anabell
+      - Anabella
+      - Annabel
+      - Annabell
+      - Annabella
+      - Annaliza
+      - Annamari
+      - Annamária
+      - Annarita
+      - Annavera
+      - Berger
+      - Bódog
+      - Déna
+      - Dia
+      - Diána
+      - Diana
+      - Efraim
+      - Előd
+      - Enciána
+      - Felicián
+      - Feliciána
+      - Félix
+      - Keve
+      - Kolumbusz
+      - Koppány
+      - Ludovika
+      - Morgan
+      - Pelágia
+      - Pelágiusz
+      - Perjámos
+      - Piramusz
+      - Prímusz
+    preferredNames:
+      - Félix
+    auditedAt: null
+  - month: 6
+    day: 10
+    monthDay: 06-10
+    names:
+      - Bács
+      - Bardó
+      - Dia
+      - Diána
+      - Gitka
+      - Gitta
+      - Margit
+      - Meggi
+      - Peggi
+      - Gréta
+    preferredNames:
+      - Gréta
+      - Margit
+    auditedAt: null
+  - month: 6
+    day: 11
+    monthDay: 06-11
+    names:
+      - Amábel
+      - Balla
+      - Balló
+      - Barabás
+      - Barna
+      - Barnabás
+      - Darla
+      - Etelka
+      - Mábel
+      - Mabella
+      - Paula
+      - Roxána
+      - Rozalinda
+      - Tulipán
+      - Vaszília
+    preferredNames:
+      - Barnabás
+    auditedAt: null
+  - month: 6
+    day: 12
+    monthDay: 06-12
+    names:
+      - Cinnia
+      - Eta
+      - Etelka
+      - Etka
+      - Etus
+      - János
+      - Johanán
+      - Leó
+      - Leon
+      - Mohamed
+      - Villő
+    preferredNames:
+      - Villő
+    auditedAt: null
+  - month: 6
+    day: 13
+    monthDay: 06-13
+    names:
+      - Anéta
+      - Anett
+      - Anetta
+      - Antal
+      - Anton
+      - Antónió
+      - Barka
+      - Dzsínó
+      - Grácia
+      - Netta
+      - Netti
+      - Tóbiás
+    preferredNames:
+      - Anett
+      - Antal
+    auditedAt: null
+  - month: 6
+    day: 14
+    monthDay: 06-14
+    names:
+      - Csinyere
+      - Elizeus
+      - Hartvig
+      - Herta
+      - Metód
+      - Töhötöm
+      - Valér
+      - Valérió
+      - Vazul
+      - Zazi
+    preferredNames:
+      - Vazul
+    auditedAt: null
+  - month: 6
+    day: 15
+    monthDay: 06-15
+    names:
+      - Ábrahám
+      - Alisa
+      - Aurél
+      - Barót
+      - Bátony
+      - Berárd
+      - Bernárd
+      - Bernát
+      - Bod
+      - Gibárt
+      - Ibrahim
+      - Ivola
+      - Izolda
+      - Jolán
+      - Jolanda
+      - Jolánta
+      - Jonka
+      - Kreszcencia
+      - Letta
+      - Lotár
+      - Modesztusz
+      - Szenta
+      - Vida
+      - Vidos
+      - Viggó
+      - Viola
+      - Violet
+      - Violetta
+      - Viorika
+      - Víta
+      - Vitány
+      - Vító
+      - Vitus
+      - Zenta
+      - Zoé
+      - Vid
+    preferredNames:
+      - Jolán
+      - Vid
+    auditedAt: null
+  - month: 6
+    day: 16
+    monthDay: 06-16
+    names:
+      - Ajtony
+      - Arany
+      - Aranyka
+      - Aranyos
+      - Aurélián
+      - Barót
+      - Bennó
+      - Círus
+      - Ferenc
+      - Jusztícia
+      - Jusztin
+      - Jusztina
+      - Péter
+      - Petrik
+      - Ramszesz
+      - Tina
+    preferredNames:
+      - Jusztin
+    auditedAt: null
+  - month: 6
+    day: 17
+    monthDay: 06-17
+    names:
+      - Adina
+      - Adolf
+      - Adolfina
+      - Alida
+      - Alina
+      - Alinka
+      - Bató
+      - Folkus
+      - Lamar
+      - Laura
+      - Lolli
+      - Lorett
+      - Nikander
+      - Teofil
+      - Teofila
+      - Terézia
+    preferredNames:
+      - Alida
+      - Alina
+      - Laura
+    auditedAt: null
+  - month: 6
+    day: 18
+    monthDay: 06-18
+    names:
+      - Arnold
+      - Arnót
+      - Bjárke
+      - Björn
+      - Dezdemóna
+      - Dolóresz
+      - Dolorita
+      - Doloróza
+      - Efraim
+      - Elíz
+      - Eliz
+      - Eufémia
+      - Evódia
+      - Evron
+      - Ilmár
+      - Lavanda
+      - Leontin
+      - Levéd
+      - Levedi
+      - Levendula
+      - Levente
+      - Márk
+      - Markel
+      - Márkó
+      - Markó
+      - Márkus
+      - Márkusz
+      - Milton
+      - Sudár
+      - Sudárka
+    preferredNames:
+      - Arnold
+      - Levente
+    auditedAt: null
+  - month: 6
+    day: 19
+    monthDay: 06-19
+    names:
+      - Adeodát
+      - Azura
+      - Azurea
+      - Gerváz
+      - Gyárfás
+      - Hajnal
+      - Hajnalka
+      - Hajni
+      - Imodzsen
+      - Imogén
+      - Ince
+      - Járfás
+      - Jávor
+      - Julianna
+      - Liána
+      - Liana
+      - Mihaéla
+      - Mihály
+      - Mikó
+      - Misa
+      - Misel
+      - Misell
+      - Miske
+      - Misó
+      - Rómeó
+      - Romuald
+      - Romvald
+      - Szorina
+      - Vince
+      - Vincent
+      - Zohara
+      - Zóra
+      - Zora
+      - Zorina
+      - Zorinka
+      - Zorka
+    preferredNames:
+      - Gyárfás
+    auditedAt: null
+  - month: 6
+    day: 20
+    monthDay: 06-20
+    names:
+      - Baltazár
+      - Benigna
+      - Dea
+      - Deodát
+      - Dina
+      - Dinara
+      - Fabiána
+      - Feliciána
+      - Floransz
+      - Florencia
+      - Florentina
+      - Gemma
+      - Iláj
+      - Koppány
+      - Margit
+      - Özséb
+      - Rafael
+      - Rafaéla
+      - Rafaella
+      - Ráfis
+      - Szilamér
+      - Szilvér
+      - Szilver
+    preferredNames:
+      - Rafael
+    auditedAt: null
+  - month: 6
+    day: 21
+    monthDay: 06-21
+    names:
+      - Alajos
+      - Alojzia
+      - Alóma
+      - Aloma
+      - Demetria
+      - Elián
+      - Kloé
+      - Leila
+      - Lejla
+      - Lejle
+      - Lujza
+      - Olga
+      - Radomér
+      - Ralf
+    preferredNames:
+      - Alajos
+      - Leila
+    auditedAt: null
+  - month: 6
+    day: 22
+    monthDay: 06-22
+    names:
+      - Akács
+      - Ákos
+      - Albin
+      - Albina
+      - Alvina
+      - Bóbita
+      - Horácia
+      - Jászon
+      - Józsiás
+      - Józsua
+      - Józsué
+      - Juszuf
+      - Kriszta
+      - Krisztabell
+      - Krisztiána
+      - Krisztina
+      - Lambert
+      - Paulin
+      - Paulina
+      - Rozvita
+      - Tamás
+      - Tiván
+      - Toma
+    preferredNames:
+      - Paulina
+    auditedAt: null
+  - month: 6
+    day: 23
+    monthDay: 06-23
+    names:
+      - Arszlán
+      - Édua
+      - Szulikó
+      - Szulita
+      - Szultána
+      - Zdenka
+      - Zolna
+      - Zolta
+      - Zoltán
+      - Zoltána
+    preferredNames:
+      - Zoltán
+    auditedAt: null
+  - month: 6
+    day: 24
+    monthDay: 06-24
+    names:
+      - Bajnok
+      - Beáta
+      - Deján
+      - Héra
+      - Iván
+      - János
+      - Jánusz
+      - Levéd
+      - Levedi
+      - Levente
+      - Perenna
+      - Tia
+      - Tiána
+      - Tiana
+      - Tinetta
+    preferredNames:
+      - Iván
+    auditedAt: null
+  - month: 6
+    day: 25
+    monthDay: 06-25
+    names:
+      - Bocsárd
+      - Febrónia
+      - Ivola
+      - Letta
+      - Max
+      - Maxim
+      - Maximilla
+      - Maximusz
+      - Vilma
+      - Vilmos
+      - Viola
+      - Violet
+      - Violetta
+      - Viorika
+    preferredNames:
+      - Vilmos
+    auditedAt: null
+  - month: 6
+    day: 26
+    monthDay: 06-26
+    names:
+      - Adeodát
+      - Adony
+      - Adrianna
+      - Cirill
+      - Dávid
+      - Davina
+      - János
+      - Morgan
+      - Morgána
+      - Örs
+      - Pál
+      - Pálos
+      - Pelágiusz
+      - Pénelopé
+      - Upor
+      - Zéman
+    preferredNames:
+      - Pál
+      - János
+    auditedAt: null
+  - month: 6
+    day: 27
+    monthDay: 06-27
+    names:
+      - Bársony
+      - Bársonyka
+      - Celesztina
+      - Dalia
+      - Deli
+      - Émi
+      - Eufémia
+      - Konstantin
+      - Ladiszla
+      - László
+      - Olga
+      - Sámson
+      - Torda
+      - Tordas
+      - Ulászló
+    preferredNames:
+      - László
+    auditedAt: null
+  - month: 6
+    day: 28
+    monthDay: 06-28
+    names:
+      - Círus
+      - Derel
+      - Erina
+      - Gyula
+      - Hektor
+      - Irén
+      - Iréne
+      - Iréneusz
+      - Irénke
+      - Irina
+      - Iringó
+      - Jerne
+      - Laura
+      - Laurencia
+      - Leó
+      - Leon
+      - Leonidász
+      - Levente
+      - Lolli
+      - Lora
+      - Lorett
+      - Marcella
+      - Petúnia
+      - Szerénusz
+      - Szirom
+      - Szironka
+      - Tivadar
+    preferredNames:
+      - Levente
+      - Irén
+    auditedAt: null
+  - month: 6
+    day: 29
+    monthDay: 06-29
+    names:
+      - Alica
+      - Alícia
+      - Alicia
+      - Alíz
+      - Aliza
+      - Alízia
+      - Beáta
+      - Beatricse
+      - Beatrisz
+      - Beatrix
+      - Ditta
+      - Emma
+      - Emmett
+      - Hárs
+      - Harsány
+      - Judit
+      - Keszi
+      - Kesző
+      - Kövecs
+      - Orbán
+      - Orbó
+      - Pál
+      - Palkó
+      - Pálos
+      - Péter
+      - Petra
+      - Petrik
+      - Salóme
+      - Salomé
+      - Szalóme
+      - Szulamit
+      - Trixi
+      - Ulászló
+      - Urbán
+    preferredNames:
+      - Pál
+      - Péter
+    auditedAt: null
+  - month: 6
+    day: 30
+    monthDay: 06-30
+    names:
+      - Adolfina
+      - Apostol
+      - Bács
+      - Bacsó
+      - Bese
+      - Ditta
+      - Elif
+      - Emiliána
+      - Judit
+      - Jutka
+      - Március
+      - Pál
+      - Pálos
+      - Pósa
+      - Szilász
+      - Vejke
+    preferredNames:
+      - Pál
+    auditedAt: null
+  - month: 7
+    day: 1
+    monthDay: 07-01
+    names:
+      - Anabel
+      - Anabell
+      - Anabella
+      - Annabel
+      - Annabell
+      - Annabella
+      - Áron
+      - Bende
+      - Detre
+      - Dévald
+      - Előd
+      - Gyula
+      - Harun
+      - Lévi
+      - Ninett
+      - Ninetta
+      - Olivér
+      - Tábita
+      - Teobald
+      - Teobalda
+      - Tibád
+      - Tihamér
+      - Veszna
+      - Annamária
+    preferredNames:
+      - Tihamér
+      - Annamária
+    auditedAt: null
+  - month: 7
+    day: 2
+    monthDay: 07-02
+    names:
+      - Jenő
+      - Marcián
+      - Mária
+      - Mia
+      - Odin
+      - Ottó
+      - Ottokár
+      - Sarolt
+      - Várkony
+    preferredNames:
+      - Ottó
+    auditedAt: null
+  - month: 7
+    day: 3
+    monthDay: 07-03
+    names:
+      - Anatol
+      - Anatólia
+      - Berárd
+      - Bernárd
+      - Bernát
+      - Hadúr
+      - Háfiz
+      - Hélia
+      - Heliodor
+      - Héliosz
+      - Hiador
+      - Ilián
+      - Karitász
+      - Kornél
+      - Leó
+      - Leon
+      - Napsugár
+      - Nasszer
+      - Nelda
+      - Prudencia
+      - Som
+      - Soma
+      - Tamás
+      - Toma
+      - Zeusz
+    preferredNames:
+      - Kornél
+      - Soma
+    auditedAt: null
+  - month: 7
+    day: 4
+    monthDay: 07-04
+    names:
+      - Aggeus
+      - Babett
+      - Babetta
+      - Berta
+      - Betta
+      - Betti
+      - Bettina
+      - Fédra
+      - Illés
+      - Ince
+      - Izabella
+      - Kálvinó
+      - Karitász
+      - Lana
+      - Odiló
+      - Odó
+      - Ódor
+      - Prudencia
+      - Rajmund
+      - Ramón
+      - Szvetlána
+      - Údó
+      - Ulla
+      - Ulrik
+    preferredNames:
+      - Ulrik
+    auditedAt: null
+  - month: 7
+    day: 5
+    monthDay: 07-05
+    names:
+      - Antal
+      - Anton
+      - Antos
+      - Cipora
+      - Cippóra
+      - Cipra
+      - Cipriána
+      - Ciprienn
+      - Cirilla
+      - Emese
+      - Metód
+      - Sarolt
+      - Sarolta
+      - Senon
+      - Vilmos
+      - Zoé
+    preferredNames:
+      - Emese
+      - Sarolta
+    auditedAt: null
+  - month: 7
+    day: 6
+    monthDay: 07-06
+    names:
+      - Atalanta
+      - Csaba
+      - Domiciána
+      - Dominika
+      - Dominka
+      - Dzsamal
+      - Ézsaiás
+      - Gyárfás
+      - Izaiás
+      - Járfás
+      - Jávor
+      - Józsiás
+      - Juszuf
+      - Mária
+      - Metella
+      - Miletta
+      - Morella
+      - Nedda
+      - Romola
+      - Romulusz
+      - Tamás
+      - Tankréd
+      - Toma
+    preferredNames:
+      - Csaba
+    auditedAt: null
+  - month: 7
+    day: 7
+    monthDay: 07-07
+    names:
+      - Apollónia
+      - Bandó
+      - Bódog
+      - Cirill
+      - Cirilla
+      - Donald
+      - Donát
+      - Donáta
+      - Évald
+      - Félix
+      - Kíra
+      - Kira
+      - Metód
+      - Odiló
+      - Odó
+      - Olinda
+      - Rodzser
+      - Szidalisz
+      - Vilibald
+    preferredNames:
+      - Apollónia
+    auditedAt: null
+  - month: 7
+    day: 8
+    monthDay: 07-08
+    names:
+      - Arnolda
+      - Csatád
+      - Csatár
+      - Csató
+      - Edgár
+      - Ellák
+      - Eper
+      - Eperke
+      - Estilla
+      - Eszter
+      - Eugén
+      - Gellén
+      - Hannaliza
+      - Iza
+      - Izabel
+      - Izabell
+      - Izabella
+      - Jenő
+      - Kilény
+      - Kilián
+      - Kiliána
+      - Liza
+      - Periklész
+      - Priszcilla
+      - Szabella
+      - Szániva
+      - Terézia
+      - Zsóka
+    preferredNames:
+      - Ellák
+    auditedAt: null
+  - month: 7
+    day: 9
+    monthDay: 07-09
+    names:
+      - Amandina
+      - Bereniké
+      - Detre
+      - Eleanor
+      - Elenor
+      - Eleonóra
+      - Elinor
+      - Fausztina
+      - Félix
+      - Gotfrid
+      - Hajna
+      - Leonóra
+      - Lukrécia
+      - Margit
+      - Marina
+      - Marinella
+      - Marinetta
+      - Milágrosz
+      - Nóra
+      - Nóri
+      - Réta
+      - Vera
+      - Verbéna
+      - Verita
+      - Veronika
+      - Veronka
+    preferredNames:
+      - Lukrécia
+    auditedAt: null
+  - month: 7
+    day: 10
+    monthDay: 07-10
+    names:
+      - Alma
+      - Amál
+      - Amália
+      - Ameli
+      - Amin
+      - Beke
+      - Bekény
+      - Bekes
+      - Elma
+      - Engelbert
+      - Január
+      - Kanut
+      - Kenese
+      - Melina
+      - Rubi
+      - Rubin
+      - Rubina
+      - Rubinka
+      - Rufina
+      - Szilvána
+      - Szilvánusz
+      - Ulrik
+    preferredNames:
+      - Amália
+    auditedAt: null
+  - month: 7
+    day: 11
+    monthDay: 07-11
+    names:
+      - Amábel
+      - Bence
+      - Bendit
+      - Bene
+      - Benedek
+      - Benedikt
+      - Benediktusz
+      - Benett
+      - Benitó
+      - Csende
+      - Csendike
+      - Csente
+      - Druzsiána
+      - Eleonóra
+      - Elga
+      - Félix
+      - Helga
+      - Helka
+      - Holda
+      - Kalina
+      - Kventin
+      - Lili
+      - Lilia
+      - Lilibell
+      - Liliróza
+      - Lilla
+      - Néla
+      - Nella
+      - Nelli
+      - Nóra
+      - Nóri
+      - Norina
+      - Olga
+      - Olivér
+      - Pió
+      - Piusz
+      - Placid
+      - Placida
+      - Ráchel
+      - Ráhel
+      - Rákhel
+      - Szeder
+      - Szederke
+      - Szende
+      - Szendike
+      - Ulrik
+    preferredNames:
+      - Lili
+      - Nóra
+    auditedAt: null
+  - month: 7
+    day: 12
+    monthDay: 07-12
+    names:
+      - Abony
+      - Csete
+      - Dalma
+      - Eleonóra
+      - Erneszt
+      - Ernesztin
+      - Ernesztó
+      - Ernő
+      - Fedor
+      - Félix
+      - Fortunát
+      - Fortunátó
+      - Gerzson
+      - Izabella
+      - János
+      - Leonóra
+      - Nóra
+      - Nóri
+      - Norka
+      - Uzonka
+    preferredNames:
+      - Izabella
+      - Dalma
+    auditedAt: null
+  - month: 7
+    day: 13
+    monthDay: 07-13
+    names:
+      - Anriett
+      - Arnó
+      - Ében
+      - Enrikó
+      - Enzó
+      - Erneszt
+      - Ernesztó
+      - Ernik
+      - Ernő
+      - Eugén
+      - Ezra
+      - Harri
+      - Harriet
+      - Hendri
+      - Heni
+      - Henriett
+      - Henrietta
+      - Henrik
+      - Indra
+      - Jakab
+      - Jákob
+      - Jenő
+      - Kilit
+      - Markéta
+      - Milda
+      - Perla
+      - Petronella
+      - Petrónia
+      - Sára
+      - Sári
+      - Sarolta
+      - Szilas
+      - Szilvánusz
+      - Szólát
+      - Szórád
+      - Szovát
+      - Üdvöske
+      - Zara
+      - Zovát
+    preferredNames:
+      - Jenő
+    auditedAt: null
+  - month: 7
+    day: 14
+    monthDay: 07-14
+    names:
+      - Estella
+      - Esztella
+      - Ferenc
+      - Herkules
+      - Jusztusz
+      - Kamill
+      - Kamilló
+      - Örs
+      - Örsi
+      - Stella
+      - Sztella
+      - Zala
+      - Zalán
+      - Zalánka
+    preferredNames:
+      - Örs
+      - Stella
+    auditedAt: null
+  - month: 7
+    day: 15
+    monthDay: 07-15
+    names:
+      - Adaora
+      - Ajra
+      - Alirán
+      - Allegra
+      - Aloé
+      - Angelina
+      - Ánizs
+      - Arenta
+      - Artiana
+      - Aurél
+      - Avitál
+      - Baldvin
+      - Benvenútó
+      - Bonaventúra
+      - Bozsóka
+      - Cinka
+      - Csaga
+      - Csalka
+      - Csege
+      - Csegő
+      - Donoven
+      - Egon
+      - Ékes
+      - Enrikó
+      - Ernik
+      - Estilla
+      - Esztella
+      - Eszténa
+      - Füzér
+      - Henrik
+      - Ika
+      - Kardos
+      - Lád
+      - Ladomér
+      - Leonóra
+      - Lóránt
+      - Loránt
+      - Manka
+      - Manolita
+      - Manuéla
+      - Manuela
+      - Manuella
+      - Narina
+      - Opika
+      - Örkény
+      - Örkönd
+      - Pompília
+      - Roland
+      - Rollan
+      - Stella
+      - Sztella
+      - Talamér
+      - Vid
+      - Vladimír
+      - Zomilla
+    preferredNames:
+      - Henrik
+      - Roland
+    auditedAt: null
+  - month: 7
+    day: 16
+    monthDay: 07-16
+    names:
+      - Aténa
+      - Aténé
+      - Atina
+      - Euszták
+      - Jusztínia
+      - Karméla
+      - Karmelina
+      - Karmella
+      - Kármen
+      - Karmen
+      - Kont
+      - Lestár
+      - Mária
+      - Valter
+    preferredNames:
+      - Valter
+    auditedAt: null
+  - month: 7
+    day: 17
+    monthDay: 07-17
+    names:
+      - Adema
+      - Ajándék
+      - Bánk
+      - Celina
+      - Cirill
+      - Donáta
+      - Dzsesszika
+      - Elek
+      - Endre
+      - Jeszénia
+      - Jiszka
+      - Kirill
+      - Leó
+      - Leon
+      - Lotte
+      - Lotti
+      - Magda
+      - Magdaléna
+      - Magdi
+      - Magdó
+      - Magdolna
+      - Maléna
+      - Marcellina
+      - Mária
+      - Marléne
+      - Ond
+      - Róbert
+      - Robertó
+      - Ruszalka
+      - Ruszlán
+      - Ruszlána
+      - Sarolta
+      - Szabolcs
+      - Szalárd
+      - Szegfű
+      - Szelemér
+      - Szólát
+      - Szórád
+      - Veszta
+      - Vetúria
+      - Zoárd
+      - Zoárda
+      - Zobor
+      - Zuárd
+    preferredNames:
+      - Elek
+      - Endre
+    auditedAt: null
+  - month: 7
+    day: 18
+    monthDay: 07-18
+    names:
+      - Arnold
+      - Arnolda
+      - Arnót
+      - Frigyes
+      - Hedvig
+      - Hetti
+      - Jusztin
+      - Kámea
+      - Kamília
+      - Kamilia
+      - Kamill
+      - Kamilla
+      - Kamilló
+      - Lantos
+      - Mila
+      - Milán
+      - Milka
+      - Milla
+      - Milován
+      - Mirkó
+      - Szemőke
+      - Zomilla
+      - Zsüsztin
+    preferredNames:
+      - Frigyes
+    auditedAt: null
+  - month: 7
+    day: 19
+    monthDay: 07-19
+    names:
+      - Ajtonka
+      - Alfréd
+      - Alfréda
+      - Ambos
+      - Ambró
+      - Ambrus
+      - Ámer
+      - Amir
+      - Aranka
+      - Arany
+      - Aranyka
+      - Aranyos
+      - Árszen
+      - Arzén
+      - Arzénia
+      - Aura
+      - Aurea
+      - Aurélia
+      - Emili
+      - Emília
+      - Emilia
+      - Emir
+      - Eper
+      - Eperke
+      - Estella
+      - Esztella
+      - Eszténa
+      - Golda
+      - Goldina
+      - Makrina
+      - Memnon
+      - Morella
+      - Omri
+      - Rubin
+      - Rubina
+      - Rubinka
+      - Rufina
+      - Stella
+      - Szeder
+      - Szederke
+      - Sztella
+      - Varsány
+      - Versény
+    preferredNames:
+      - Emília
+    auditedAt: null
+  - month: 7
+    day: 20
+    monthDay: 07-20
+    names:
+      - Aurél
+      - Eliána
+      - Éliás
+      - Eliél
+      - Eliot
+      - Folkus
+      - Ilán
+      - Illés
+      - Itiel
+      - Jeromos
+      - Margarét
+      - Margaréta
+      - Margaretta
+      - Margarita
+      - Margit
+      - Marina
+      - Marinella
+      - Marinetta
+      - Nelzon
+      - Otniel
+      - Szörénke
+    preferredNames:
+      - Illés
+    auditedAt: null
+  - month: 7
+    day: 21
+    monthDay: 07-21
+    names:
+      - Angéla
+      - Angelina
+      - Dalida
+      - Dana
+      - Danica
+      - Dániel
+      - Daniéla
+      - Daniela
+      - Daniella
+      - Danila
+      - Danka
+      - Danuta
+      - Helén
+      - Ilma
+      - Júlia
+      - Laurent
+      - Léna
+      - Léni
+      - Lenka
+      - Lorenzó
+      - Lőrinc
+      - Zsüliett
+    preferredNames:
+      - Dániel
+      - Daniella
+    auditedAt: null
+  - month: 7
+    day: 22
+    monthDay: 07-22
+    names:
+      - Léna
+      - Léni
+      - Lenke
+      - Levendula
+      - Lipót
+      - Magda
+      - Magdaléna
+      - Magdi
+      - Magdó
+      - Magdolna
+      - Maida
+      - Maléna
+      - Manda
+      - Mária
+      - Marléne
+      - Médi
+      - Platón
+      - Verbéna
+      - Veréna
+      - Verita
+    preferredNames:
+      - Magdolna
+    auditedAt: null
+  - month: 7
+    day: 23
+    monthDay: 07-23
+    names:
+      - Apollinár
+      - Apollinária
+      - Birgit
+      - Brigi
+      - Brigitta
+      - Laborc
+      - Lenke
+      - Polina
+      - Polla
+      - Rázsony
+      - Romola
+    preferredNames:
+      - Lenke
+    auditedAt: null
+  - month: 7
+    day: 24
+    monthDay: 07-24
+    names:
+      - Berárd
+      - Bernárd
+      - Bernát
+      - Borisz
+      - Csenge
+      - Csengele
+      - Csönge
+      - Kersztin
+      - Kincső
+      - Kinga
+      - Kiri
+      - Kriszta
+      - Krisztabell
+      - Krisztiána
+      - Krisztina
+      - Levendula
+      - Lujza
+      - Tina
+    preferredNames:
+      - Kinga
+      - Kincső
+    auditedAt: null
+  - month: 7
+    day: 25
+    monthDay: 07-25
+    names:
+      - Dalibor
+      - Diaz
+      - Diegó
+      - Jakab
+      - Jákó
+      - Jákob
+      - Jakobina
+      - Jakus
+      - Kristóf
+      - Szantiágó
+      - Szindbád
+      - Talabér
+      - Talabor
+      - Timor
+      - Timur
+      - Tomor
+      - Valencia
+      - Valentin
+      - Valentina
+      - Valentínó
+      - Zsaklin
+    preferredNames:
+      - Jakab
+      - Kristóf
+    auditedAt: null
+  - month: 7
+    day: 26
+    monthDay: 07-26
+    names:
+      - Áhim
+      - Anélia
+      - Anett
+      - Anetta
+      - Ani
+      - Ania
+      - Anica
+      - Anika
+      - Anikó
+      - Anilla
+      - Anina
+      - Anita
+      - Anitra
+      - Anka
+      - Anna
+      - Annaregina
+      - Anni
+      - Annika
+      - Berill
+      - Elád
+      - Jákim
+      - Joachim
+      - Joáhim
+      - Joákim
+      - Joakim
+      - Kisanna
+      - Kisó
+      - Mózes
+      - Nana
+      - Nanett
+      - Nanetta
+      - Nenszi
+      - Nina
+      - Ninell
+      - Ninett
+      - Ninetta
+      - Ninon
+      - Nisá
+      - Nita
+      - Panka
+      - Panna
+      - Panni
+      - Taddeus
+      - Tádé
+      - Tadeusz
+    preferredNames:
+      - Anna
+      - Anikó
+    auditedAt: null
+  - month: 7
+    day: 27
+    monthDay: 07-27
+    names:
+      - Ajtony
+      - Árvácska
+      - Aurél
+      - Bennó
+      - Bertold
+      - Beten
+      - Celesztin
+      - Gajána
+      - Gorán
+      - György
+      - Györk
+      - Györke
+      - Hugó
+      - Kamília
+      - Kamilia
+      - Kamilla
+      - Keresztély
+      - Kitán
+      - Krisztián
+      - Lilián
+      - Lilian
+      - Liliána
+      - Lilianna
+      - Lilien
+      - Liliom
+      - Lucilla
+      - Lucinda
+      - Natália
+      - Noéla
+      - Noélia
+      - Noella
+      - Olga
+      - Pantaleon
+      - Pentele
+      - Rudolf
+    preferredNames:
+      - Liliána
+      - Olga
+    auditedAt: null
+  - month: 7
+    day: 28
+    monthDay: 07-28
+    names:
+      - Ada
+      - Adelina
+      - Alina
+      - Bars
+      - Barsz
+      - Botond
+      - Győző
+      - Ince
+      - Nausziká
+      - Nauszika
+      - Nauzika
+      - Szabolcs
+      - Szeréna
+      - Szerénke
+      - Viktor
+    preferredNames:
+      - Szabolcs
+    auditedAt: null
+  - month: 7
+    day: 29
+    monthDay: 07-29
+    names:
+      - Ádel
+      - Adelmár
+      - Bea
+      - Csatár
+      - Csejte
+      - Elmó
+      - Félix
+      - Fiorella
+      - Fioretta
+      - Flóra
+      - Florica
+      - Florinda
+      - Hana
+      - Márta
+      - Márti
+      - Olaf
+      - Olavi
+      - Orbán
+      - Tűzvirág
+      - Vértes
+      - Virág
+      - Zohara
+    preferredNames:
+      - Flóra
+      - Márta
+    auditedAt: null
+  - month: 7
+    day: 30
+    monthDay: 07-30
+    names:
+      - Ariton
+      - Avenár
+      - Azucséna
+      - Bihar
+      - Donatella
+      - Donna
+      - Indira
+      - Ingeborg
+      - Inka
+      - Julietta
+      - Julitta
+      - Jutta
+      - Kovrat
+      - Madocsa
+      - Maxima
+      - Oldamur
+      - Ozul
+      - Polixéna
+      - Rovéna
+      - Szemőke
+      - Szénia
+      - Xénia
+      - Zsüliett
+      - Judit
+    preferredNames:
+      - Judit
+      - Xénia
+    auditedAt: null
+  - month: 7
+    day: 31
+    monthDay: 07-31
+    names:
+      - Adeodáta
+      - Bató
+      - Dea
+      - Elena
+      - Elin
+      - Fábiusz
+      - Fabríció
+      - Fabrícius
+      - Fabríciusz
+      - Germán
+      - Héla
+      - Helén
+      - Heléna
+      - Hella
+      - Ignác
+      - Ignácia
+      - Ilka
+      - Illa
+      - Ilon
+      - Ilona
+      - Ilonka
+      - Ilus
+      - Iluska
+      - Jelena
+      - Jelina
+      - Léna
+      - Léni
+      - Oszkár
+    preferredNames:
+      - Oszkár
+    auditedAt: null
+  - month: 8
+    day: 1
+    monthDay: 08-01
+    names:
+      - Alfonz
+      - Bogi
+      - Boglár
+      - Boglárka
+      - Ete
+      - Fodor
+      - Galatea
+      - Gusztáv
+      - Kikinda
+      - Kleó
+      - Kleopátra
+      - Makabeus
+      - Médea
+      - Ménrót
+      - Nadia
+      - Nadin
+      - Nadinka
+      - Nádja
+      - Nagyezsda
+      - Nimród
+      - Orchidea
+      - Pálma
+      - Pénelopé
+      - Peónia
+      - Péter
+      - Petrik
+      - Remény
+      - Reményke
+      - Tulipán
+      - Zsófia
+    preferredNames:
+      - Boglárka
+    auditedAt: null
+  - month: 8
+    day: 2
+    monthDay: 08-02
+    names:
+      - Alfonz
+      - Alfonza
+      - Alfonzin
+      - Alfonzina
+      - Azala
+      - Elfrida
+      - Gusztáv
+      - Lehel
+      - Lél
+      - Mária
+      - Mia
+      - Özséb
+      - Regő
+      - Szamir
+      - Szemír
+      - Szerénusz
+      - Tasnád
+    preferredNames:
+      - Lehel
+    auditedAt: null
+  - month: 8
+    day: 3
+    monthDay: 08-03
+    names:
+      - Ágost
+      - Auguszt
+      - Augusztusz
+      - Bennó
+      - Harmat
+      - Harmatka
+      - Hermina
+      - István
+      - Jetró
+      - Kamélia
+      - Kimberli
+      - Kíra
+      - Kira
+      - Kirilla
+      - Lida
+      - Lídia
+      - Lígia
+      - Mirtill
+      - Nikodémia
+      - Nikodémus
+      - Nikodémusz
+      - Stefán
+      - Sztefán
+      - Tea
+      - Terézia
+      - Tessza
+      - Tíria
+    preferredNames:
+      - Hermina
+    auditedAt: null
+  - month: 8
+    day: 4
+    monthDay: 08-04
+    names:
+      - Arna
+      - Doma
+      - Domiciána
+      - Dominik
+      - Dominika
+      - Dominka
+      - Domokos
+      - Domos
+      - Döme
+      - Indra
+      - Kerubin
+      - Kerubina
+      - Nedda
+      - Törtel
+      - Domonkos
+    preferredNames:
+      - Dominika
+      - Domonkos
+    auditedAt: null
+  - month: 8
+    day: 5
+    monthDay: 08-05
+    names:
+      - Ábel
+      - Abélia
+      - Áfra
+      - Afrika
+      - Afrodita
+      - Afrodité
+      - Emőd
+      - Hargita
+      - Hargitta
+      - Havadi
+      - Havaska
+      - Hófehérke
+      - Kriszta
+      - Krisztabell
+      - Krisztiána
+      - Krisztina
+      - Lúciusz
+      - Manon
+      - Mária
+      - Nóna
+      - Nona
+      - Oszvald
+      - Oszvalda
+      - Ozsvát
+      - Őzike
+      - Páris
+      - Peregrina
+      - Szalvátor
+      - Sznezsana
+      - Viátor
+      - Zebulon
+    preferredNames:
+      - Krisztina
+    auditedAt: null
+  - month: 8
+    day: 6
+    monthDay: 08-06
+    names:
+      - Berta
+      - Bettina
+      - Csobán
+      - Csobánc
+      - Csobánka
+      - Csobilla
+      - Csoboka
+      - Décse
+      - Gécsa
+      - Géza
+      - Gyécsa
+      - Jusztusz
+      - Oktáv
+      - Oktávia
+      - Oktávián
+      - Olina
+      - Pasztorella
+      - Szixtin
+      - Szixtina
+      - Szixtusz
+      - Szotirisz
+      - Ulrika
+    preferredNames:
+      - Berta
+      - Bettina
+    auditedAt: null
+  - month: 8
+    day: 7
+    monthDay: 08-07
+    names:
+      - Áfra
+      - Afrodita
+      - Afrodité
+      - Ajándok
+      - Albert
+      - Arabella
+      - Cseperke
+      - Csepke
+      - Donát
+      - Donatella
+      - Donátó
+      - Edrik
+      - Ibolya
+      - Ibolyka
+      - Kajetán
+      - Kötöny
+      - Szixtusz
+      - Ulrik
+      - Uránia
+      - Vénusz
+    preferredNames:
+      - Ibolya
+    auditedAt: null
+  - month: 8
+    day: 8
+    monthDay: 08-08
+    names:
+      - Ágost
+      - Aladin
+      - Auguszt
+      - Augusztusz
+      - Cirják
+      - Cirjék
+      - Dasztin
+      - Domán
+      - Dominik
+      - Domokos
+      - Dzsasztin
+      - Esma
+      - Eszmeralda
+      - Gusztáv
+      - Hartvig
+      - Hermiusz
+      - Largó
+      - László
+      - Loránt
+      - Zádor
+      - Zádorka
+    preferredNames:
+      - László
+    auditedAt: null
+  - month: 8
+    day: 9
+    monthDay: 08-09
+    names:
+      - Brohe
+      - Emőd
+      - Hágár
+      - János
+      - Jokébed
+      - Kéren
+      - Lilit
+      - Lior
+      - Lióra
+      - Malka
+      - Mea
+      - Orlandó
+      - Roland
+      - Román
+      - Románó
+      - Sifra
+      - Sirá
+      - Tikva
+      - Zamira
+      - Ziva
+    preferredNames:
+      - Emőd
+    auditedAt: null
+  - month: 8
+    day: 10
+    monthDay: 08-10
+    names:
+      - Amadea
+      - Asztéria
+      - Bianka
+      - Blanka
+      - Csilla
+      - Csillag
+      - Laurent
+      - Lóránt
+      - Lorenzó
+      - Lőrinc
+      - Roland
+    preferredNames:
+      - Lőrinc
+    auditedAt: null
+  - month: 8
+    day: 11
+    monthDay: 08-11
+    names:
+      - Britani
+      - Britta
+      - Dulcinea
+      - Filoméla
+      - Filomén
+      - Filoména
+      - Fióna
+      - Ince
+      - Kiara
+      - Klára
+      - Klári
+      - Klarisz
+      - Klarissza
+      - Lélia
+      - Lilián
+      - Lilian
+      - Liliána
+      - Lilianna
+      - Lilien
+      - Liliom
+      - Lujza
+      - Szanna
+      - Tarján
+      - Tibériusz
+      - Tibor
+      - Tiborc
+      - Tícia
+      - Trajánusz
+      - Tullió
+      - Zsanna
+      - Zsazsa
+      - Zsuzsa
+      - Zsuzsánna
+      - Zsuzsanna
+      - Zsuzsi
+      - Zsuzska
+    preferredNames:
+      - Tiborc
+      - Zsuzsanna
+    auditedAt: null
+  - month: 8
+    day: 12
+    monthDay: 08-12
+    names:
+      - Dina
+      - Dinara
+      - Hilár
+      - Hilária
+      - Hiláriusz
+      - Hilda
+      - Hildelita
+      - Kiara
+      - Klára
+      - Klarissza
+      - Larina
+      - Letícia
+      - Létó
+      - Letti
+      - Orália
+      - Sugár
+      - Sugárka
+      - Tícia
+      - Zarán
+    preferredNames:
+      - Klára
+    auditedAt: null
+  - month: 8
+    day: 13
+    monthDay: 08-13
+    names:
+      - Áldás
+      - Áldáska
+      - Barakony
+      - Belinda
+      - Benedikta
+      - Elin
+      - Emőd
+      - Enid
+      - Eudókia
+      - Gerda
+      - Gertrúd
+      - Gertrúdisz
+      - Hannó
+      - Helén
+      - Heléna
+      - Hippia
+      - Hippolit
+      - Hippolita
+      - Ibolya
+      - Ibolyka
+      - Ince
+      - Ipoly
+      - Ippolita
+      - János
+      - Jelena
+      - Jelina
+      - Jerta
+      - Kászon
+      - Kasszián
+      - Max
+      - Maxim
+      - Maximusz
+      - Relinda
+      - Rodelinda
+      - Valton
+      - Víta
+      - Vitália
+    preferredNames:
+      - Ipoly
+    auditedAt: null
+  - month: 8
+    day: 14
+    monthDay: 08-14
+    names:
+      - Atanáz
+      - Atanázia
+      - Bere
+      - Celesztina
+      - Heidi
+      - Marcel
+      - Marcell
+      - Marcselló
+      - Maximilián
+      - Menta
+      - Menyhért
+      - Mikeás
+      - Miksa
+      - Montika
+      - Özséb
+      - Tanázia
+      - Tara
+    preferredNames:
+      - Marcell
+    auditedAt: null
+  - month: 8
+    day: 15
+    monthDay: 08-15
+    names:
+      - Alfréd
+      - Ali
+      - Asszunta
+      - Mária
+      - Méri
+      - Mici
+      - Miett
+      - Mietta
+      - Mimi
+      - Napóleon
+      - Polli
+      - Tarzícia
+      - Tarzíciusz
+    preferredNames:
+      - Mária
+    auditedAt: null
+  - month: 8
+    day: 16
+    monthDay: 08-16
+    names:
+      - Ábrahám
+      - Áhim
+      - Amelita
+      - Derek
+      - Dioméd
+      - Ibrahim
+      - István
+      - Jáir
+      - Jákim
+      - Joachim
+      - Joáhim
+      - Joákim
+      - Joakim
+      - Rokkó
+      - Rókus
+      - Stefán
+      - Szeréna
+      - Szerénke
+      - Szerénusz
+      - Szíra
+      - Szira
+      - Szirom
+      - Szironka
+      - Teodor
+      - Ugor
+    preferredNames:
+      - Ábrahám
+    auditedAt: null
+  - month: 8
+    day: 17
+    monthDay: 08-17
+    names:
+      - Aminta
+      - Arika
+      - Arikán
+      - Asur
+      - Emiliána
+      - Ete
+      - Hetény
+      - Jácint
+      - Kármán
+      - Liberátusz
+    preferredNames:
+      - Jácint
+    auditedAt: null
+  - month: 8
+    day: 18
+    monthDay: 08-18
+    names:
+      - Agenor
+      - Eleni
+      - Elin
+      - Elina
+      - Frederik
+      - Frederíkó
+      - Helén
+      - Heléna
+      - Helena
+      - Ila
+      - Ilka
+      - Illa
+      - Ilma
+      - Ilon
+      - Ilona
+      - Ilonka
+      - Ilus
+      - Iluska
+      - Jelena
+      - Jelina
+      - Jelka
+      - Lenke
+      - Lóna
+      - Lona
+      - Olena
+      - Rajnáld
+      - Rajnald
+      - Reinhard
+      - Ron
+      - Ronald
+      - Ronaldó
+      - Roni
+      - Sáfély
+    preferredNames:
+      - Ilona
+    auditedAt: null
+  - month: 8
+    day: 19
+    monthDay: 08-19
+    names:
+      - Arus
+      - Berárd
+      - Bernárd
+      - Bernát
+      - Doren
+      - Édra
+      - Flanna
+      - Huba
+      - János
+      - Lajos
+      - Loik
+      - Ludvig
+      - Marián
+      - Nalla
+      - Szebáld
+      - Szera
+    preferredNames:
+      - Huba
+    auditedAt: null
+  - month: 8
+    day: 20
+    monthDay: 08-20
+    names:
+      - Berárd
+      - Bernárd
+      - Bernát
+      - Éliás
+      - Filibert
+      - István
+      - Megán
+      - Ozmin
+      - Sámuel
+      - Samuella
+      - Stefán
+      - Stefánia
+      - Vajk
+    preferredNames:
+      - István
+    auditedAt: null
+  - month: 8
+    day: 21
+    monthDay: 08-21
+    names:
+      - Baldvin
+      - Era
+      - Erik
+      - Erika
+      - Erk
+      - Franciska
+      - Franni
+      - Grácia
+      - Hajna
+      - Johanna
+      - Kemecse
+      - Kemenes
+      - Maximilián
+      - Milián
+      - Nadim
+      - Pelbárt
+      - Pió
+      - Piusz
+      - Samu
+      - Sámuel
+      - Samuella
+      - Santál
+      - Zsanett
+      - Zsanin
+      - Zsanina
+      - Zsanka
+    preferredNames:
+      - Sámuel
+      - Hajna
+    auditedAt: null
+  - month: 8
+    day: 22
+    monthDay: 08-22
+    names:
+      - Agaton
+      - Barakony
+      - Bogi
+      - Boglár
+      - Boglárka
+      - Mária
+      - Menyhért
+      - Merse
+      - Miriám
+      - Miriam
+      - Mirijam
+      - Mirjam
+      - Mirjána
+      - Szigfrid
+      - Timó
+      - Timót
+      - Timótea
+      - Timóteus
+      - Timóteusz
+      - Zakeus
+      - Zombor
+    preferredNames:
+      - Mirjam
+      - Menyhért
+    auditedAt: null
+  - month: 8
+    day: 23
+    monthDay: 08-23
+    names:
+      - Aszter
+      - Farkas
+      - Filep
+      - Filip
+      - Filippó
+      - Fülöp
+      - Kurd
+      - Minerva
+      - Róza
+      - Rozál
+      - Rózsa
+      - Rózsi
+      - Szidi
+      - Szidónia
+      - Teónia
+      - Zágon
+      - Zajta
+      - Zakeus
+      - Zdenka
+      - Zekő
+      - Zsadány
+      - Zsadányka
+      - Bence
+    preferredNames:
+      - Bence
+    auditedAt: null
+  - month: 8
+    day: 24
+    monthDay: 08-24
+    names:
+      - Albert
+      - Alberta
+      - Albertin
+      - Albertina
+      - Alica
+      - Alícia
+      - Alicia
+      - Alíz
+      - Aliza
+      - Alízia
+      - Barta
+      - Bartal
+      - Bartó
+      - Bartos
+      - Bertalan
+      - Detre
+      - Jonatán
+      - Mihaéla
+      - Misell
+      - Oven
+      - Szilvánusz
+      - Taksony
+    preferredNames:
+      - Bertalan
+    auditedAt: null
+  - month: 8
+    day: 25
+    monthDay: 08-25
+    names:
+      - Almira
+      - Délibáb
+      - Elemér
+      - Elmira
+      - József
+      - Lajos
+      - Loik
+      - Ludvig
+      - Manzur
+      - Marinetta
+      - Patrícia
+      - Tamás
+      - Toma
+      - Tomázia
+    preferredNames:
+      - Lajos
+      - Patrícia
+    auditedAt: null
+  - month: 8
+    day: 26
+    monthDay: 08-26
+    names:
+      - Adolár
+      - Cseke
+      - Csekő
+      - Izsó
+      - Margit
+      - Natália
+      - Noélia
+      - Noella
+      - Rita
+      - Ritta
+      - Szellő
+      - Szellőke
+      - Tália
+      - Trevisz
+      - Trevor
+      - Zamfira
+      - Zefira
+    preferredNames:
+      - Izsó
+      - Natália
+    auditedAt: null
+  - month: 8
+    day: 27
+    monthDay: 08-27
+    names:
+      - Cézár
+      - Gáspár
+      - Gazsó
+      - Gibárt
+      - József
+      - Káldor
+      - Móni
+      - Mónika
+      - Vilja
+    preferredNames:
+      - Gáspár
+    auditedAt: null
+  - month: 8
+    day: 28
+    monthDay: 08-28
+    names:
+      - Adelin
+      - Adelina
+      - Adelinda
+      - Ágas
+      - Ágost
+      - Ágoston
+      - Alfréd
+      - Bán
+      - Elemér
+      - Hermész
+      - Hermia
+      - Hermiás
+      - Jermák
+      - László
+      - Mimóza
+      - Morgan
+      - Morgána
+      - Mózes
+      - Pelágia
+      - Pelágiusz
+    preferredNames:
+      - Ágoston
+    auditedAt: null
+  - month: 8
+    day: 29
+    monthDay: 08-29
+    names:
+      - Beatricse
+      - Beatrisz
+      - Beatrix
+      - Bolda
+      - Cézár
+      - Erna
+      - Ernella
+      - Erneszta
+      - Ernesztina
+      - Kamília
+      - Kamilia
+      - Kamilla
+      - Kandida
+      - Sebő
+      - Szabella
+      - Szabin
+      - Szabina
+      - Szabrina
+      - Szavina
+    preferredNames:
+      - Erna
+      - Beatrix
+    auditedAt: null
+  - month: 8
+    day: 30
+    monthDay: 08-30
+    names:
+      - Bodony
+      - Félix
+      - Hannaróza
+      - Letícia
+      - Létó
+      - Letti
+      - Pázmán
+      - Pázmány
+      - Róza
+      - Rozál
+      - Rozalinda
+      - Rózamari
+      - Rozita
+      - Rózsa
+      - Rózsi
+      - Tícia
+      - Vadony
+    preferredNames:
+      - Rózsa
+    auditedAt: null
+  - month: 8
+    day: 31
+    monthDay: 08-31
+    names:
+      - Aida
+      - Aldán
+      - Ámina
+      - Amina
+      - Amira
+      - Árisz
+      - Arisztid
+      - Arvéd
+      - Bella
+      - Bellatrix
+      - Emina
+      - Emir
+      - Emíra
+      - Era
+      - Erika
+      - Hanga
+      - Izabella
+      - Metella
+      - Móna
+      - Mona
+      - Pamína
+      - Rajmonda
+      - Rajmund
+      - Rajmunda
+      - Ramóna
+    preferredNames:
+      - Bella
+      - Erika
+    auditedAt: null
+  - month: 9
+    day: 1
+    monthDay: 09-01
+    names:
+      - Artúr
+      - Bella
+      - Dorabella
+      - Egon
+      - Egyed
+      - Fajsz
+      - Farkas
+      - Gede
+      - Gedeon
+      - Gedő
+      - Gejza
+      - Gilda
+      - Ignác
+      - Izabella
+      - Jászon
+      - Józsa
+      - Józsua
+      - Józsué
+      - Júda
+      - Kende
+      - Kond
+      - Kund
+      - Kurd
+      - Naómi
+      - Naomi
+      - Noémi
+      - Tamara
+      - Terenc
+      - Veréna
+      - Verita
+      - Zádor
+      - Zádorka
+    preferredNames:
+      - Egon
+      - Egyed
+    auditedAt: null
+  - month: 9
+    day: 2
+    monthDay: 09-02
+    names:
+      - Absa
+      - Absolon
+      - Apollinár
+      - Axel
+      - Bogdán
+      - Csépán
+      - Dorina
+      - Dorinka
+      - Ella
+      - Elli
+      - Fédra
+      - Fodor
+      - Gitka
+      - Ingrid
+      - Inka
+      - István
+      - Kalliszta
+      - Kasszandra
+      - Margit
+      - Rebeka
+      - Renátusz
+      - René
+      - Stefán
+      - Teó
+      - Teodor
+      - Teodóra
+      - Töhötöm
+    preferredNames:
+      - Dorina
+      - Rebeka
+    auditedAt: null
+  - month: 9
+    day: 3
+    monthDay: 09-03
+    names:
+      - Bránkó
+      - Csobán
+      - Csobánc
+      - Gergely
+      - Gópál
+      - Góvinda
+      - Gregor
+      - Hilda
+      - Pió
+      - Piusz
+      - Tirca
+      - Tíria
+      - Tirza
+    preferredNames:
+      - Hilda
+    auditedAt: null
+  - month: 9
+    day: 4
+    monthDay: 09-04
+    names:
+      - Emmaróza
+      - Ica
+      - Ida
+      - Majs
+      - Majsa
+      - Marinusz
+      - Mauríció
+      - Mauró
+      - Mór
+      - Móric
+      - Mózes
+      - Muriel
+      - Rodé
+      - Romi
+      - Róza
+      - Rozál
+      - Rozália
+      - Rozanna
+      - Rozi
+      - Rózsa
+      - Rózsi
+    preferredNames:
+      - Rozália
+    auditedAt: null
+  - month: 9
+    day: 5
+    monthDay: 09-05
+    names:
+      - Albert
+      - Alpár
+      - Barton
+      - Bertin
+      - Bertina
+      - Berton
+      - Boján
+      - Boromir
+      - Hari
+      - Larina
+      - Laurent
+      - Lorenza
+      - Lorenzó
+      - Lőrinc
+      - Ofélia
+      - Romulusz
+      - Tárkány
+      - Viktor
+      - Viktorina
+    preferredNames:
+      - Lőrinc
+      - Viktor
+    auditedAt: null
+  - month: 9
+    day: 6
+    monthDay: 09-06
+    names:
+      - Aldán
+      - Bea
+      - Beáta
+      - Brájen
+      - Csanád
+      - Harka
+      - Harkány
+      - Horka
+      - Ica
+      - Ida
+      - Magnusz
+      - Manyi
+      - Pamína
+      - Zakariás
+    preferredNames:
+      - Zakariás
+    auditedAt: null
+  - month: 9
+    day: 7
+    monthDay: 09-07
+    names:
+      - Admira
+      - Begónia
+      - Böngér
+      - Dusán
+      - Dusánka
+      - Dusmáta
+      - István
+      - Ivor
+      - Kósa
+      - Lél
+      - Mábel
+      - Mabella
+      - Márkus
+      - Márkusz
+      - Psziché
+      - Rea
+      - Regina
+      - Stefán
+      - Sztefán
+    preferredNames:
+      - Regina
+    auditedAt: null
+  - month: 9
+    day: 8
+    monthDay: 09-08
+    names:
+      - Adorján
+      - Adrián
+      - Adriána
+      - Adriánó
+      - Adrienn
+      - Alán
+      - Alen
+      - Arina
+      - Csobán
+      - Csobánc
+      - Enna
+      - Irma
+      - Koriolán
+      - Mária
+      - Nesztor
+      - Núria
+      - Szerafina
+      - Szergiusz
+    preferredNames:
+      - Mária
+      - Adrienn
+    auditedAt: null
+  - month: 9
+    day: 9
+    monthDay: 09-09
+    names:
+      - Ádám
+      - Azim
+      - Gara
+      - Gorgiás
+      - Kieran
+      - Omár
+      - Omer
+      - Orgona
+      - Péter
+      - Petrik
+      - Petur
+      - Szergiusz
+      - Sziringa
+      - Vulfia
+    preferredNames:
+      - Ádám
+    auditedAt: null
+  - month: 9
+    day: 10
+    monthDay: 09-10
+    names:
+      - Edgár
+      - Erik
+      - Erk
+      - Honóra
+      - Honória
+      - Honorina
+      - Honorka
+      - Hunor
+      - Hunóra
+      - Hunorka
+      - Klausz
+      - Kolja
+      - Menodóra
+      - Mika
+      - Miklós
+      - Mikolt
+      - Naómi
+      - Naomi
+      - Niki
+      - Nikol
+      - Nikola
+      - Nikolett
+      - Nikoletta
+      - Nikosz
+      - Níla
+      - Nilsz
+      - Noémi
+      - Nyikoláj
+      - Tardos
+      - Zalán
+    preferredNames:
+      - Nikolett
+      - Hunor
+    auditedAt: null
+  - month: 9
+    day: 11
+    monthDay: 09-11
+    names:
+      - Dioméd
+      - Elga
+      - Emil
+      - Emilián
+      - Félix
+      - Helga
+      - Igor
+      - Jácint
+      - Milán
+      - Ramiz
+      - Teodóra
+    preferredNames:
+      - Teodóra
+    auditedAt: null
+  - month: 9
+    day: 12
+    monthDay: 09-12
+    names:
+      - Evita
+      - Guidó
+      - Gujdó
+      - Ibolya
+      - Ibolyka
+      - Irma
+      - Mária
+      - Penton
+      - Szelemér
+      - Szelestény
+      - Tóbiás
+    preferredNames:
+      - Mária
+    auditedAt: null
+  - month: 9
+    day: 13
+    monthDay: 09-13
+    names:
+      - Amadil
+      - Amáta
+      - Janek
+      - Janó
+      - János
+      - Kornél
+      - Krizosztom
+      - Ludovika
+      - Lujza
+      - Lujzi
+      - Mauríció
+      - Mauró
+      - Mór
+      - Móric
+    preferredNames:
+      - Kornél
+    auditedAt: null
+  - month: 9
+    day: 14
+    monthDay: 09-14
+    names:
+      - Armida
+      - Armilla
+      - Belár
+      - Csetény
+      - Emerita
+      - Kevend
+      - Kilán
+      - Roxána
+      - Rozanna
+      - Rozita
+      - Ruga
+      - Szerénd
+      - Szerénusz
+      - Szona
+      - Szonóra
+      - Sztavrula
+      - Vicián
+      - Szeréna
+    preferredNames:
+      - Roxána
+      - Szeréna
+    auditedAt: null
+  - month: 9
+    day: 15
+    monthDay: 09-15
+    names:
+      - Ajád
+      - Bogát
+      - Bogáta
+      - Borisz
+      - Debóra
+      - Dolóresz
+      - Dolorita
+      - Doloróza
+      - Enikő
+      - Hetény
+      - Jolina
+      - Katalin
+      - Lola
+      - Lolita
+      - Lóránt
+      - Loránt
+      - Mária
+      - Melitta
+      - Meluzina
+      - Niobé
+      - Orlandó
+      - Paméla
+      - Pamela
+      - Roland
+      - Rollan
+      - Töhötöm
+    preferredNames:
+      - Melitta
+      - Enikő
+    auditedAt: null
+  - month: 9
+    day: 16
+    monthDay: 09-16
+    names:
+      - Amelda
+      - Ciprián
+      - Ditke
+      - Ditta
+      - Ditte
+      - Ditti
+      - Edit
+      - Eudoxia
+      - Eufémia
+      - Eugénia
+      - Geminián
+      - Génia
+      - Imelda
+      - Imogén
+      - Jozafát
+      - Kamélia
+      - Kornél
+      - Kornélia
+      - Kornéliusz
+      - Lúcia
+      - Ludmilla
+      - Milica
+      - Som
+      - Soma
+      - Zília
+      - Zille
+      - Zseni
+    preferredNames:
+      - Edit
+    auditedAt: null
+  - month: 9
+    day: 17
+    monthDay: 09-17
+    names:
+      - Ariadna
+      - Ariadné
+      - Arianna
+      - Arienn
+      - Galamb
+      - Hildegárd
+      - Ilda
+      - Ildikó
+      - Kolomba
+      - Lambert
+      - Ludmilla
+      - Oriána
+      - Palóma
+      - Róbert
+      - Robertó
+      - Robinzon
+      - Szofi
+      - Szófia
+      - Szofia
+      - Zsófi
+      - Zsófia
+    preferredNames:
+      - Zsófia
+    auditedAt: null
+  - month: 9
+    day: 18
+    monthDay: 09-18
+    names:
+      - Déna
+      - Dia
+      - Diána
+      - Diana
+      - Diandra
+      - József
+      - Metód
+      - Richárd
+      - Rihárd
+      - Rikarda
+      - Rikárdó
+      - Timor
+      - Timur
+      - Timuzsin
+    preferredNames:
+      - Diána
+    auditedAt: null
+  - month: 9
+    day: 19
+    monthDay: 09-19
+    names:
+      - Amilla
+      - Dorián
+      - Dorion
+      - Emili
+      - Emília
+      - Emilia
+      - Január
+      - Jónás
+      - Konstancia
+      - Konstantina
+      - Mária
+      - Pompónia
+      - Sebő
+      - Szabolcs
+      - Szilárda
+      - Tivadar
+      - Tódor
+      - Vilhelma
+      - Vilhelmina
+      - Vilma
+    preferredNames:
+      - Vilhelmina
+    auditedAt: null
+  - month: 9
+    day: 20
+    monthDay: 09-20
+    names:
+      - Eponin
+      - Euszták
+      - Federika
+      - Filep
+      - Filip
+      - Filippó
+      - Frida
+      - Friderika
+      - Fülöp
+      - Oleg
+      - Zsuzsánna
+      - Zsuzsanna
+      - Zsuzsi
+    preferredNames:
+      - Friderika
+    auditedAt: null
+  - month: 9
+    day: 21
+    monthDay: 09-21
+    names:
+      - Ifigénia
+      - Ilda
+      - Ildikó
+      - Jónás
+      - Marilla
+      - Máté
+      - Mátyus
+      - Maura
+      - Míra
+      - Mira
+      - Mirella
+      - Mirka
+      - Moira
+    preferredNames:
+      - Mirella
+      - Máté
+    auditedAt: null
+  - month: 9
+    day: 22
+    monthDay: 09-22
+    names:
+      - Armida
+      - Armilla
+      - Emerita
+      - Írisz
+      - Marót
+      - Maurícia
+      - Mauríció
+      - Mauró
+      - Mór
+      - Móric
+      - Ottó
+      - Tamás
+      - Toma
+      - Zelinda
+      - Zelinde
+      - Zella
+      - Zelli
+      - Zöldike
+      - Zsella
+    preferredNames:
+      - Móric
+    auditedAt: null
+  - month: 9
+    day: 23
+    monthDay: 09-23
+    names:
+      - Ilda
+      - Ildikó
+      - Ilka
+      - Illa
+      - Ilon
+      - Ilona
+      - Ilonka
+      - Ilus
+      - Iluska
+      - Lina
+      - Linasz
+      - Linett
+      - Linetta
+      - Linka
+      - Lívió
+      - Líviusz
+      - Liviusz
+      - Őszike
+      - Polixéna
+      - Tekla
+      - Telma
+    preferredNames:
+      - Líviusz
+      - Tekla
+    auditedAt: null
+  - month: 9
+    day: 24
+    monthDay: 09-24
+    names:
+      - Baladéva
+      - Dexter
+      - Gellért
+      - Gerda
+      - Gerhárd
+      - Giszmunda
+      - Grizelda
+      - Grizeldisz
+      - Maréza
+      - Mária
+      - Mercédesz
+      - Merima
+      - Mirijam
+      - Szkott
+      - Zelda
+    preferredNames:
+      - Mercédesz
+      - Gellért
+    auditedAt: null
+  - month: 9
+    day: 25
+    monthDay: 09-25
+    names:
+      - Bakta
+      - Cézár
+      - Eufrozina
+      - Kende
+      - Klausz
+      - Kleofás
+      - Kleon
+      - Klió
+      - Kolja
+      - Kond
+      - Kund
+      - Miklós
+      - Mikolt
+      - Niki
+      - Nikol
+      - Nikolett
+      - Nikoletta
+      - Nyikoláj
+      - Principiusz
+      - Ríka
+      - Rika
+      - Rikarda
+      - Sém
+      - Solymár
+      - Sólyom
+      - Zlatkó
+    preferredNames:
+      - Eufrozina
+      - Kende
+    auditedAt: null
+  - month: 9
+    day: 26
+    monthDay: 09-26
+    names:
+      - Cipora
+      - Cippóra
+      - Cipra
+      - Ciprián
+      - Cipriána
+      - Ciprienn
+      - Damiána
+      - Damira
+      - Damján
+      - Damjána
+      - Damos
+      - Dániel
+      - Demény
+      - Demjén
+      - Dömjén
+      - Ejnár
+      - Jusztícia
+      - Jusztina
+      - Jusztínia
+      - Kozima
+      - Kozma
+      - Özséb
+    preferredNames:
+      - Jusztina
+    auditedAt: null
+  - month: 9
+    day: 27
+    monthDay: 09-27
+    names:
+      - Adalbert
+      - Albert
+      - Damiána
+      - Damján
+      - Damjána
+      - Damos
+      - Demény
+      - Demjén
+      - Döme
+      - Dömjén
+      - Florencia
+      - Florentin
+      - Florentina
+      - Károly
+      - Kósa
+      - Kozima
+      - Kozma
+      - Mirabel
+      - Mirabell
+      - Mirabella
+      - Vince
+      - Vincent
+    preferredNames:
+      - Adalbert
+    auditedAt: null
+  - month: 9
+    day: 28
+    monthDay: 09-28
+    names:
+      - Arszák
+      - Berárd
+      - Bernárd
+      - Bernát
+      - Isméria
+      - Izméne
+      - Jusztícia
+      - Jusztina
+      - Jusztínia
+      - Pelbárt
+      - Salamon
+      - Szelim
+      - Tárkány
+      - Velek
+      - Vencel
+    preferredNames:
+      - Vencel
+    auditedAt: null
+  - month: 9
+    day: 29
+    monthDay: 09-29
+    names:
+      - Gábor
+      - Gabos
+      - Gábriel
+      - Gabriella
+      - Kapolcs
+      - Mea
+      - Mihály
+      - Mikáél
+      - Mikes
+      - Misa
+      - Misel
+      - Miska
+      - Misó
+      - Mizse
+      - Rafael
+    preferredNames:
+      - Mihály
+    auditedAt: null
+  - month: 9
+    day: 30
+    monthDay: 09-30
+    names:
+      - Becse
+      - Felícia
+      - Hieronima
+      - Honóra
+      - Honória
+      - Honorina
+      - Honóriusz
+      - Honorka
+      - Hunor
+      - Hunóra
+      - Hunorka
+      - Izméne
+      - Jeromos
+      - Jeronima
+      - Laborc
+      - Médea
+      - Norina
+      - Örs
+      - Szaffi
+      - Szófia
+      - Szofia
+      - Szofinett
+      - Viktor
+      - Zsófia
+      - Zsófianna
+    preferredNames:
+      - Jeromos
+    auditedAt: null
+  - month: 10
+    day: 1
+    monthDay: 10-01
+    names:
+      - Anaisz
+      - Bazsó
+      - Diké
+      - Euridiké
+      - Ludovika
+      - Malvin
+      - Malvina
+      - Ragnar
+      - Remig
+      - Rémus
+      - Rémusz
+      - Rómeó
+      - Terézia
+    preferredNames:
+      - Malvin
+    auditedAt: null
+  - month: 10
+    day: 2
+    monthDay: 10-02
+    names:
+      - Berengár
+      - Örs
+      - Petra
+      - Tamás
+      - Toma
+      - Tomaj
+    preferredNames:
+      - Petra
+    auditedAt: null
+  - month: 10
+    day: 3
+    monthDay: 10-03
+    names:
+      - Elga
+      - Helga
+      - Heliodor
+      - Hiador
+      - Ignác
+      - Ilián
+      - Jozefa
+      - Kelvin
+      - Mari
+      - Mária
+      - Marica
+      - Mariella
+      - Mariett
+      - Marika
+      - Marinka
+      - Marion
+      - Marióra
+      - Mariska
+      - Marita
+      - Mása
+      - Masa
+      - Ria
+      - Terézia
+    preferredNames:
+      - Helga
+    auditedAt: null
+  - month: 10
+    day: 4
+    monthDay: 10-04
+    names:
+      - Ajtonka
+      - Ámon
+      - Aranka
+      - Arany
+      - Aranyka
+      - Aranyos
+      - Auróra
+      - Bodor
+      - Damarisz
+      - Edvin
+      - Edvina
+      - Ferenc
+      - Fodor
+      - Franka
+      - Golda
+      - Goldina
+      - Gyémánt
+      - Hajnal
+      - Hajnalka
+      - Hajni
+      - Larcia
+      - Lartia
+      - Zóra
+      - Zora
+      - Zorina
+      - Zorinka
+      - Zorka
+    preferredNames:
+      - Ferenc
+    auditedAt: null
+  - month: 10
+    day: 5
+    monthDay: 10-05
+    names:
+      - Apollinár
+      - Atilla
+      - Attila
+      - Aurél
+      - Etele
+      - Flávia
+      - Fulvia
+      - Galina
+      - Nia
+      - Nimái
+      - Pálma
+      - Palmira
+      - Peregrina
+      - Placid
+      - Szendile
+      - Tulipán
+      - Tullia
+    preferredNames:
+      - Aurél
+    auditedAt: null
+  - month: 10
+    day: 6
+    monthDay: 10-06
+    names:
+      - Berény
+      - Brunella
+      - Brúnó
+      - Csaba
+      - Csobád
+      - Csobajd
+      - Déva
+      - Devínia
+      - Inana
+      - Renáta
+      - Renátusz
+      - René
+    preferredNames:
+      - Renáta
+      - Brúnó
+    auditedAt: null
+  - month: 10
+    day: 7
+    monthDay: 10-07
+    names:
+      - Amál
+      - Amália
+      - Ameli
+      - Bakács
+      - Baksa
+      - Beke
+      - Bekény
+      - Bekes
+      - Bogumil
+      - Bohus
+      - Dzserald
+      - Gerold
+      - Girót
+      - Mária
+      - Márk
+      - Márkus
+      - Márkusz
+      - Rodion
+      - Szergej
+      - Szergiusz
+      - Vendelina
+      - Zserald
+    preferredNames:
+      - Amália
+      - Bekény
+    auditedAt: null
+  - month: 10
+    day: 8
+    monthDay: 10-08
+    names:
+      - Áldás
+      - Áldáska
+      - Benedikta
+      - Bettina
+      - Birgit
+      - Brigi
+      - Brigitta
+      - Deme
+      - Demeter
+      - Dömötör
+      - Etelka
+      - Etka
+      - Etus
+      - Gitta
+      - János
+      - Koppány
+      - Laurencia
+      - Loréna
+      - Loriana
+      - Lorin
+      - Lorina
+      - Magor
+      - Magorka
+      - Mária
+      - Pelágia
+      - Pelágiusz
+      - Semjén
+      - Simeon
+      - Szergiusz
+    preferredNames:
+      - Koppány
+    auditedAt: null
+  - month: 10
+    day: 9
+    monthDay: 10-09
+    names:
+      - Ábrahám
+      - Ábrám
+      - Ábrán
+      - Ábris
+      - Andor
+      - Dénes
+      - Denisz
+      - Dienes
+      - Dionízia
+      - Diotíma
+      - Dömös
+      - Elemér
+      - Gerjén
+      - Günter
+      - Ibrahim
+      - Ibrány
+      - Rusztem
+      - Sára
+      - Sári
+      - Szelli
+      - Szibill
+      - Szibilla
+      - Velmira
+      - Zara
+    preferredNames:
+      - Dénes
+    auditedAt: null
+  - month: 10
+    day: 10
+    monthDay: 10-10
+    names:
+      - Bejke
+      - Bendegúz
+      - Csermely
+      - Dániel
+      - Dános
+      - Dárkó
+      - Ferenc
+      - Géda
+      - Gede
+      - Gedeon
+      - Gedő
+      - Gejza
+      - Gida
+      - Hajna
+      - Lajos
+      - Latinka
+      - Leó
+      - Leon
+      - Sámuel
+      - Szépa
+      - Szépe
+      - Szüvellő
+      - Ünőke
+      - Zsolna
+    preferredNames:
+      - Gedeon
+    auditedAt: null
+  - month: 10
+    day: 11
+    monthDay: 10-11
+    names:
+      - Andor
+      - Birgit
+      - Brigi
+      - Brigitta
+      - Brunella
+      - Brúnó
+      - Celina
+      - Csák
+      - Galina
+      - Germán
+      - Hont
+      - Mária
+      - Pintyőke
+      - Placida
+      - Platina
+      - Sándor
+      - Szandró
+      - Szelina
+      - Szende
+      - Szendike
+      - Tasziló
+      - Tódor
+      - Zelina
+      - Zina
+      - Zinaida
+      - Zinajda
+    preferredNames:
+      - Brigitta
+    auditedAt: null
+  - month: 10
+    day: 12
+    monthDay: 10-12
+    names:
+      - Edvin
+      - Edvina
+      - Maximilián
+      - Miksa
+      - Milián
+      - Miró
+      - Pilár
+      - Rezső
+      - Szeráf
+      - Szerafina
+      - Tirzusz
+    preferredNames:
+      - Miksa
+    auditedAt: null
+  - month: 10
+    day: 13
+    monthDay: 10-13
+    names:
+      - Diaz
+      - Ede
+      - Edgár
+      - Edizon
+      - Eduárd
+      - Eduárda
+      - Eduárdó
+      - Edvárd
+      - Edvarda
+      - Fatima
+      - Fatime
+      - Jagelló
+      - Jakab
+      - Jákob
+      - Káleb
+      - Kálmán
+      - Romulusz
+      - Teofil
+    preferredNames:
+      - Ede
+      - Kálmán
+    auditedAt: null
+  - month: 10
+    day: 14
+    monthDay: 10-14
+    names:
+      - Alán
+      - Alen
+      - Beatricse
+      - Beatrisz
+      - Beatrix
+      - Bocsárd
+      - Buzád
+      - Buzát
+      - Celeszta
+      - Celesztina
+      - Doma
+      - Dominik
+      - Domokos
+      - Domonkos
+      - Helén
+      - Hella
+      - Ilma
+      - Kresimir
+      - Krizanta
+      - Lívia
+    preferredNames:
+      - Helén
+      - Lívia
+    auditedAt: null
+  - month: 10
+    day: 15
+    monthDay: 10-15
+    names:
+      - Abdullah
+      - Aranka
+      - Aurélia
+      - Auróra
+      - Berény
+      - Hedvig
+      - Hetti
+      - Rella
+      - Relli
+      - Rézi
+      - Tegza
+      - Tekla
+      - Teréz
+      - Teréza
+      - Tereza
+      - Terézia
+      - Teri
+      - Terka
+      - Vilma
+    preferredNames:
+      - Teréz
+    auditedAt: null
+  - month: 10
+    day: 16
+    monthDay: 10-16
+    names:
+      - Ambos
+      - Ambró
+      - Ambrus
+      - Aranka
+      - Aurélia
+      - Auróra
+      - Bedecs
+      - Bedő
+      - Gál
+      - Gallusz
+      - Gálos
+      - Gellért
+      - Gerd
+      - Gerhárd
+      - Havel
+      - Hedvig
+      - Hetti
+      - Lehel
+      - Lél
+      - Lelle
+      - Margit
+    preferredNames:
+      - Gál
+    auditedAt: null
+  - month: 10
+    day: 17
+    monthDay: 10-17
+    names:
+      - Alajos
+      - Héda
+      - Hedda
+      - Hédi
+      - Hedvig
+      - Hetti
+      - Ignác
+      - Jadviga
+      - Kont
+      - Leó
+      - Leon
+      - Mályva
+      - Margit
+      - Oszama
+      - Rezső
+      - Rolf
+      - Rudolf
+      - Rudolfina
+      - Salamon
+      - Szolina
+      - Zelinda
+      - Zelinde
+      - Zolna
+    preferredNames:
+      - Hedvig
+    auditedAt: null
+  - month: 10
+    day: 18
+    monthDay: 10-18
+    names:
+      - Ambos
+      - Ambró
+      - Ambrus
+      - Ashraf
+      - Heba
+      - Heszna
+      - Hessza
+      - Jamina
+      - Jászira
+      - Jusztusz
+      - Lukács
+      - Mehdia
+      - Messzua
+      - Rahima
+      - Rana
+      - Sakira
+      - Szafira
+      - Szalima
+      - Talita
+      - Zahara
+      - Zahira
+    preferredNames:
+      - Lukács
+    auditedAt: null
+  - month: 10
+    day: 19
+    monthDay: 10-19
+    names:
+      - Alárd
+      - Berény
+      - Dárius
+      - Dáriusz
+      - Elina
+      - Ferdinánd
+      - Fernándó
+      - Fernandó
+      - Frida
+      - Friderika
+      - Izsák
+      - Joáb
+      - Joel
+      - Lándor
+      - Laura
+      - Lauretta
+      - Lolli
+      - Lora
+      - Lorella
+      - Lorett
+      - Lúciusz
+      - Nándor
+      - Pál
+      - Pálos
+      - Péter
+      - Petrik
+    preferredNames:
+      - Nándor
+    auditedAt: null
+  - month: 10
+    day: 20
+    monthDay: 10-20
+    names:
+      - Arinka
+      - Artem
+      - Artemon
+      - Artúr
+      - Aurélián
+      - Cinderella
+      - Cinella
+      - Cinna
+      - Cintia
+      - Délia
+      - Dov
+      - Hájim
+      - Hont
+      - Irén
+      - Iréne
+      - Irénke
+      - Irina
+      - Iringó
+      - Kleó
+      - Kleopátra
+      - Mikió
+      - Saul
+      - Szindi
+      - Szintia
+      - Tia
+      - Vendel
+      - Vendela
+      - Vendelina
+      - Vitálij
+      - Vitális
+    preferredNames:
+      - Irén
+      - Vendel
+    auditedAt: null
+  - month: 10
+    day: 21
+    monthDay: 10-21
+    names:
+      - Berger
+      - Celina
+      - Hilár
+      - Hiláriusz
+      - Ilárion
+      - Kende
+      - Klementina
+      - Kolombina
+      - Larion
+      - Orsi
+      - Orsika
+      - Orsolya
+      - Szelina
+      - Urszula
+      - Urzula
+      - Viátor
+      - Zelina
+      - Zelinke
+      - Zsejke
+      - Zselyke
+      - Zsolt
+    preferredNames:
+      - Orsolya
+    auditedAt: null
+  - month: 10
+    day: 22
+    monthDay: 10-22
+    names:
+      - Admira
+      - Előd
+      - Ingeborg
+      - Kandida
+      - Kora
+      - Kordélia
+      - Korina
+      - Korinna
+      - Mária
+      - Mirabel
+      - Mirabell
+      - Mirabella
+      - Salóme
+      - Salomé
+      - Szalóme
+      - Szulamit
+      - Várkony
+      - Vilibald
+    preferredNames:
+      - Előd
+    auditedAt: null
+  - month: 10
+    day: 23
+    monthDay: 10-23
+    names:
+      - Gyöngyi
+      - Gyöngyike
+      - Gyöngyös
+      - Gyöngyvér
+      - Ignác
+      - János
+      - Jozefina
+      - Kapisztrán
+      - Katapán
+      - Koppány
+      - Lennon
+      - Odett
+      - Odetta
+      - Odil
+      - Odília
+      - Stefánia
+      - Szeverián
+      - Szeverin
+      - Szeverina
+      - Szoren
+      - Szörénd
+      - Szörény
+      - Zaránd
+      - Zerénd
+      - Zerind
+    preferredNames:
+      - Gyöngyvér
+      - Gyöngyi
+    auditedAt: null
+  - month: 10
+    day: 24
+    monthDay: 10-24
+    names:
+      - Arétász
+      - Gilbert
+      - Gilberta
+      - Gilgames
+      - Harald
+      - Herold
+      - Ráchel
+      - Rafael
+      - Ráfis
+      - Ráhel
+      - Rákhel
+      - Rákis
+      - Salamon
+    preferredNames:
+      - Salamon
+    auditedAt: null
+  - month: 10
+    day: 25
+    monthDay: 10-25
+    names:
+      - Blanka
+      - Bonifác
+      - Bónis
+      - Cserjén
+      - Dafna
+      - Dafné
+      - Dála
+      - Dalanda
+      - Dália
+      - Dalla
+      - Daren
+      - Dária
+      - Dárió
+      - Dárius
+      - Dáriusz
+      - Döme
+      - Fodor
+      - János
+      - Krisna
+      - Krizanta
+      - Marcián
+      - Margit
+      - Mauríció
+      - Mauró
+      - Mór
+      - Móric
+      - Réta
+      - Sjám
+      - Bianka
+    preferredNames:
+      - Blanka
+      - Bianka
+    auditedAt: null
+  - month: 10
+    day: 26
+    monthDay: 10-26
+    names:
+      - Albin
+      - Amand
+      - Amanda
+      - Ametiszt
+      - Armand
+      - Baldvin
+      - Deme
+      - Demeter
+      - Dimitri
+      - Dimitrij
+      - Dömötör
+      - Evariszt
+      - Manda
+      - Medox
+      - Mendi
+      - Örsi
+      - Szamanta
+      - Szamira
+    preferredNames:
+      - Dömötör
+    auditedAt: null
+  - month: 10
+    day: 27
+    monthDay: 10-27
+    names:
+      - Bese
+      - Doboka
+      - Edekon
+      - Gorda
+      - Indár
+      - Jákó
+      - Őze
+      - Szabella
+      - Szabina
+      - Szabrina
+      - Szavina
+      - Tobán
+      - Zsubor
+    preferredNames:
+      - Szabina
+    auditedAt: null
+  - month: 10
+    day: 28
+    monthDay: 10-28
+    names:
+      - Alfréd
+      - Alfréda
+      - Cirilla
+      - Simon
+      - Szalvia
+      - Szalviusz
+      - Szimóna
+      - Szimonett
+      - Szimonetta
+      - Taddeus
+      - Tádé
+      - Tadeusz
+      - Tömör
+      - Zimány
+      - Zsálya
+    preferredNames:
+      - Simon
+      - Szimonetta
+    auditedAt: null
+  - month: 10
+    day: 29
+    monthDay: 10-29
+    names:
+      - Dárkó
+      - Ermelinda
+      - Euzébia
+      - Melinda
+      - Nárcisz
+      - Narcissza
+      - Narcisszusz
+      - Őzike
+      - Teofil
+      - Zénó
+      - Zenobiusz
+    preferredNames:
+      - Nárcisz
+    auditedAt: null
+  - month: 10
+    day: 30
+    monthDay: 10-30
+    names:
+      - Alfonz
+      - Alfonza
+      - Alfonzin
+      - Alfonzina
+      - Árszen
+      - Arzén
+      - Aszter
+      - Éneás
+      - Fáni
+      - Fanni
+      - Kolos
+      - Kolozs
+      - Pompónia
+      - Rodel
+      - Roderik
+      - Rodina
+      - Stefánia
+      - Zenóbia
+      - Zinaida
+    preferredNames:
+      - Alfonz
+    auditedAt: null
+  - month: 10
+    day: 31
+    monthDay: 10-31
+    names:
+      - Alfonz
+      - Cseke
+      - Csekő
+      - Fajsz
+      - Farkas
+      - Kristóf
+      - Kurd
+      - Moira
+      - Rodel
+      - Roderik
+      - Rodina
+      - Vulfia
+    preferredNames:
+      - Farkas
+    auditedAt: null
+  - month: 11
+    day: 1
+    monthDay: 11-01
+    names:
+      - Benigna
+      - Benignusz
+      - Benke
+      - Igor
+      - Marianna
+    preferredNames:
+      - Marianna
+    auditedAt: null
+  - month: 11
+    day: 2
+    monthDay: 11-02
+    names:
+      - Achilles
+      - Achillesz
+      - Ahillész
+      - Bató
+      - Cettina
+      - Dilara
+      - Rátold
+      - Rüja
+      - Tóbiás
+      - Ünige
+      - Viktor
+      - Vitéz
+    preferredNames:
+      - Achillesz
+    auditedAt: null
+  - month: 11
+    day: 3
+    monthDay: 11-03
+    names:
+      - Bálint
+      - Bertold
+      - Győző
+      - Hubert
+      - Huberta
+      - Hubertusz
+      - Ica
+      - Ida
+      - Malakiás
+      - Szilvi
+      - Szilvia
+      - Szilvió
+      - Szilviusz
+      - Valentin
+      - Valentínó
+    preferredNames:
+      - Győző
+    auditedAt: null
+  - month: 11
+    day: 4
+    monthDay: 11-04
+    names:
+      - Berill
+      - Életke
+      - Ellina
+      - Karacs
+      - Karla
+      - Karola
+      - Karolin
+      - Karolina
+      - Karolt
+      - Károly
+      - Lina
+      - Linett
+      - Linetta
+      - Linka
+      - Modeszta
+      - Móka
+      - Mózes
+      - Músza
+      - Oguz
+      - Sarlott
+      - Sarolta
+      - Tegze
+      - Vitálij
+      - Vitális
+      - Vitályos
+    preferredNames:
+      - Károly
+    auditedAt: null
+  - month: 11
+    day: 5
+    monthDay: 11-05
+    names:
+      - Avarka
+      - Bertilla
+      - Bertolda
+      - Filotea
+      - Imre
+      - Tétény
+      - Tiara
+      - Töhötöm
+      - Zakari
+      - Zakariás
+    preferredNames:
+      - Imre
+    auditedAt: null
+  - month: 11
+    day: 6
+    monthDay: 11-06
+    names:
+      - Hamza
+      - Kéra
+      - Kerka
+      - Kreola
+      - Lénárd
+      - Lénárt
+      - Leonárd
+      - Leonarda
+      - Leonárdó
+      - Sziéna
+    preferredNames:
+      - Lénárd
+    auditedAt: null
+  - month: 11
+    day: 7
+    monthDay: 11-07
+    names:
+      - Amaranta
+      - Csenger
+      - Éneás
+      - Engelbert
+      - Erneszt
+      - Ernesztó
+      - Ernő
+      - Florentin
+      - Karen
+      - Karin
+      - Karina
+      - Lázár
+      - Rados
+      - Radován
+      - Radvány
+      - Ralf
+      - Raúl
+      - Raul
+      - Rezső
+      - Rudolf
+    preferredNames:
+      - Rezső
+    auditedAt: null
+  - month: 11
+    day: 8
+    monthDay: 11-08
+    names:
+      - Adeodát
+      - Bagamér
+      - Bohumil
+      - Citta
+      - Damajanti
+      - Gauri
+      - Gotfrid
+      - Hódos
+      - Jamuná
+      - Kál
+      - Karád
+      - Kasztor
+      - Klaudió
+      - Klaudiusz
+      - Kolos
+      - Kolozs
+      - Laksmi
+      - Lalita
+      - Latiká
+      - Mita
+      - Móhini
+      - Niva
+      - Siváni
+      - Szaraszvati
+      - Szávitri
+      - Szurina
+      - Vilászini
+      - Vrinda
+      - Zsombor
+    preferredNames:
+      - Zsombor
+    auditedAt: null
+  - month: 11
+    day: 9
+    monthDay: 11-09
+    names:
+      - Bozsidár
+      - Bozsó
+      - Bozsóka
+      - Elián
+      - Ervin
+      - Fedor
+      - Matán
+      - Nátán
+      - Nátánael
+      - Natánia
+      - Nátániel
+      - Nataniel
+      - Oresztész
+      - Teodor
+      - Tihamér
+      - Tivadar
+      - Ugocsa
+      - Ugron
+      - Zebadiás
+    preferredNames:
+      - Tivadar
+    auditedAt: null
+  - month: 11
+    day: 10
+    monthDay: 11-10
+    names:
+      - Almanda
+      - Andorás
+      - András
+      - Andrej
+      - Ariel
+      - Ariéla
+      - Ariella
+      - Cádók
+      - Delinke
+      - Dzsindzser
+      - Florencia
+      - Florentina
+      - Jusztusz
+      - Leó
+      - Leon
+      - Mátka
+      - Meluzina
+      - Nimfa
+      - Réka
+      - Rusztem
+      - Tünde
+      - Tündi
+      - Virgínia
+    preferredNames:
+      - Réka
+    auditedAt: null
+  - month: 11
+    day: 11
+    monthDay: 11-11
+    names:
+      - Atád
+      - Atakám
+      - Atos
+      - Atosz
+      - Lionel
+      - Martin
+      - Márton
+      - Marton
+      - Martos
+      - Ménás
+      - Ménrót
+      - Nimród
+      - Ramira
+    preferredNames:
+      - Márton
+    auditedAt: null
+  - month: 11
+    day: 12
+    monthDay: 11-12
+    names:
+      - Aba
+      - Abád
+      - Abbás
+      - Abod
+      - Abos
+      - Apaj
+      - Asztrid
+      - Asztrida
+      - Asztrik
+      - Ata
+      - Bács
+      - Benita
+      - Emilián
+      - Hamilkár
+      - Hümér
+      - Jónás
+      - Jozafát
+      - Keresztély
+      - Kolen
+      - Kolin
+      - Krisztián
+      - Levente
+      - Lívió
+      - Líviusz
+      - Liviusz
+      - Martin
+      - Márton
+      - Marton
+      - Renáta
+      - Renátó
+      - Renátusz
+      - Szilvánusz
+      - Tihamér
+    preferredNames:
+      - Jónás
+      - Renátó
+    auditedAt: null
+  - month: 11
+    day: 13
+    monthDay: 11-13
+    names:
+      - Árkád
+      - Arkád
+      - Brendon
+      - Bulcsú
+      - Ené
+      - Enéh
+      - Enese
+      - Enet
+      - Eugén
+      - Gellén
+      - Jenő
+      - Kilény
+      - Kilián
+      - Klausz
+      - Kolja
+      - Megyer
+      - Miklós
+      - Nyikoláj
+      - Perenna
+      - Szaniszló
+      - Szilva
+      - Szilvi
+      - Szilvia
+      - Szolón
+    preferredNames:
+      - Szilvia
+    auditedAt: null
+  - month: 11
+    day: 14
+    monthDay: 11-14
+    names:
+      - Buldus
+      - Huba
+      - Jozafát
+      - Klementina
+      - Vanda
+      - Zdenkó
+      - Aliz
+    preferredNames:
+      - Aliz
+    auditedAt: null
+  - month: 11
+    day: 15
+    monthDay: 11-15
+    names:
+      - Ajnácska
+      - Ajsa
+      - Albert
+      - Alberta
+      - Albertin
+      - Albertina
+      - Ángyán
+      - Ányos
+      - Artúr
+      - Dezsider
+      - Dezső
+      - Hajnácska
+      - Lád
+      - Ladomér
+      - Leopold
+      - Leopolda
+      - Leopoldina
+      - Lipót
+      - Marinusz
+      - Polda
+      - Richárd
+      - Rihárd
+      - Rikárdó
+      - Vladimír
+    preferredNames:
+      - Albert
+      - Lipót
+    auditedAt: null
+  - month: 11
+    day: 16
+    monthDay: 11-16
+    names:
+      - Adeboró
+      - Ágnes
+      - Alfréd
+      - Arna
+      - Arnó
+      - Edmond
+      - Edmund
+      - Edmunda
+      - Géla
+      - Gertrúd
+      - Gertrúdisz
+      - Margit
+      - Náron
+      - Olinda
+      - Otmár
+      - Ödön
+      - Péter
+      - Petrik
+      - Vivika
+    preferredNames:
+      - Ödön
+    auditedAt: null
+  - month: 11
+    day: 17
+    monthDay: 11-17
+    names:
+      - Brunhilda
+      - Brünhild
+      - Dénes
+      - Denisz
+      - Dienes
+      - Ede
+      - Gergely
+      - Gergő
+      - Gerő
+      - Gertrúd
+      - Gertrúdisz
+      - Gorán
+      - Gregor
+      - György
+      - Györk
+      - Györke
+      - Hilda
+      - Hilka
+      - Hortenzia
+      - Ilda
+      - Ildikó
+      - Krimhilda
+      - Salóme
+      - Salomé
+      - Szalóme
+      - Szulamit
+      - Viki
+      - Vikta
+      - Viktória
+      - Zágon
+      - Zakeus
+      - Zekő
+    preferredNames:
+      - Hortenzia
+      - Gergő
+    auditedAt: null
+  - month: 11
+    day: 18
+    monthDay: 11-18
+    names:
+      - Csende
+      - Csendike
+      - Jenő
+      - Jolán
+      - Jolánka
+      - Joli
+      - Jónás
+      - Noé
+      - Odiló
+      - Odó
+      - Ottó
+      - Péter
+      - Petrik
+      - Román
+      - Románó
+    preferredNames:
+      - Jenő
+    auditedAt: null
+  - month: 11
+    day: 19
+    monthDay: 11-19
+    names:
+      - Abdiás
+      - Abdon
+      - Barlám
+      - Béta
+      - Betsabé
+      - Bítia
+      - Bodor
+      - Csöre
+      - Erzsébet
+      - Erzsi
+      - Helza
+      - Ilze
+      - Kustyán
+      - Lizavéta
+      - Lizett
+      - Lizetta
+      - Lizi
+      - Lízia
+      - Lizinka
+      - Max
+      - Maxim
+      - Maximusz
+      - Örzse
+      - Sarel
+      - Szavéta
+      - Véta
+      - Zobor
+    preferredNames:
+      - Erzsébet
+    auditedAt: null
+  - month: 11
+    day: 20
+    monthDay: 11-20
+    names:
+      - Amál
+      - Amália
+      - Ameli
+      - Bódog
+      - Bulcsú
+      - Edmond
+      - Edmund
+      - Edmunda
+      - Emiliána
+      - Félix
+      - Jolán
+      - Jónás
+      - Koriolán
+      - Ödön
+      - Zolta
+      - Zoltán
+      - Zsolt
+    preferredNames:
+      - Jolán
+    auditedAt: null
+  - month: 11
+    day: 21
+    monthDay: 11-21
+    names:
+      - Amál
+      - Amália
+      - Ameli
+      - Ilián
+      - Kolumbán
+      - Mária
+      - Olivér
+      - Rúfusz
+      - Virgíniusz
+    preferredNames:
+      - Olivér
+    auditedAt: null
+  - month: 11
+    day: 22
+    monthDay: 11-22
+    names:
+      - Appia
+      - Ápril
+      - Áprilka
+      - Cecília
+      - Cecilla
+      - Célia
+      - Cicelle
+      - Cili
+      - Cilla
+      - Csilla
+      - Sáfély
+      - Seila
+      - Sejla
+      - Szille
+      - Zéta
+    preferredNames:
+      - Cecília
+    auditedAt: null
+  - month: 11
+    day: 23
+    monthDay: 11-23
+    names:
+      - Dániel
+      - Felicita
+      - Felicitás
+      - Felicitász
+      - Kelemen
+      - Kelemér
+      - Kelen
+      - Klea
+      - Klélia
+      - Klemencia
+      - Klementin
+      - Klementina
+      - Kolumbán
+      - Lukréciusz
+    preferredNames:
+      - Kelemen
+      - Klementina
+    auditedAt: null
+  - month: 11
+    day: 24
+    monthDay: 11-24
+    names:
+      - Emma
+      - Emmaróza
+      - Emmi
+      - Flóra
+      - Florica
+      - Florinda
+      - János
+      - Johanán
+      - Kurszán
+      - Szvetlána
+      - Tűzvirág
+      - Virág
+    preferredNames:
+      - Emma
+    auditedAt: null
+  - month: 11
+    day: 25
+    monthDay: 11-25
+    names:
+      - Alán
+      - Alen
+      - Ekaterina
+      - Emma
+      - Karen
+      - Karin
+      - Karina
+      - Kata
+      - Katalin
+      - Katarina
+      - Katerina
+      - Kati
+      - Katica
+      - Katinka
+      - Kató
+      - Katrin
+      - Katrina
+      - Kátya
+      - Ketrin
+      - Kitti
+      - Liza
+      - Mózes
+      - Szinisa
+      - Triniti
+    preferredNames:
+      - Katalin
+    auditedAt: null
+  - month: 11
+    day: 26
+    monthDay: 11-26
+    names:
+      - Atanáz
+      - Berengár
+      - Ciklámen
+      - Göncöl
+      - Konrád
+      - Kurt
+      - Lénárd
+      - Leonárd
+      - Leonarda
+      - Leonárdó
+      - Milos
+      - Péter
+      - Petrik
+      - Rasid
+      - Szilveszter
+      - Viktorina
+      - Virág
+    preferredNames:
+      - Virág
+    auditedAt: null
+  - month: 11
+    day: 27
+    monthDay: 11-27
+    names:
+      - Ámina
+      - Amina
+      - Emina
+      - Hilka
+      - Jakab
+      - Jákob
+      - Leonarda
+      - Virgil
+      - Virgília
+    preferredNames:
+      - Virgil
+    auditedAt: null
+  - month: 11
+    day: 28
+    monthDay: 11-28
+    names:
+      - Dezdemóna
+      - Jakab
+      - Jákob
+      - Jakus
+      - Nola
+      - Nolen
+      - Stefánia
+      - Szókratész
+      - Sztefani
+      - Terestyén
+      - Trisztán
+    preferredNames:
+      - Stefánia
+    auditedAt: null
+  - month: 11
+    day: 29
+    monthDay: 11-29
+    names:
+      - Brenda
+      - Filoméla
+      - Filoména
+      - Ilma
+      - Kusán
+      - Mena
+      - Rápolt
+      - Taksony
+    preferredNames:
+      - Taksony
+    auditedAt: null
+  - month: 11
+    day: 30
+    monthDay: 11-30
+    names:
+      - Amál
+      - Amália
+      - Ameli
+      - Andor
+      - Andorás
+      - Andos
+      - András
+      - André
+      - Andrej
+      - Bandó
+      - Dormán
+      - Dormánd
+      - Dormánka
+      - Endre
+      - Tarján
+      - Trajánusz
+      - Tullió
+    preferredNames:
+      - András
+      - Andor
+    auditedAt: null
+  - month: 12
+    day: 1
+    monthDay: 12-01
+    names:
+      - Arnold
+      - Arnót
+      - Bianka
+      - Blanka
+      - Blondina
+      - Bonita
+      - Ede
+      - Éli
+      - Elígiusz
+      - Elza
+      - Enid
+      - Natali
+      - Natália
+      - Noélia
+      - Noella
+      - Oros
+      - Oszkár
+      - Uros
+    preferredNames:
+      - Elza
+    auditedAt: null
+  - month: 12
+    day: 2
+    monthDay: 12-02
+    names:
+      - Adria
+      - Anelma
+      - Aranka
+      - Ari
+      - Aura
+      - Aurél
+      - Aurélia
+      - Bibiána
+      - Dénes
+      - Denisz
+      - Dienes
+      - Gyenes
+      - Szilvánusz
+      - Via
+      - Vivi
+      - Viviána
+      - Vivianna
+      - Vivien
+      - Melinda
+    preferredNames:
+      - Melinda
+      - Vivien
+    auditedAt: null
+  - month: 12
+    day: 3
+    monthDay: 12-03
+    names:
+      - Atala
+      - Atália
+      - Atika
+      - Berend
+      - Berény
+      - Evica
+      - Evila
+      - Ferenc
+      - Lúciusz
+      - Malik
+      - Meri
+      - Szavér
+      - Tarek
+      - Xavér
+      - Xavéria
+      - Zoárd
+      - Zoárda
+      - Zovárd
+      - Zuárd
+      - Olívia
+    preferredNames:
+      - Ferenc
+      - Olívia
+    auditedAt: null
+  - month: 12
+    day: 4
+    monthDay: 12-04
+    names:
+      - Ada
+      - Adelina
+      - Adelinda
+      - Aira
+      - Alinda
+      - Armida
+      - Armilla
+      - Babiána
+      - Babita
+      - Bara
+      - Barbara
+      - Barbarella
+      - Baucisz
+      - Biri
+      - Bóra
+      - Bora
+      - Borbála
+      - Borcsa
+      - Bori
+      - Boris
+      - Boriska
+      - Borka
+      - Boróka
+      - Ciklámen
+      - Emerita
+      - Hágár
+      - Mauríció
+      - Mauró
+      - Mór
+      - Móric
+      - Péter
+      - Petrik
+      - Reginald
+      - Rinaldó
+      - Varínia
+    preferredNames:
+      - Borbála
+      - Barbara
+    auditedAt: null
+  - month: 12
+    day: 5
+    monthDay: 12-05
+    names:
+      - Ábel
+      - Bács
+      - Ciklámen
+      - Csaba
+      - Csanád
+      - Dalma
+      - Kerecsen
+      - Sába
+      - Sebő
+      - Szven
+      - Vilma
+    preferredNames:
+      - Vilma
+    auditedAt: null
+  - month: 12
+    day: 6
+    monthDay: 12-06
+    names:
+      - Csinszka
+      - Denisza
+      - Denissza
+      - Deniza
+      - Dionízia
+      - Diotíma
+      - Gyopár
+      - Gyopárka
+      - Klausz
+      - Kolja
+      - Kolta
+      - Leontina
+      - Mike
+      - Mikes
+      - Miklós
+      - Mikó
+      - Mikolt
+      - Miksa
+      - Niki
+      - Nikol
+      - Nikolasz
+      - Nikolett
+      - Nikoletta
+      - Nikosz
+      - Nilsz
+      - Nyikoláj
+    preferredNames:
+      - Miklós
+    auditedAt: null
+  - month: 12
+    day: 7
+    monthDay: 12-07
+    names:
+      - Agaton
+      - Amarant
+      - Amaranta
+      - Ambos
+      - Ambró
+      - Ambrózia
+      - Ambrus
+      - Amrita
+      - Ángyán
+      - Ányos
+      - Dzsárgál
+      - Szabin
+    preferredNames:
+      - Ambrus
+    auditedAt: null
+  - month: 12
+    day: 8
+    monthDay: 12-08
+    names:
+      - Buzád
+      - Buzát
+      - Emő
+      - Emőke
+      - Immakuláta
+      - Küllikki
+      - Mahmud
+      - Mária
+      - Mateó
+      - Mateusz
+      - Mattenai
+      - Mátyás
+    preferredNames:
+      - Mária
+    auditedAt: null
+  - month: 12
+    day: 9
+    monthDay: 12-09
+    names:
+      - Ábel
+      - Delila
+      - Filotea
+      - Gardénia
+      - Georgina
+      - Gina
+      - Gorán
+      - Gyeke
+      - Györe
+      - György
+      - Györgyi
+      - Györgyike
+      - Györk
+      - Györke
+      - Leona
+      - Natália
+      - Natasa
+      - Noélia
+      - Noella
+      - Péter
+      - Petrik
+      - Piládész
+      - Üdvöske
+      - Valéria
+      - Zsorzsett
+    preferredNames:
+      - Natália
+    auditedAt: null
+  - month: 12
+    day: 10
+    monthDay: 12-10
+    names:
+      - Erátó
+      - Eulália
+      - Gemella
+      - Judit
+      - Lívia
+      - Liviána
+      - Livianna
+      - Loretta
+      - Melkisédek
+      - Miron
+    preferredNames:
+      - Judit
+    auditedAt: null
+  - month: 12
+    day: 11
+    monthDay: 12-11
+    names:
+      - Árpád
+      - Árpádina
+      - Artúr
+      - Damáz
+      - Damira
+      - Dániel
+      - Enciána
+      - Szabin
+      - Tonuzóba
+    preferredNames:
+      - Árpád
+      - Árpádina
+    auditedAt: null
+  - month: 12
+    day: 12
+    monthDay: 12-12
+    names:
+      - Bongor
+      - Bulcsú
+      - Csepel
+      - Franciska
+      - Franni
+      - Gabriella
+      - Johanna
+      - Santál
+      - Santel
+      - Vérbulcsú
+    preferredNames:
+      - Gabriella
+    auditedAt: null
+  - month: 12
+    day: 13
+    monthDay: 12-13
+    names:
+      - Árész
+      - Éda
+      - Edda
+      - Eduán
+      - Elza
+      - Enid
+      - Kenese
+      - Luca
+      - Lúcia
+      - Luciána
+      - Odília
+      - Oresztész
+      - Otília
+      - Ottilia
+      - Tília
+      - Tilla
+      - Víta
+      - Vitália
+    preferredNames:
+      - Otília
+      - Luca
+    auditedAt: null
+  - month: 12
+    day: 14
+    monthDay: 12-14
+    names:
+      - Agnella
+      - Aniella
+      - Beriszló
+      - Berke
+      - Bertold
+      - Boleszláv
+      - Bolyk
+      - Boroszló
+      - Ders
+      - Derzs
+      - Göncöl
+      - Konrád
+      - Szilárd
+      - Szilárda
+      - Ziad
+    preferredNames:
+      - Szilárda
+    auditedAt: null
+  - month: 12
+    day: 15
+    monthDay: 12-15
+    names:
+      - Detre
+      - Dezsider
+      - Dezső
+      - Mária
+      - Valér
+      - Valérió
+    preferredNames:
+      - Valér
+    auditedAt: null
+  - month: 12
+    day: 16
+    monthDay: 12-16
+    names:
+      - Adelaida
+      - Adelheid
+      - Aggeus
+      - Alba
+      - Albina
+      - Aldea
+      - Alett
+      - Aletta
+      - Alitta
+      - Alvina
+      - Beáta
+      - Elke
+      - Etelka
+      - Euzébia
+      - Fehér
+      - Fehéra
+      - Fehére
+      - Fehérke
+      - Hófehérke
+      - Nausziká
+      - Nauszika
+      - Nauzika
+      - Özséb
+      - Tihamér
+      - Valid
+    preferredNames:
+      - Aletta
+      - Etelka
+    auditedAt: null
+  - month: 12
+    day: 17
+    monthDay: 12-17
+    names:
+      - Begónia
+      - Belizár
+      - Daniló
+      - Eliézer
+      - Lázár
+      - Lázó
+      - Olimpia
+      - Spartakusz
+      - Szpartakusz
+    preferredNames:
+      - Lázár
+      - Olimpia
+    auditedAt: null
+  - month: 12
+    day: 18
+    monthDay: 12-18
+    names:
+      - Ágosta
+      - Auguszta
+      - Dés
+      - Dezsider
+      - Dezső
+      - Gracián
+      - Graciella
+      - Harmat
+      - Harmatka
+      - Karácson
+      - Manóhar
+      - Mária
+      - Milen
+      - Miló
+      - Milorád
+      - Némó
+      - Rasszel
+      - Szedrik
+      - Töhötöm
+      - Zajzon
+    preferredNames:
+      - Auguszta
+    auditedAt: null
+  - month: 12
+    day: 19
+    monthDay: 12-19
+    names:
+      - Anasztáz
+      - Bonifác
+      - Daren
+      - Dárió
+      - Derien
+      - Nemere
+      - Orbán
+      - Oros
+      - Pelágiusz
+      - Tea
+      - Tétisz
+      - Urbán
+      - Viola
+    preferredNames:
+      - Viola
+    auditedAt: null
+  - month: 12
+    day: 20
+    monthDay: 12-20
+    names:
+      - Baján
+      - Bebóra
+      - Bojta
+      - Bojtor
+      - Bojtorján
+      - Écska
+      - Eugén
+      - Ignác
+      - Kerecsen
+      - Keresztély
+      - Keresztes
+      - Kitán
+      - Krisztián
+      - Pírea
+      - Rasdi
+      - Szedra
+      - Teofil
+      - Vajta
+      - Vata
+      - Veránka
+      - Ziara
+      - Zselinke
+    preferredNames:
+      - Teofil
+    auditedAt: null
+  - month: 12
+    day: 21
+    monthDay: 12-21
+    names:
+      - Bodomér
+      - Izidor
+      - Izor
+      - Nomin
+      - Péter
+      - Petrik
+      - Tamás
+      - Témisz
+      - Toma
+      - Zája
+    preferredNames:
+      - Tamás
+    auditedAt: null
+  - month: 12
+    day: 22
+    monthDay: 12-22
+    names:
+      - Adina
+      - Anikó
+      - Elián
+      - Flavián
+      - Flávió
+      - Fláviusz
+      - Jutta
+      - Nina
+      - Teofánia
+      - Tifani
+      - Xavéria
+      - Zénó
+      - Zenobiusz
+    preferredNames:
+      - Zénó
+    auditedAt: null
+  - month: 12
+    day: 23
+    monthDay: 12-23
+    names:
+      - Ancilla
+      - Dagobert
+      - Dagomér
+      - Niké
+      - Szente
+      - Viki
+      - Viktória
+      - Zente
+      - Zéta
+      - Zete
+      - Zétény
+    preferredNames:
+      - Viktória
+    auditedAt: null
+  - month: 12
+    day: 24
+    monthDay: 12-24
+    names:
+      - Adala
+      - Ádám
+      - Adél
+      - Adéla
+      - Adela
+      - Adélia
+      - Ájlin
+      - Alinka
+      - Azálea
+      - Délibáb
+      - Della
+      - Ervin
+      - Éva
+      - Hermina
+      - Iringó
+      - Léda
+      - Mínea
+      - Naómi
+      - Naomi
+      - Noé
+      - Noémi
+      - Vica
+    preferredNames:
+      - Éva
+      - Ádám
+    auditedAt: null
+  - month: 12
+    day: 25
+    monthDay: 12-25
+    names:
+      - Anaszta
+      - Anasztáz
+      - Anasztázia
+      - Betlen
+      - Eugénia
+      - Génia
+      - Kabos
+      - Karácson
+      - Nasztázia
+      - Nerina
+      - Nikodémus
+      - Nikodémusz
+      - Noel
+      - Nyeste
+      - Zseni
+    preferredNames:
+      - Eugénia
+    auditedAt: null
+  - month: 12
+    day: 26
+    monthDay: 12-26
+    names:
+      - Dénes
+      - Denisz
+      - Dienes
+      - Előd
+      - István
+      - Moána
+      - Stefán
+      - Stefánia
+      - Zombor
+    preferredNames:
+      - István
+    auditedAt: null
+  - month: 12
+    day: 27
+    monthDay: 12-27
+    names:
+      - Dománd
+      - Evangelika
+      - Evangelina
+      - Fabrícia
+      - János
+      - Lázár
+      - Teodor
+      - Teofánia
+      - Tifani
+    preferredNames:
+      - János
+    auditedAt: null
+  - month: 12
+    day: 28
+    monthDay: 12-28
+    names:
+      - Apor
+      - Apród
+      - Ármin
+      - Derek
+      - Gáspár
+      - Gazsó
+      - Ince
+      - Kamília
+      - Kamilia
+      - Kamilla
+      - Rúfusz
+      - Teodor
+      - Teofila
+      - Tódor
+    preferredNames:
+      - Kamilla
+    auditedAt: null
+  - month: 12
+    day: 29
+    monthDay: 12-29
+    names:
+      - Áldás
+      - Áldáska
+      - Amázia
+      - Aszpázia
+      - Bekő
+      - Benedikta
+      - Bökény
+      - Dakó
+      - Dávid
+      - Davina
+      - Gáspár
+      - Jonatán
+      - Tamara
+      - Tamás
+      - Tamira
+      - Toma
+    preferredNames:
+      - Tamara
+      - Tamás
+    auditedAt: null
+  - month: 12
+    day: 30
+    monthDay: 12-30
+    names:
+      - Anízia
+      - Aníziusz
+      - Dávid
+      - Davina
+      - Dénes
+      - Denisz
+      - Dienes
+      - Dókus
+      - Dózsa
+      - Hunor
+      - Kirtan
+      - Kirtana
+      - Liberátusz
+      - Libériusz
+      - Libor
+      - Libóriusz
+      - Liboriusz
+      - Lotár
+      - Margit
+      - Mazen
+      - Rodzser
+      - Sebő
+      - Sebők
+      - Szabin
+      - Zalán
+      - Zoárd
+    preferredNames:
+      - Dávid
+    auditedAt: null
+  - month: 12
+    day: 31
+    monthDay: 12-31
+    names:
+      - Ajándék
+      - Darina
+      - Darinka
+      - Donáta
+      - Katalin
+      - Kitti
+      - Máriusz
+      - Melánia
+      - Szilveszter
+      - Szilvesztra
+      - Ubul
+    preferredNames:
+      - Szilveszter
+    auditedAt: null

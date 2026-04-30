@@ -78,6 +78,20 @@ export function ErrorLabel({ error }) {
   return <p className="error-text" role="alert">{error}</p>;
 }
 
+export function Tooltip({ as: Component = "span", label, children, className = "", ...props }) {
+  const tooltip = label == null ? "" : String(label).trim();
+
+  return (
+    <Component
+      {...props}
+      className={["css-tooltip", className].filter(Boolean).join(" ")}
+      data-tooltip={tooltip || undefined}
+    >
+      {children}
+    </Component>
+  );
+}
+
 export function EmptyState({ title, detail }) {
   return (
     <div className="empty-state">
@@ -422,10 +436,12 @@ export function MonthAccordion({
         </div>
         <div className="month-summary-kpis">
           {group.summary?.missing > 0 ? <span>hiány: {group.summary.missing}</span> : null}
+          {group.summary?.unaudited > 0 ? <span>nincs OK: {group.summary.unaudited}</span> : null}
+          {group.summary?.drift > 0 ? <span>drift: {group.summary.drift}</span> : null}
           {group.summary?.local > 0 ? <span>helyi: {group.summary.local}</span> : null}
-          {group.summary?.overrides > 0 ? <span>override: {group.summary.overrides}</span> : null}
+          {group.summary?.overrides > 0 ? <span>kézi legacy: {group.summary.overrides}</span> : null}
           {group.summary?.mismatches > 0 ? <span>kiemelt: {group.summary.mismatches}</span> : null}
-          {group.summary?.total && !group.summary?.missing && !group.summary?.local && !group.summary?.overrides && !group.summary?.mismatches ? (
+          {group.summary?.total && !group.summary?.missing && !group.summary?.unaudited && !group.summary?.drift && !group.summary?.local && !group.summary?.overrides && !group.summary?.mismatches ? (
             <span>részletek</span>
           ) : null}
           {headerExtra}

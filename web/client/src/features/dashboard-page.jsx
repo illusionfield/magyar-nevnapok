@@ -74,8 +74,10 @@ function PrimerMonthGrid({ months = [] }) {
           </div>
           <div className="month-status-kpis">
             <span>hiány: {month.missing}</span>
+            <span>nincs OK: {month.unaudited}</span>
+            <span>drift: {month.drift}</span>
             <span>helyi: {month.local}</span>
-            <span>override: {month.overrides}</span>
+            <span>kézi legacy: {month.overrides}</span>
             <span>eltérés: {month.mismatches}</span>
           </div>
         </article>
@@ -146,7 +148,7 @@ export function DashboardPage({ request }) {
         {dashboard ? (
           <MetricStrip
             items={[
-              { label: "Akciózható primer napok", value: dashboard.summary.actionablePrimerDayCount ?? 0 },
+              { label: "Primer audit napok", value: dashboard.summary.actionablePrimerDayCount ?? 0 },
               { label: "Nyitott primer hiány", value: dashboard.summary.primerOpenCount ?? 0 },
               { label: "Audit blokkoló", value: dashboard.summary.auditBlockingCount ?? 0 },
               { label: "Pipeline figyelem", value: dashboard.summary.pipelineAttentionCount ?? 0 },

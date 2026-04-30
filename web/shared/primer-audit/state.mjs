@@ -41,7 +41,7 @@ export function createPrimerAuditInitialState(viewModel) {
     {
       aktivMod: "attekintes",
       overviewQueueIndex: 0,
-      dayFilterId: "akciozhato",
+      dayFilterId: "osszes",
       nameFilterId: "osszes",
       daySortId: "relevancia",
       nameSortId: "relevancia",

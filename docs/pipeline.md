@@ -20,7 +20,7 @@ A pipeline audit-first láncra van rendezve. A projekt fő folyamatai a követke
 
 A sorrend lényege:
 
-- előbb megszülessen a primerforrásokból a **végső primer**,
+- előbb megszülessen az auditált registryből a **végső primer**,
 - legyen friss az adatbázis-alap, amelyre több audit is támaszkodik,
 - utána frissüljenek a **külön auditok**,
 - és csak ezután készüljön el a **primer editor snapshot**.
@@ -66,7 +66,10 @@ A futtató payload tipikusan:
 
 ## Audit-first gyors frissítés
 
-A primer editorból indított közös nap mentése nem a teljes nehéz láncot futtatja újra, hanem csak a szerkesztői visszajelzéshez szükséges auditláncot.
+A primer editorból indított napi OK nem a teljes nehéz láncot futtatja újra,
+hanem csak a szerkesztői visszajelzéshez szükséges auditláncot. A
+legacy/wiki/normalizált/rangsorolt pipeline-források ilyenkor sem írják felül
+a `data/audited-primary-registry.yaml` fájlt.
 
 A gyors frissítés lépései:
 

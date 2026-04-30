@@ -66,36 +66,19 @@ export function App() {
   return (
     <div className="app-shell" data-view-mode={viewMode}>
       <header className="app-topbar">
-        <div>
+        <div className="topbar-brand">
           <p className="eyebrow">Magyar névnapok</p>
           <strong className="topbar-title">Névnap admin</strong>
         </div>
+        <nav className="topbar-nav" aria-label="Fő navigáció">
+          {ROUTES.map((route) => (
+            <AppLink key={route.path} to={route.path} className="topbar-link">
+              {route.label}
+            </AppLink>
+          ))}
+        </nav>
         <Toolbar className="topbar-tools">
-          <StatusBadge tone={connected ? "ok" : "danger"}>
-            {connected ? "Websocket rendben" : "Kapcsolat megszakadt"}
-          </StatusBadge>
-          <span className="muted-text">Oldal: {currentRoute}</span>
-        </Toolbar>
-      </header>
-
-      <div className="app-frame">
-        <aside className="app-sidebar">
-          <div className="sidebar-block brand-block">
-            <strong>Gyors admin nézet</strong>
-            <p className="section-subtitle">
-              Gyors áttekintés a primer audit teendőkhöz, az auditfigyelmekhez, a pipeline állapotához és az ICS munkatérhez.
-            </p>
-          </div>
-
-          <nav className="sidebar-nav">
-            {ROUTES.map((route) => (
-              <AppLink key={route.path} to={route.path} className="sidebar-link">
-                {route.label}
-              </AppLink>
-            ))}
-          </nav>
-
-          <div className="sidebar-block view-mode-block">
+          <div className="topbar-view-mode" aria-label="Nézetmód">
             <span className="field-label">Nézetmód</span>
             <div className="view-switch">
               <button
@@ -117,10 +100,15 @@ export function App() {
                 Részletes
               </button>
             </div>
-            <p className="muted-text">A választás megmarad a böngészőben, és minden oldalon ugyanígy érvényes.</p>
           </div>
-        </aside>
+          <StatusBadge tone={connected ? "ok" : "danger"}>
+            {connected ? "Websocket rendben" : "Kapcsolat megszakadt"}
+          </StatusBadge>
+          <span className="muted-text">Oldal: {currentRoute}</span>
+        </Toolbar>
+      </header>
 
+      <div className="app-frame">
         <main className="app-main">
           <PageSwitch
             pathname={pathname}

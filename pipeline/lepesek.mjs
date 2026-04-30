@@ -20,12 +20,11 @@ import { futtatWikipediaPrimerGyujtest } from "../domainek/forrasok/wikipedia/mu
 import { futtatFormalizaltElekGeneralasat } from "../domainek/kapcsolatok/formalizalt-elek.mjs";
 import {
   DEFAULT_FINAL_PRIMARY_REGISTRY_PATH,
-  DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH,
   DEFAULT_WIKI_PRIMARY_REGISTRY_PATH,
   DEFAULT_LEGACY_PRIMARY_REGISTRY_PATH,
   loadPrimaryRegistry,
-  loadPrimaryRegistryOverrides,
 } from "../domainek/primer/alap.mjs";
+import { betoltAuditaltPrimerRegistryt } from "../domainek/primer/auditalt-primer-registry.mjs";
 import { futtatLegacyPrimerEpiteset } from "../domainek/primer/legacy-ics-atalakitas.mjs";
 import { futtatPrimerNormalizaloRiportot } from "../domainek/primer/normalizalo-riport.mjs";
 import { futtatVegsoPrimerEpiteset } from "../domainek/primer/vegso-primer-epites.mjs";
@@ -98,7 +97,7 @@ async function futtatVegsoPrimerAuditRiportot() {
   const wikiRegistryPath = path.resolve(process.cwd(), DEFAULT_WIKI_PRIMARY_REGISTRY_PATH);
   const normalizedRegistryPath = path.resolve(process.cwd(), kanonikusUtvonalak.primer.normalizaloRiport);
   const inputPath = path.resolve(process.cwd(), kanonikusUtvonalak.adatbazis.nevnapok);
-  const overridesPath = path.resolve(process.cwd(), DEFAULT_PRIMARY_REGISTRY_OVERRIDES_PATH);
+  const auditedRegistryPath = path.resolve(process.cwd(), kanonikusUtvonalak.kezi.auditaltPrimerRegistry);
   const reportPath = path.resolve(process.cwd(), kanonikusUtvonalak.riportok.vegsoPrimer);
 
   const [
@@ -106,14 +105,14 @@ async function futtatVegsoPrimerAuditRiportot() {
     legacyRegistry,
     wikiRegistry,
     normalizedRegistry,
-    overridesRegistry,
+    auditedRegistry,
     inputPayload,
   ] = await Promise.all([
     loadPrimaryRegistry(finalRegistryPath),
     loadPrimaryRegistry(legacyRegistryPath),
     loadPrimaryRegistry(wikiRegistryPath),
     loadPrimaryRegistry(normalizedRegistryPath),
-    loadPrimaryRegistryOverrides(overridesPath),
+    betoltAuditaltPrimerRegistryt(auditedRegistryPath),
     betoltStrukturaltFajl(inputPath),
   ]);
 
@@ -122,15 +121,15 @@ async function futtatVegsoPrimerAuditRiportot() {
     legacyRegistryPayload: legacyRegistry.payload,
     wikiRegistryPayload: wikiRegistry.payload,
     normalizedRegistryPayload: normalizedRegistry.payload,
-    overridesPayload: overridesRegistry.payload,
+    auditedRegistryPayload: auditedRegistry.payload,
     inputPayload,
     inputs: {
       finalRegistryPath,
+      auditedRegistryPath,
       legacyRegistryPath,
       wikiRegistryPath,
       normalizedRegistryPath,
       inputPath,
-      overridesPath,
       reportPath,
     },
   });
@@ -215,12 +214,12 @@ function konkretLepesek() {
     },
     {
       azonosito: "vegso-primer-feloldas",
-      leiras: "Legacy, wiki és kézi felülírás alapján elkészíti a végső primerjegyzéket.",
+      leiras: "Az auditált primer registryből elkészíti a végső primerjegyzéket.",
       csoport: "forrasok-es-alapadatok",
       bemenetek: [
+        kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
         kanonikusUtvonalak.primer.legacy,
         kanonikusUtvonalak.primer.wiki,
-        kanonikusUtvonalak.kezi.primerFelulirasok,
       ],
       kimenetek: [kanonikusUtvonalak.primer.vegso],
       dependsOn: ["legacy-primer-epites", "wiki-primer-gyujtes"],
@@ -231,13 +230,13 @@ function konkretLepesek() {
             futtatVegsoPrimerEpiteset({
               legacy: kanonikusUtvonalak.primer.legacy,
               wiki: kanonikusUtvonalak.primer.wiki,
-              overrides: kanonikusUtvonalak.kezi.primerFelulirasok,
+              audited: kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
               output: kanonikusUtvonalak.primer.vegso,
             }),
           inputs: [
+            kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
             kanonikusUtvonalak.primer.legacy,
             kanonikusUtvonalak.primer.wiki,
-            kanonikusUtvonalak.kezi.primerFelulirasok,
           ],
           outputs: [kanonikusUtvonalak.primer.vegso],
           formatum: opciok.formatum ?? "yaml",
@@ -352,7 +351,7 @@ function konkretLepesek() {
         kanonikusUtvonalak.primer.wiki,
         kanonikusUtvonalak.primer.normalizaloRiport,
         kanonikusUtvonalak.adatbazis.nevnapok,
-        kanonikusUtvonalak.kezi.primerFelulirasok,
+        kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
       ],
       kimenetek: [kanonikusUtvonalak.riportok.vegsoPrimer],
       dependsOn: ["vegso-primer-feloldas", "audit-primer-normalizalo-alap"],
@@ -366,7 +365,7 @@ function konkretLepesek() {
             kanonikusUtvonalak.primer.wiki,
             kanonikusUtvonalak.primer.normalizaloRiport,
             kanonikusUtvonalak.adatbazis.nevnapok,
-            kanonikusUtvonalak.kezi.primerFelulirasok,
+            kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
           ],
           outputs: [kanonikusUtvonalak.riportok.vegsoPrimer],
           formatum: opciok.formatum ?? "yaml",
@@ -408,7 +407,7 @@ function konkretLepesek() {
         kanonikusUtvonalak.primer.wiki,
         kanonikusUtvonalak.primer.normalizaloRiport,
         kanonikusUtvonalak.adatbazis.nevnapok,
-        kanonikusUtvonalak.kezi.primerFelulirasok,
+        kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
         kanonikusUtvonalak.helyi.nevnapokKonfig,
       ],
       kimenetek: [kanonikusUtvonalak.riportok.primerAudit],
@@ -428,7 +427,7 @@ function konkretLepesek() {
               wiki: kanonikusUtvonalak.primer.wiki,
               normalized: kanonikusUtvonalak.primer.normalizaloRiport,
               input: kanonikusUtvonalak.adatbazis.nevnapok,
-              overrides: kanonikusUtvonalak.kezi.primerFelulirasok,
+              audited: kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
               local: kanonikusUtvonalak.helyi.nevnapokKonfig,
               report: kanonikusUtvonalak.riportok.primerAudit,
             }),
@@ -438,7 +437,7 @@ function konkretLepesek() {
             kanonikusUtvonalak.primer.wiki,
             kanonikusUtvonalak.primer.normalizaloRiport,
             kanonikusUtvonalak.adatbazis.nevnapok,
-            kanonikusUtvonalak.kezi.primerFelulirasok,
+            kanonikusUtvonalak.kezi.auditaltPrimerRegistry,
             kanonikusUtvonalak.helyi.nevnapokKonfig,
           ],
           outputs: [kanonikusUtvonalak.riportok.primerAudit],

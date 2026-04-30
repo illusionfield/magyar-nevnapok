@@ -5,7 +5,7 @@
 - HUN-REN / ELTE utónévportál
 - Wikipédia napi oldalak
 - legacy ICS névnapkészlet
-- kézi primer-felülírások
+- auditált primer registry
 
 ## Puppeteer és HUN-REN HTTP-kompatibilitás
 
@@ -18,13 +18,25 @@ A projekt ezért központi Puppeteer-indítási kompatibilitási kapcsolókat ha
 Ez a workaround a `kozos/puppeteer-inditas.mjs` modulban van összefogva, hogy a
 Wikipédia- és a HUN-REN-scraper ugyanazt a viselkedést kapja.
 
-## Kézi primer-felülírások
+## Auditált primer registry
 
-A kézi primerdöntések elsődleges forrása:
+A végső primer és a napi auditált teljes névlista irányadó forrása:
+
+```text
+  data/audited-primary-registry.yaml
+```
+
+A fájl naponta tartalmazza a teljes auditált névlistát (`names`), a generátornak szánt végső primerlistát (`preferredNames`) és az auditálás időpontját (`auditedAt`). A pipeline-források újrafuttatása nem írja át ezt a fájlt; csak eltéréseket és javaslatokat mutat a primer audit felületen.
+
+## Legacy primer-felülírások
+
+A korábbi, közös primerfelülírási fájl továbbra is megmarad kompatibilitási és migrációs bemenetként:
 
 ```text
   data/primary-registry-overrides.yaml
 ```
+
+Új végső primerdöntéshez nem ez az irányadó forrás.
 
 ## Hivatalos névjegyzék kivétellista
 

@@ -16,67 +16,72 @@ export const PRIMER_AUDIT_MODOK = [
 
 export const PRIMER_AUDIT_NAP_SZUROK = [
   {
-    azonosito: "akciozhato",
-    cimke: "Akciózható",
-    leiras: "Helyben nyitott hiányzós, overlayes, override-os vagy eltéréses napok.",
-  },
-  {
-    azonosito: "hianyzos",
-    cimke: "Hiányzós napok",
-    leiras: "Legalább egy helyben még nyitott hiányzó névvel rendelkező napok.",
-  },
-  {
-    azonosito: "manual-override",
-    cimke: "Kézi override napok",
-    leiras: "Kézi felülírással vagy override-érintettséggel jelölt napok.",
-  },
-  {
-    azonosito: "helyi",
-    cimke: "Helyi kijelölések",
-    leiras: "Olyan napok, ahol a helyi overlay ténylegesen hozzáad nevet a közös alaphoz.",
-  },
-  {
-    azonosito: "elteres",
-    cimke: "Eltéréses napok",
-    leiras: "Validációs mismatch/eltérés miatt kiemelt napok.",
-  },
-  {
     azonosito: "osszes",
-    cimke: "Összes nap",
+    cimke: "Összes",
     leiras: "Az év összes auditált napja.",
+  },
+  {
+    azonosito: "nincs-auditalva",
+    cimke: "Nincs leokézva",
+    leiras: "Olyan napok, ahol még nincs napi audit időbélyeg.",
+  },
+  {
+    azonosito: "primer-nelkul-marado",
+    cimke: "Primer nélkül maradó",
+    leiras: "Legalább egy primer nélkül maradó vagy hiányzó névvel rendelkező napok.",
+  },
+  {
+    azonosito: "auditalt-drift",
+    cimke: "Auditált drift",
+    leiras: "A jelenlegi teljes forrásnévlista eltér az utoljára auditált napi névlistától.",
+  },
+  {
+    azonosito: "wiki-legacy-elteres",
+    cimke: "Wiki vs legacy",
+    leiras: "A legacy és wiki primerjelölt-lista eltér egymástól.",
+  },
+  {
+    azonosito: "normalizalt-rangsor",
+    cimke: "Normalizált / Rangsor",
+    leiras: "A normalizált vagy rangsorolt forrás olyan nevet javasol, amely nincs az auditált primerlistában.",
   },
 ];
 
 export const PRIMER_AUDIT_NEV_SZUROK = [
   {
     azonosito: "osszes",
-    cimke: "Összes név",
+    cimke: "Összes",
     leiras: "Az összes indexelt név az összes forrásból.",
   },
   {
-    azonosito: "hianyzo",
-    cimke: "Hiányzó nevek",
+    azonosito: "primer-nelkul-marado",
+    cimke: "Primer nélkül maradó",
     leiras: "Legalább egy napon hiányzóként jelölt nevek.",
   },
   {
+    azonosito: "auditalt-primer",
+    cimke: "Auditált primer",
+    leiras: "Legalább egy napon auditált primerként szereplő nevek.",
+  },
+  {
+    azonosito: "forras-javaslat",
+    cimke: "Forrás javaslat",
+    leiras: "Normalizált vagy rangsor forrás által javasolt, de nem mindenütt auditált primer nevek.",
+  },
+  {
+    azonosito: "wiki-legacy-elteres",
+    cimke: "Wiki vs legacy",
+    leiras: "Olyan nevek, amelyeket legalább egy napon wiki/legacy eltérés érint.",
+  },
+  {
     azonosito: "helyi",
-    cimke: "Helyi nevek",
+    cimke: "Helyi",
     leiras: "Legalább egy napon helyileg kijelölt nevek.",
   },
   {
-    azonosito: "vegso",
-    cimke: "Végső primerek",
-    leiras: "A végső primerkészletben szereplő nevek.",
-  },
-  {
     azonosito: "rejtett",
-    cimke: "Rejtett nevek",
+    cimke: "Rejtett",
     leiras: "Legalább egy napon rejtettként kezelt nevek.",
-  },
-  {
-    azonosito: "nyers",
-    cimke: "Nyers forrásnevek",
-    leiras: "A napi nyers névlistákból származó nevek.",
   },
 ];
 
@@ -152,6 +157,25 @@ function uniqueKeepOrder(values) {
   }
 
   return eredmeny;
+}
+
+function normalizeNameForMatch(value) {
+  return String(value ?? "")
+    .normalize("NFC")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function areNameSetsEqual(leftValues = [], rightValues = []) {
+  const normalize = (values) =>
+    uniqueKeepOrder(values)
+      .map(normalizeNameForMatch)
+      .filter(Boolean)
+      .sort();
+  const left = normalize(leftValues);
+  const right = normalize(rightValues);
+
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function getNestedValue(objektum, utvonal) {
@@ -495,10 +519,25 @@ function finalizeNameNodes(nameMap) {
       };
       const firstMonthDay = occurrences[0]?.monthDay ?? null;
       const sources = FORRAS_SORREND.filter((source) => node.sourcesPresent.has(source));
+      const flags = {
+        hasMissing: (summary.missing ?? 0) > 0,
+        hasFinal: (summary.final ?? 0) > 0,
+        hasSourceSuggestion: occurrences.some(
+          (occurrence) =>
+            (occurrence.sourceFlags.normalized || occurrence.sourceFlags.ranking) &&
+            !occurrence.statusFlags.final
+        ),
+        hasWikiLegacyMismatch: occurrences.some(
+          (occurrence) => occurrence.sourceFlags.legacy !== occurrence.sourceFlags.wiki
+        ),
+        hasLocal: (summary.local ?? 0) > 0,
+        hasHidden: (summary.hidden ?? 0) > 0,
+      };
       const item = {
         name: node.name,
         firstMonthDay,
         counts: summary,
+        flags,
         sources,
         occurrenceCount: occurrences.length,
         occurrences,
@@ -531,6 +570,8 @@ function buildMonthSummary(days) {
         local: 0,
         overrides: 0,
         mismatches: 0,
+        unaudited: 0,
+        drift: 0,
       });
     }
 
@@ -540,6 +581,8 @@ function buildMonthSummary(days) {
     honap.local += day.flags.hasLocal ? 1 : 0;
     honap.overrides += day.flags.isManualOverride ? 1 : 0;
     honap.mismatches += day.flags.isValidationMismatch ? 1 : 0;
+    honap.unaudited += day.auditedAt ? 0 : 1;
+    honap.drift += dayMatchesFilter(day, "auditalt-drift") ? 1 : 0;
   }
 
   return Array.from(honapMap.values()).sort((left, right) => left.month - right.month);
@@ -722,6 +765,22 @@ export function buildPrimerAuditViewModel(report, options = {}) {
 
 export function dayMatchesFilter(day, filterId) {
   switch (filterId) {
+    case "nincs-auditalva":
+      return !day.auditedAt;
+    case "primer-nelkul-marado":
+      return day.flags.hasMissing;
+    case "auditalt-drift":
+      return (
+        day.drift?.hasSourceNameDrift === true ||
+        day.drift?.hasPreferredSourceDrift === true ||
+        !areNameSetsEqual(day.auditedNames ?? day.names ?? [], day.rawNames ?? [])
+      );
+    case "wiki-legacy-elteres":
+      return !areNameSetsEqual(day.legacy ?? [], day.wiki ?? []);
+    case "normalizalt-rangsor": {
+      const finalSet = new Set((day.commonPreferredNames ?? day.finalPrimaryNames ?? []).map(normalizeNameForMatch));
+      return [...(day.normalized ?? []), ...(day.ranking ?? [])].some((name) => !finalSet.has(normalizeNameForMatch(name)));
+    }
     case "akciozhato":
       return day.flags.hasMissing || day.flags.hasLocal || day.flags.isManualOverride || day.flags.isValidationMismatch;
     case "hianyzos":
@@ -740,14 +799,20 @@ export function dayMatchesFilter(day, filterId) {
 
 export function nameMatchesFilter(name, filterId) {
   switch (filterId) {
+    case "primer-nelkul-marado":
     case "hianyzo":
-      return (name.counts.missing ?? 0) > 0;
-    case "helyi":
-      return (name.counts.local ?? 0) > 0;
+      return name.flags?.hasMissing === true || (name.counts.missing ?? 0) > 0;
+    case "auditalt-primer":
     case "vegso":
-      return (name.counts.final ?? 0) > 0;
+      return name.flags?.hasFinal === true || (name.counts.final ?? 0) > 0;
+    case "forras-javaslat":
+      return name.flags?.hasSourceSuggestion === true;
+    case "wiki-legacy-elteres":
+      return name.flags?.hasWikiLegacyMismatch === true;
+    case "helyi":
+      return name.flags?.hasLocal === true || (name.counts.local ?? 0) > 0;
     case "rejtett":
-      return (name.counts.hidden ?? 0) > 0;
+      return name.flags?.hasHidden === true || (name.counts.hidden ?? 0) > 0;
     case "nyers":
       return (name.counts.raw ?? 0) > 0;
     case "osszes":
@@ -852,9 +917,7 @@ export function visiblePrimerAuditNevek(viewModel, allapot) {
 export function buildPrimerAuditOsszegzesSorok(viewModel) {
   return [
     `Napok: ${viewModel.summary?.rowCount ?? 0} • Közös hiányzók: ${viewModel.summary?.combinedMissingCount ?? 0} • Helyben nyitott hiányzók: ${viewModel.summary?.effectiveMissingCount ?? 0}`,
-    `Helyi feloldások: ${viewModel.summary?.locallyResolvedMissingCount ?? 0} • Kézi override napok: ${viewModel.summary?.overrideDayCount ?? 0} • Személyes primerforrás: ${sajatPrimerForrasCimke(
-      viewModel.personalSettings?.primarySource ?? "default"
-    )}`,
+    `Auditált napok: ${viewModel.summary?.auditedDayCount ?? 0} • Nincs leokézva: ${viewModel.summary?.unauditedDayCount ?? 0} • Forrás drift: ${viewModel.summary?.sourceNameDriftDayCount ?? 0}`,
   ];
 }
 
