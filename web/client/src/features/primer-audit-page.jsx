@@ -54,6 +54,86 @@ function namesEqual(left = [], right = []) {
   return JSON.stringify(left ?? []) === JSON.stringify(right ?? []);
 }
 
+function uniqueNamesByKey(values = []) {
+  const seen = new Set();
+  const result = [];
+
+  for (const value of values ?? []) {
+    const key = normalizeName(value);
+
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(value);
+  }
+
+  return result;
+}
+
+function diffNameSetsByKey(left = [], right = []) {
+  const rightKeys = new Set(uniqueNamesByKey(right).map(normalizeName));
+
+  return uniqueNamesByKey(left).filter((value) => !rightKeys.has(normalizeName(value)));
+}
+
+function getNormalizedPrimerDiff(row) {
+  const audited = row.auditedPreferredNames ?? [];
+  const normalized = row.normalizedNames ?? [];
+  const onlyNormalized = diffNameSetsByKey(normalized, audited);
+  const onlyAudited = diffNameSetsByKey(audited, normalized);
+
+  return {
+    onlyNormalized,
+    onlyAudited,
+    hasDifference: onlyNormalized.length > 0 || onlyAudited.length > 0,
+  };
+}
+
+function formatNormalizedPrimerDiffLabel(diff) {
+  const parts = ["Eltérés van a Normalizált primerhez képest."];
+
+  if (diff.onlyNormalized.length > 0) {
+    parts.push(`Csak Normalizált: ${formatNames(diff.onlyNormalized, 4)}`);
+  }
+
+  if (diff.onlyAudited.length > 0) {
+    parts.push(`Csak auditált primer: ${formatNames(diff.onlyAudited, 4)}`);
+  }
+
+  return parts.join(" • ");
+}
+
+function getDriftSources(drift) {
+  return Array.isArray(drift?.sources) ? drift.sources : [];
+}
+
+function formatSourceDriftLines(drift) {
+  return getDriftSources(drift).flatMap((source) => {
+    const label = source.sourceLabel ?? source.sourceId ?? "Forrás";
+
+    return [
+      `${label} csak forrásban: ${formatNames(source.sourceOnlyNames, 5)}`,
+      `${label} csak auditáltban: ${formatNames(source.auditedOnlyNames, 5)}`,
+    ];
+  });
+}
+
+function formatSourceDriftSummary(drift) {
+  const lines = formatSourceDriftLines(drift);
+  return lines.length > 0 ? lines.join(" • ") : "—";
+}
+
+function formatSourceDriftStatusLabel(drift) {
+  const labels = getDriftSources(drift)
+    .map((source) => source.sourceLabel ?? source.sourceId)
+    .filter(Boolean);
+  const sourceLabel = labels.length > 0 ? labels.join("/") : "Wiki/Normalizált";
+
+  return `Frissebb ${sourceLabel} forrás eltér az auditált primerlistától.`;
+}
+
 function hasName(values = [], name) {
   const key = normalizeName(name);
   return (values ?? []).some((value) => normalizeName(value) === key);
@@ -111,15 +191,50 @@ function formatRelativeTime(value) {
   return "épp most";
 }
 
+const OCCURRENCE_STATUS_META = {
+  final: { label: "végső primer", tone: "ok" },
+  missing: { label: "hiányzó", tone: "danger" },
+  hidden: { label: "rejtett", tone: "warning" },
+  local: { label: "helyi", tone: "cyan" },
+  manualOverride: { label: "kézi", tone: "purple" },
+  validationMismatch: { label: "eltérés", tone: "danger" },
+};
+
+const OCCURRENCE_SOURCE_META = {
+  final: { label: "auditált", tone: "ok" },
+  legacy: { label: "legacy", tone: "purple" },
+  wiki: { label: "wiki", tone: "cyan" },
+  normalized: { label: "normalizált", tone: "normalized" },
+  ranking: { label: "rangsor", tone: "info" },
+  raw: { label: "nyers", tone: "neutral" },
+  hidden: { label: "rejtett", tone: "warning" },
+  local: { label: "helyi", tone: "cyan" },
+};
+
+const PRIMARY_SOURCE_LABELS = {
+  legacy: "Legacy",
+  wiki: "Wiki",
+  normalized: "Normalizált",
+  ranking: "Rangsor",
+};
+
+function isNeverPrimaryChip(row, name) {
+  return hasName(row.neverPrimaryNames, name) || hasName(row.effectiveMissingNames, name);
+}
+
 function getChipTone(row, name, viewMode) {
   const sourceOnly = hasName(row.drift?.sourceOnlyNames, name);
   const auditedOnly = hasName(row.drift?.auditedOnlyNames, name);
-  const missing = hasName(row.neverPrimaryNames ?? row.effectiveMissingNames, name);
+  const missing = isNeverPrimaryChip(row, name);
   const inLegacy = hasName(row.legacyNames, name);
   const inWiki = hasName(row.wikiNames, name);
   const inNormalized = hasName(row.normalizedNames, name);
   const inRanking = hasName(row.rankingNames, name);
   const inFinal = hasName(row.auditedPreferredNames, name) || hasName(row.effectivePreferredNames, name);
+
+  if (missing) {
+    return "danger";
+  }
 
   if (viewMode === "audit-drift") {
     if (sourceOnly) {
@@ -170,8 +285,13 @@ function getChipTone(row, name, viewMode) {
 
 function NameChip({ row, name, viewMode, selected = false, disabled = false, onAdd, onRemove, onInfo }) {
   const tone = getChipTone(row, name, viewMode);
+  const missing = isNeverPrimaryChip(row, name);
   const sourceLabel = (row.chipSources?.[name] ?? []).join("+");
-  const tooltip = sourceLabel ? `${name} • források: ${sourceLabel}` : name;
+  const tooltip = [
+    name,
+    sourceLabel ? `források: ${sourceLabel}` : null,
+    missing ? "Primer nélkül maradó" : null,
+  ].filter(Boolean).join(" • ");
 
   return (
     <Tooltip
@@ -180,7 +300,10 @@ function NameChip({ row, name, viewMode, selected = false, disabled = false, onA
       label={tooltip}
     >
       <span className="audit-name-chip-copy">
-        <span className="audit-name-chip-label">{name}</span>
+        <span className="audit-name-chip-label">
+          {name}
+          {missing ? <span className="audit-name-chip-missing-badge" aria-hidden="true">∅</span> : null}
+        </span>
         {sourceLabel ? <small className="audit-name-chip-source">{sourceLabel}</small> : null}
       </span>
       <span className="audit-name-chip-actions">
@@ -242,6 +365,104 @@ function JsonDetails({ title, value }) {
   );
 }
 
+function uniqueIds(values = []) {
+  return Array.from(new Set((values ?? []).filter(Boolean)));
+}
+
+function OccurrenceBadgeRow({ label, ids = [], meta }) {
+  const items = uniqueIds(ids).map((id) => ({
+    id,
+    ...(meta[id] ?? { label: id, tone: "neutral" }),
+  }));
+
+  return (
+    <div className="occurrence-badge-row">
+      <span>{label}</span>
+      <div className="occurrence-badges">
+        {items.length > 0 ? (
+          items.map((item) => (
+            <span key={item.id} className={`occurrence-badge ${item.tone}`}>
+              {item.label}
+            </span>
+          ))
+        ) : (
+          <span className="muted-text">—</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OccurrenceSourceSummary({ occurrence }) {
+  const rows = Object.entries(PRIMARY_SOURCE_LABELS)
+    .map(([source, label]) => {
+      const names = occurrence.sourcePrimaryNames?.[source] ?? [];
+      const count = occurrence.sourcePrimaryCounts?.[source] ?? names.length;
+
+      if (count === 0 && names.length === 0) {
+        return null;
+      }
+
+      return { source, label, count, names };
+    })
+    .filter(Boolean);
+
+  return (
+    <div className="occurrence-source-summary" aria-label="Forrás primer összkép">
+      {rows.length > 0 ? (
+        rows.map((row) => (
+          <div key={row.source}>
+            <strong>{row.label}: {row.count}</strong>
+            <span>{formatNames(row.names, 4)}</span>
+          </div>
+        ))
+      ) : (
+        <p className="muted-text">Nincs forrás-primer adat.</p>
+      )}
+    </div>
+  );
+}
+
+function OccurrenceAuditCard({ occurrence }) {
+  const statusIds = occurrence.statusIds ?? [];
+  const sourceIds = occurrence.sourceIds ?? [];
+  const missing = statusIds.includes("missing") || occurrence.statusFlags?.missing === true;
+  const missingSources = occurrence.missingSources ?? [];
+  const similarPrimaries = occurrence.similarPrimaries ?? [];
+  const effectiveMissingNames = occurrence.effectiveMissingNames ?? [];
+  const finalNames = occurrence.auditedPreferredNames ?? occurrence.finalPrimaryNames ?? [];
+
+  return (
+    <article className={["occurrence-audit-card", missing ? "missing" : ""].filter(Boolean).join(" ")}>
+      <div className="occurrence-audit-head">
+        <strong>{occurrence.dateLabel}</strong>
+        <span>{occurrence.auditedAt ? `OK: ${formatRelativeTime(occurrence.auditedAt)}` : "nincs OK"}</span>
+      </div>
+      <OccurrenceBadgeRow label="Státusz" ids={statusIds} meta={OCCURRENCE_STATUS_META} />
+      <OccurrenceBadgeRow label="Forrás" ids={sourceIds} meta={OCCURRENCE_SOURCE_META} />
+      <div className="occurrence-audit-facts">
+        <div>
+          <span>Végső primer</span>
+          <strong>{formatNames(finalNames, 5)}</strong>
+        </div>
+        <div>
+          <span>Forrás-primerek</span>
+          <OccurrenceSourceSummary occurrence={occurrence} />
+        </div>
+      </div>
+      {missing ? (
+        <div className="occurrence-missing-note">
+          <strong>Primer nélkül maradó</strong>
+          <span>Hiányzó nevek: {formatNames(effectiveMissingNames, 4)}</span>
+          <span>Források: {formatNames(missingSources, 4)}</span>
+          <span>Kapcsolódó primer: {formatNames(similarPrimaries, 3)}</span>
+          {occurrence.localSelectable ? <span>Helyileg kijelölhető.</span> : null}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function NameDetailMainContent({ detail, summaryCard = null }) {
   const description = detail.description ?? {};
   const frequency = description.frequency ?? {};
@@ -284,16 +505,9 @@ function NameDetailMainContent({ detail, summaryCard = null }) {
       <section className="name-detail-card" aria-label="Név előfordulásai">
         <h3>Előfordulások</h3>
         {occurrences.length > 0 ? (
-          <ul className="plain-list compact-list name-detail-occurrences">
-            {occurrences.map((occurrence) => (
-              <li key={`${detail.name}-${occurrence.monthDay}`}>
-                <strong>{occurrence.dateLabel}</strong>
-                <span>
-                  audit: {occurrence.auditedPrimaryCount} • legacy: {occurrence.sourcePrimaryCounts?.legacy ?? 0} • wiki: {occurrence.sourcePrimaryCounts?.wiki ?? 0} • norm: {occurrence.sourcePrimaryCounts?.normalized ?? 0} • rangsor: {occurrence.sourcePrimaryCounts?.ranking ?? 0}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="name-detail-occurrence-cards">
+            {occurrences.map((occurrence) => <OccurrenceAuditCard key={`${detail.name}-${occurrence.monthDay}`} occurrence={occurrence} />)}
+          </div>
         ) : (
           <p className="muted-text">Ehhez a névhez nincs napi előfordulás.</p>
         )}
@@ -473,8 +687,7 @@ function AuditEvidenceSummary({ row, preferredDraft }) {
     ["Wiki", formatAllNames(row.wikiNames)],
     ["Normalizált", formatAllNames(row.normalizedNames)],
     ["Rangsor", formatAllNames(row.rankingNames)],
-    ["Új forrásnevek", formatAllNames(row.drift?.sourceOnlyNames)],
-    ["Csak auditáltban", formatAllNames(row.drift?.auditedOnlyNames)],
+    ["Forrásdrift", formatSourceDriftSummary(row.drift)],
     ["Primer nélkül maradó", formatAllNames(row.neverPrimaryNames ?? row.effectiveMissingNames)],
     ["Utolsó OK", row.auditedAt ? formatRelativeTime(row.auditedAt) : "nincs leokézva"],
   ];
@@ -616,6 +829,37 @@ function DayAuditEditor({ row, request, onSaved, onCancel }) {
             <SourceColumn title="Wiki" names={row.wikiNames} row={row} viewMode={viewMode} preferredDraft={preferredDraft} onAdd={addToPreferred} onInfo={showNameDetail} />
             <SourceColumn title="Normalizált" names={row.normalizedNames} row={row} viewMode={viewMode} preferredDraft={preferredDraft} onAdd={addToPreferred} onInfo={showNameDetail} />
             <SourceColumn title="Rangsor" names={row.rankingNames} row={row} viewMode={viewMode} preferredDraft={preferredDraft} onAdd={addToPreferred} onInfo={showNameDetail} />
+            <div className="all-day-names-panel">
+              <div className="final-primer-panel-head">
+                <strong>A nap auditált teljes névlistája</strong>
+                <span>{namesDraft.length} / {candidateNames.length} név</span>
+              </div>
+              <div className="audit-chip-flow">
+                {candidateNames.map((name) => {
+                  const inNames = hasName(namesDraft, name);
+                  const inPreferred = hasName(preferredDraft, name);
+
+                  return (
+                    <NameChip
+                      key={`all-${name}`}
+                      row={row}
+                      name={name}
+                      viewMode={viewMode}
+                      selected={inNames}
+                      disabled={inPreferred}
+                      onAdd={!inNames ? addToNames : inPreferred ? null : addToPreferred}
+                      onRemove={inNames && !inPreferred ? removeFromNames : null}
+                      onInfo={showNameDetail}
+                    />
+                  );
+                })}
+              </div>
+              {row.drift?.hasSourceNameDrift ? (
+                <p className="muted-text">
+                  Drift: {formatSourceDriftSummary(row.drift)}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <div className="final-primer-panel">
@@ -635,44 +879,11 @@ function DayAuditEditor({ row, request, onSaved, onCancel }) {
             <AuditEvidenceSummary row={row} preferredDraft={preferredDraft} />
           </div>
         </div>
-
-        <div className="all-day-names-panel">
-          <div className="final-primer-panel-head">
-            <strong>A nap auditált teljes névlistája</strong>
-            <span>{namesDraft.length} / {candidateNames.length} név</span>
-          </div>
-          <div className="audit-chip-flow">
-            {candidateNames.map((name) => {
-              const inNames = hasName(namesDraft, name);
-              const inPreferred = hasName(preferredDraft, name);
-
-              return (
-                <NameChip
-                  key={`all-${name}`}
-                  row={row}
-                  name={name}
-                  viewMode={viewMode}
-                  selected={inNames}
-                  disabled={inPreferred}
-                  onAdd={!inNames ? addToNames : inPreferred ? null : addToPreferred}
-                  onRemove={inNames && !inPreferred ? removeFromNames : null}
-                  onInfo={showNameDetail}
-                />
-              );
-            })}
-          </div>
-          {row.drift?.sourceOnlyNames?.length > 0 || row.drift?.auditedOnlyNames?.length > 0 ? (
-            <p className="muted-text">
-              Drift: új forrásnév: {formatNames(row.drift.sourceOnlyNames, 6)} • csak auditáltban: {formatNames(row.drift.auditedOnlyNames, 6)}
-            </p>
-          ) : null}
-        </div>
       </div>
 
       <Toolbar>
         <ActionButton
-          label="OK"
-          disabled={!dirty}
+          label="Audit mentése"
           tone="primary"
           onClick={async () => {
             await request("primer-audit:save-audited-day", {
@@ -684,8 +895,14 @@ function DayAuditEditor({ row, request, onSaved, onCancel }) {
             await onSaved();
           }}
         />
-        <button type="button" className="action-button" onClick={onCancel}>Cancel</button>
-        {!dirty ? <span className="muted-text">Nincs mentetlen módosítás.</span> : <span className="muted-text">Mentetlen napi audit draft.</span>}
+        <button type="button" className="action-button" onClick={onCancel}>
+          {dirty ? "Módosítások eldobása" : "Bezárás"}
+        </button>
+        {!dirty ? (
+          <span className="muted-text">Nincs mentetlen módosítás; mentéskor az audit időbélyeg frissül.</span>
+        ) : (
+          <span className="muted-text">Mentetlen napi audit draft.</span>
+        )}
       </Toolbar>
 
       <NameDetailPanel
@@ -701,13 +918,23 @@ function DayAuditEditor({ row, request, onSaved, onCancel }) {
 
 function buildDayStatusItems(row) {
   const items = [];
+  const normalizedPrimerDiff = getNormalizedPrimerDiff(row);
 
   if (!row.auditedAt) {
     items.push({ id: "unaudited", icon: "!", label: "Nincs leokézva", tone: "warning" });
   }
 
+  if (normalizedPrimerDiff.hasDifference) {
+    items.push({
+      id: "normalized-diff",
+      icon: "N≠",
+      label: formatNormalizedPrimerDiffLabel(normalizedPrimerDiff),
+      tone: "normalized",
+    });
+  }
+
   if (row.drift?.hasSourceNameDrift) {
-    items.push({ id: "drift", icon: "Δ", label: "Auditált állapot forrásdriftben van", tone: "info" });
+    items.push({ id: "drift", icon: "Δ", label: formatSourceDriftStatusLabel(row.drift), tone: "info" });
   }
 
   if (row.flags?.hasMissing) {
@@ -1292,7 +1519,7 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
           connected={connected}
           jobState={jobState}
           lastSocketError={lastSocketError}
-          idleLabel="A napi OK mentésekor indul újrafuttatás; annak állapota itt látszik majd százalékos visszajelzéssel."
+          idleLabel="A napi audit mentésekor indul újrafuttatás; annak állapota itt látszik majd százalékos visszajelzéssel."
         />
         <Toolbar>
           <button type="button" className={mode === "napok" ? "tab-button active" : "tab-button"} onClick={() => setMode("napok")}>
@@ -1309,7 +1536,7 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
             items={[
               { label: "Összes nap", value: summary.summary.rowCount ?? 0 },
               { label: "Nincs leokézva", value: summary.summary.unauditedDayCount ?? 0 },
-              { label: "Forrás drift", value: summary.summary.sourceNameDriftDayCount ?? 0 },
+              { label: "Forrásdrift", value: summary.summary.sourceNameDriftDayCount ?? 0 },
               { label: "Primer nélkül maradó", value: summary.summary.effectiveMissingCount ?? 0 },
             ]}
           />

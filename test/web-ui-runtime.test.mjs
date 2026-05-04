@@ -310,6 +310,8 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
       hasMiniMeta: Boolean(document.querySelector(".primer-audit-table .mini-meta")),
       hasPencilButton: [...document.querySelectorAll(".primer-audit-table .icon-action-button")].some((button) => button.textContent.includes("✎")),
       statusDotTooltips: [...document.querySelectorAll(".primer-audit-table .audit-status-dot")].map((element) => element.getAttribute("data-tooltip")),
+      normalizedDiffTooltips: [...document.querySelectorAll(".primer-audit-table .audit-status-dot.normalized")]
+        .map((element) => element.getAttribute("data-tooltip")),
       firstChipTooltip: firstChip?.getAttribute("data-tooltip") ?? null,
       pencilTooltip: firstPencil?.getAttribute("data-tooltip") ?? null,
       domTitleCount: document.querySelectorAll("[title]").length,
@@ -322,6 +324,11 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.equal(primerTableState.hasMiniMeta, false, "A napi sor dátum mini-meta nélkül jelenjen meg.");
   assert.equal(primerTableState.hasPencilButton, true, "A napi editor nyitása pencil gombbal történjen.");
   assert.equal(primerTableState.statusDotTooltips.includes("Nincs leokézva"), true);
+  assert.equal(
+    primerTableState.normalizedDiffTooltips.some((tooltip) => tooltip?.includes("Eltérés van a Normalizált primerhez képest.")),
+    true,
+    "A napi audit státuszpontok jelezzék a Normalizált primerhez képesti eltérést."
+  );
   assert.ok(primerTableState.firstChipTooltip, "A névchip CSS tooltip adatot kapjon.");
   assert.equal(primerTableState.pencilTooltip, "Napi primer audit szerkesztése", "A pencil gomb CSS tooltipet kapjon.");
   assert.equal(primerTableState.domTitleCount, 0, "A primer audit DOM-ban ne legyen natív title attribútum.");
@@ -346,10 +353,15 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.notEqual(detailedSourceDisplay, "none", "Részletes módban a chip forráslabel a név alatt látszódjon.");
 
   await primerPage.evaluate(() => {
-    const pencil = document.querySelector(".primer-audit-table .icon-action-button");
+    const rowWithMissing = [...document.querySelectorAll(".primer-audit-table tbody tr")]
+      .find((row) =>
+        [...row.querySelectorAll(".audit-status-dot")]
+          .some((dot) => dot.getAttribute("data-tooltip")?.includes("Primer nélkül maradó"))
+      );
+    const pencil = rowWithMissing?.querySelector(".icon-action-button");
 
     if (!pencil) {
-      throw new Error("Nem található napi pencil gomb.");
+      throw new Error("Nem található primer nélkül maradó napi pencil gomb.");
     }
 
     pencil.click();
@@ -370,18 +382,54 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
     hasInfoWindowBeforeClick: Boolean(document.querySelector(".name-detail-window")),
     hasEvidenceLinks: Boolean(document.querySelector(".day-audit-editor .evidence-link-list")),
     hasConcreteFacts: Boolean(document.querySelector(".day-audit-editor .audit-evidence-facts")),
+    toolbarButtons: [...document.querySelectorAll(".day-audit-editor .toolbar button")]
+      .map((button) => ({
+        label: button.textContent.trim(),
+        disabled: button.disabled,
+      })),
+    helperText: document.querySelector(".day-audit-editor .toolbar .muted-text")?.textContent.trim() ?? "",
+    allDayNamesParentClass: document.querySelector(".day-audit-editor .all-day-names-panel")?.parentElement?.className ?? "",
+    allDayNamesGridColumnStart: document.querySelector(".day-audit-editor .all-day-names-panel")
+      ? getComputedStyle(document.querySelector(".day-audit-editor .all-day-names-panel")).gridColumnStart
+      : null,
+    allDayNamesGridColumnEnd: document.querySelector(".day-audit-editor .all-day-names-panel")
+      ? getComputedStyle(document.querySelector(".day-audit-editor .all-day-names-panel")).gridColumnEnd
+      : null,
+    missingChipClass: document.querySelector(".day-audit-editor .audit-name-chip-missing-badge")
+      ?.closest(".audit-name-chip")?.className ?? "",
+    missingChipTooltip: document.querySelector(".day-audit-editor .audit-name-chip-missing-badge")
+      ?.closest(".audit-name-chip")?.getAttribute("data-tooltip") ?? "",
+    missingBadgeText: document.querySelector(".day-audit-editor .audit-name-chip-missing-badge")?.textContent.trim() ?? "",
   }));
   assert.equal(editorState.hasLeftInspector, false, "A régi bal oldali day-audit-inspector ne maradjon bent.");
   assert.equal(editorState.hasInfoWindowBeforeClick, false, "Az inline névinfo ablak csak kiválasztott névnél jelenjen meg.");
   assert.equal(editorState.hasEvidenceLinks, false, "A Végső auditált primer boxban ne linklista legyen.");
   assert.equal(editorState.hasConcreteFacts, true, "A Végső auditált primer box konkrét auditadatokat mutasson.");
+  assert.deepEqual(
+    editorState.toolbarButtons.map((button) => button.label),
+    ["Audit mentése", "Bezárás"],
+    "A napi editor OK/Cancel helyett magyar, audit-specifikus gombokat használjon."
+  );
+  assert.equal(
+    editorState.toolbarButtons.find((button) => button.label === "Audit mentése")?.disabled,
+    false,
+    "Az Audit mentése gomb tiszta draftnál is legyen elérhető."
+  );
+  assert.equal(editorState.toolbarButtons.some((button) => ["OK", "Cancel"].includes(button.label)), false);
+  assert.match(editorState.helperText, /audit időbélyeg frissül/u);
+  assert.match(editorState.allDayNamesParentClass, /audit-source-grid/u, "A teljes napi névlista panel az audit-source-grid része legyen.");
+  assert.equal(editorState.allDayNamesGridColumnStart, "1");
+  assert.equal(editorState.allDayNamesGridColumnEnd, "-1");
+  assert.match(editorState.missingChipClass, /tone-danger/u, "A primer nélkül maradó névchip kapjon danger kiemelést.");
+  assert.match(editorState.missingChipTooltip, /Primer nélkül maradó/u, "A primer nélkül maradó névchip tooltipje jelezze a hiányt.");
+  assert.equal(editorState.missingBadgeText, "∅", "A primer nélkül maradó névchip kapjon ∅ jelvényt.");
 
   const firstInfoButtonLabel = await primerPage.evaluate(() => {
-    const infoButton = [...document.querySelectorAll(".day-audit-editor .all-day-names-panel .audit-name-chip-actions button")]
-      .find((button) => button.getAttribute("aria-label")?.includes("audit információ"));
+    const missingChip = document.querySelector(".day-audit-editor .audit-name-chip-missing-badge")?.closest(".audit-name-chip");
+    const infoButton = missingChip?.querySelector(".audit-name-chip-actions button[aria-label*='audit információ']");
 
     if (!infoButton) {
-      throw new Error("Nem található névinfo i gomb.");
+      throw new Error("Nem található primer nélkül maradó névinfo i gomb.");
     }
 
     infoButton.click();
@@ -406,6 +454,12 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
       windowBottom: windowElement ? getComputedStyle(windowElement).bottom : null,
       windowOverflow: windowElement ? getComputedStyle(windowElement).overflow : null,
       bodyOverflow: body ? getComputedStyle(body).overflow : null,
+      occurrenceCardCount: document.querySelectorAll(".name-detail-window .occurrence-audit-card").length,
+      occurrenceBadgeCount: document.querySelectorAll(".name-detail-window .occurrence-badge").length,
+      hasOccurrenceSourceSummary: Boolean(document.querySelector(".name-detail-window .occurrence-source-summary")),
+      hasOccurrenceFinalPrimer: [...document.querySelectorAll(".name-detail-window .occurrence-audit-facts span")]
+        .some((element) => element.textContent.includes("Végső primer")),
+      hasOccurrenceMissingNote: Boolean(document.querySelector(".name-detail-window .occurrence-missing-note")),
       domTitleCount: document.querySelectorAll("[title]").length,
     };
   });
@@ -422,6 +476,11 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.notEqual(infoWindowState.windowBottom, "auto", "A fixed névinfo ablak alul legyen rögzítve.");
   assert.equal(infoWindowState.windowOverflow, "visible", "A névinfo ablak maga ne kapjon belső overflow-t.");
   assert.match(infoWindowState.bodyOverflow, /auto/u, "Csak a head alatti névinfo body scrollozzon.");
+  assert.equal(infoWindowState.occurrenceCardCount > 0, true, "A névdetail előfordulások kompakt auditkártyák legyenek.");
+  assert.equal(infoWindowState.occurrenceBadgeCount > 0, true, "Az occurrence auditkártyák státusz/forrás jelvényeket mutassanak.");
+  assert.equal(infoWindowState.hasOccurrenceSourceSummary, true, "Az occurrence auditkártya forrás-primer összképet mutasson.");
+  assert.equal(infoWindowState.hasOccurrenceFinalPrimer, true, "Az occurrence auditkártya mutassa a végső primerlistát.");
+  assert.equal(infoWindowState.hasOccurrenceMissingNote, true, "Primer nélkül maradó névnél jelenjen meg hiányblokk az occurrence kártyán.");
   assert.equal(infoWindowState.domTitleCount, 0, "Az inline névinfo után se legyen natív title attribútum.");
 
   await primerPage.evaluate(() => {
@@ -669,6 +728,9 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
     hasAuditSummary: Boolean(document.querySelector(".name-inline-detail-panel .name-inline-audit-summary")),
     hasInlineHead: Boolean(document.querySelector(".name-inline-detail-panel .name-inline-detail-head")),
     rawStackOverflowX: getComputedStyle(document.querySelector(".name-inline-detail-panel .name-inline-raw-stack")).overflowX,
+    occurrenceCardCount: document.querySelectorAll(".name-inline-detail-panel .occurrence-audit-card").length,
+    occurrenceBadgeCount: document.querySelectorAll(".name-inline-detail-panel .occurrence-badge").length,
+    hasOccurrenceSourceSummary: Boolean(document.querySelector(".name-inline-detail-panel .occurrence-source-summary")),
     domTitleCount: document.querySelectorAll("[title]").length,
   }));
   assert.equal(inlineDetailState.hasInlinePanel, true, "A névinfo sor alatti inline panelként jelenjen meg.");
@@ -678,6 +740,9 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.equal(inlineDetailState.hasAuditSummary, true, "A bal oldali audit summary jelenjen meg.");
   assert.equal(inlineDetailState.hasInlineHead, false, "A Nevek tab inline detailben ne maradjon külön fejléc.");
   assert.match(inlineDetailState.rawStackOverflowX, /auto/u, "A raw oszlop saját inline vízszintes scrollt kapjon.");
+  assert.equal(inlineDetailState.occurrenceCardCount > 0, true, "A Nevek tab inline detail is occurrence auditkártyákat használjon.");
+  assert.equal(inlineDetailState.occurrenceBadgeCount > 0, true, "A Nevek tab occurrence kártyái jelvényeket mutassanak.");
+  assert.equal(inlineDetailState.hasOccurrenceSourceSummary, true, "A Nevek tab occurrence kártyái forrás-primer összképet mutassanak.");
   assert.equal(inlineDetailState.domTitleCount, 0, "A névinfo inline panel után se legyen natív title attribútum.");
   await assertPrimerNameTableNoHorizontalOverflow("primer audit névinfo nyitás");
 

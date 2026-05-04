@@ -359,7 +359,7 @@ function buildAuditCatalogCardFromFinal(report) {
     generatedAt: formatTimestampLabel(report?.generatedAt),
     kpis: [
       { label: "Nincs leokézva", value: validations.unauditedDayCount ?? 0 },
-      { label: "Forrás drift", value: safeArray(validations.sourceNameDriftMonthDays).length },
+      { label: "Forrásdrift", value: safeArray(validations.sourceNameDriftMonthDays).length },
       { label: "Eltéréses napok", value: safeArray(validations.mismatchMonthDays).length },
     ],
   });
@@ -705,7 +705,7 @@ function buildFinalSummarySections(report) {
       rows: [
         { label: "Auditált napok", value: validations.auditedDayCount ?? 0 },
         { label: "Nincs leokézva", value: validations.unauditedDayCount ?? 0 },
-        { label: "Forrás drift napok", value: safeArray(validations.sourceNameDriftMonthDays).length },
+        { label: "Forrásdrift napok", value: safeArray(validations.sourceNameDriftMonthDays).length },
         { label: "Eltéréses napok", value: safeArray(validations.mismatchMonthDays).length },
         {
           label: "Kemény hibák",
@@ -1313,7 +1313,7 @@ async function buildAuditSummaryPayload(auditId) {
       metrics: [
         createMetric("Auditált napok", validations.auditedDayCount ?? 0),
         createMetric("Nincs leokézva", validations.unauditedDayCount ?? 0, (validations.unauditedDayCount ?? 0) > 0 ? "warning" : "ok"),
-        createMetric("Forrás drift", safeArray(validations.sourceNameDriftMonthDays).length, safeArray(validations.sourceNameDriftMonthDays).length > 0 ? "warning" : "ok"),
+        createMetric("Forrásdrift", safeArray(validations.sourceNameDriftMonthDays).length, safeArray(validations.sourceNameDriftMonthDays).length > 0 ? "warning" : "ok"),
         createMetric("Eltéréses napok", safeArray(validations.mismatchMonthDays).length, safeArray(validations.mismatchMonthDays).length > 0 ? "warning" : "ok"),
         createMetric("Kemény hibák", validations.hardFailureCount ?? 0, (validations.hardFailureCount ?? 0) > 0 ? "danger" : "ok"),
       ],

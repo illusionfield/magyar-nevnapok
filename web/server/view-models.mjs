@@ -395,12 +395,6 @@ function uniqueNames(values = []) {
   return result;
 }
 
-function diffNames(left = [], right = []) {
-  const rightSet = new Set(safeArray(right).map(normalizeNameKey));
-
-  return safeArray(left).filter((value) => !rightSet.has(normalizeNameKey(value)));
-}
-
 function buildPrimerChipSources(day, candidateNames = []) {
   const sourceEntries = [
     ["audited", safeArray(day.auditedNames ?? day.names)],
@@ -430,27 +424,39 @@ function buildPrimerChipSources(day, candidateNames = []) {
 }
 
 function buildPrimerDrift(day) {
-  const auditedNames = safeArray(day.auditedNames ?? day.names);
-  const sourceNames = safeArray(day.rawNames);
-  const auditedPreferredNames = safeArray(day.auditedPreferredNames ?? day.preferredNames ?? day.commonPreferredNames);
-  const sourcePreferredNames = uniqueNames([
-    ...safeArray(day.legacy),
-    ...safeArray(day.wiki),
-    ...safeArray(day.normalized),
-    ...safeArray(day.ranking),
-  ]);
-  const sourceOnlyNames = diffNames(sourceNames, auditedNames);
-  const auditedOnlyNames = diffNames(auditedNames, sourceNames);
-  const sourcePreferredOnlyNames = diffNames(sourcePreferredNames, auditedPreferredNames);
-  const auditedPreferredOnlyNames = diffNames(auditedPreferredNames, sourcePreferredNames);
+  const drift = day?.drift ?? day?.sections?.forrasok?.drift ?? {};
+  const sources = safeArray(drift.sources).map((source) => ({
+    sourceId: source.sourceId ?? null,
+    sourceLabel: source.sourceLabel ?? source.sourceId ?? null,
+    auditedAt: source.auditedAt ?? null,
+    sourceGeneratedAt: source.sourceGeneratedAt ?? null,
+    sourcePreferredNames: safeArray(source.sourcePreferredNames),
+    auditedPreferredNames: safeArray(source.auditedPreferredNames),
+    sourceOnlyNames: safeArray(source.sourceOnlyNames),
+    auditedOnlyNames: safeArray(source.auditedOnlyNames),
+  }));
+  const sourceOnlyNames = safeArray(drift.sourceOnlyNames).length > 0
+    ? safeArray(drift.sourceOnlyNames)
+    : uniqueNames(sources.flatMap((source) => source.sourceOnlyNames));
+  const auditedOnlyNames = safeArray(drift.auditedOnlyNames).length > 0
+    ? safeArray(drift.auditedOnlyNames)
+    : uniqueNames(sources.flatMap((source) => source.auditedOnlyNames));
 
   return {
+    sources,
+    sourceIds: safeArray(drift.sourceIds).length > 0
+      ? safeArray(drift.sourceIds)
+      : sources.map((source) => source.sourceId).filter(Boolean),
     sourceOnlyNames,
     auditedOnlyNames,
-    sourcePreferredOnlyNames,
-    auditedPreferredOnlyNames,
-    hasSourceNameDrift: sourceOnlyNames.length > 0 || auditedOnlyNames.length > 0,
-    hasPreferredSourceDrift: sourcePreferredOnlyNames.length > 0 || auditedPreferredOnlyNames.length > 0,
+    sourcePreferredOnlyNames: safeArray(drift.sourcePreferredOnlyNames).length > 0
+      ? safeArray(drift.sourcePreferredOnlyNames)
+      : sourceOnlyNames,
+    auditedPreferredOnlyNames: safeArray(drift.auditedPreferredOnlyNames).length > 0
+      ? safeArray(drift.auditedPreferredOnlyNames)
+      : auditedOnlyNames,
+    hasSourceNameDrift: drift.hasSourceNameDrift === true || sources.length > 0,
+    hasPreferredSourceDrift: drift.hasPreferredSourceDrift === true || sources.length > 0,
   };
 }
 
@@ -970,6 +976,8 @@ function buildPrimerAuditNameDetailFromInputs({ name, viewModel, inputPayload, f
     return {
       ...occurrence,
       dateLabel: formatMonthDayLabel(occurrence.monthDay),
+      auditedAt: day.auditedAt ?? null,
+      flags: day.flags ?? {},
       auditedPrimaryCount: safeArray(day.commonPreferredNames).length,
       sourcePrimaryCounts: {
         legacy: safeArray(day.legacy).length,
@@ -977,7 +985,14 @@ function buildPrimerAuditNameDetailFromInputs({ name, viewModel, inputPayload, f
         normalized: safeArray(day.normalized).length,
         ranking: safeArray(day.ranking).length,
       },
+      sourcePrimaryNames: {
+        legacy: safeArray(day.legacy),
+        wiki: safeArray(day.wiki),
+        normalized: safeArray(day.normalized),
+        ranking: safeArray(day.ranking),
+      },
       auditedPreferredNames: safeArray(day.commonPreferredNames),
+      effectiveMissingNames: safeArray(day.effectiveMissing).map((entry) => entry.name).filter(Boolean),
     };
   });
 
@@ -1542,7 +1557,7 @@ export async function buildDashboardModel(jobState = null) {
         metrics: [
           createMetric("Összes nap", actionableQueue?.count ?? 0),
           createMetric("Nincs leokézva", primerSummary.summary.unauditedDayCount ?? 0, (primerSummary.summary.unauditedDayCount ?? 0) > 0 ? "warning" : "ok"),
-          createMetric("Forrás drift", primerSummary.summary.sourceNameDriftDayCount ?? 0, (primerSummary.summary.sourceNameDriftDayCount ?? 0) > 0 ? "warning" : "ok"),
+          createMetric("Forrásdrift", primerSummary.summary.sourceNameDriftDayCount ?? 0, (primerSummary.summary.sourceNameDriftDayCount ?? 0) > 0 ? "warning" : "ok"),
           createMetric("Nyitott hiány", primerSummary.summary.effectiveMissingCount ?? 0, (primerSummary.summary.effectiveMissingCount ?? 0) > 0 ? "warning" : "ok"),
         ],
         queues: safeArray(primerSummary.overviewQueues).map((queue) => ({

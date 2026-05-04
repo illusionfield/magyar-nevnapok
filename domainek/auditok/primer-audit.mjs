@@ -106,6 +106,7 @@ export async function buildPrimerAuditReport({
       source: finalRow.source ?? null,
       warning: Boolean(finalRow.warning),
       auditedAt: finalRow.auditedAt ?? null,
+      drift: finalRow.drift ?? null,
       auditedNames: [...(finalRow.names ?? [])],
       auditedPreferredNames: finalPrimaryNames,
       names: [...(finalRow.names ?? [])],
@@ -150,6 +151,7 @@ export async function buildPrimerAuditReport({
           rawNames: [...(rawDay.names ?? [])],
           source: finalRow.source ?? null,
           warning: Boolean(finalRow.warning),
+          drift: finalRow.drift ?? null,
         },
         hianyzok: {
           combinedMissing: [...(missingRow.combinedMissing ?? [])],

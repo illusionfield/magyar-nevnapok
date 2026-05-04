@@ -1,5 +1,5 @@
 version: 1
-generatedAt: 2026-04-30T00:00:00.000Z
+generatedAt: 2026-05-04T08:07:56.443Z
 source: initial unaudited baseline from current generated registry and name database
 days:
   - month: 1
@@ -22,7 +22,7 @@ days:
       - Bazil
     preferredNames:
       - Fruzsina
-    auditedAt: null
+    auditedAt: 2026-05-04T08:07:56.349Z
   - month: 1
     day: 2
     monthDay: 01-02
@@ -50,7 +50,8 @@ days:
       - Alpár
     preferredNames:
       - Ábel
-    auditedAt: null
+      - Alpár
+    auditedAt: 2026-05-04T07:46:57.579Z
   - month: 1
     day: 3
     monthDay: 01-03
@@ -73,7 +74,7 @@ days:
     preferredNames:
       - Genovéva
       - Benjámin
-    auditedAt: null
+    auditedAt: 2026-05-04T07:47:23.407Z
   - month: 1
     day: 4
     monthDay: 01-04

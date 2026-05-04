@@ -149,7 +149,14 @@ export function buildFinalPrimaryRegistryReport({
   const normalizedMap = buildRegistryMap(normalizedRegistryPayload, { includeMetadata: true });
   const auditedMap = auditedRegistryPayload ? buildAuditaltPrimerRegistryMap(auditedRegistryPayload) : new Map();
   const rawDayMap = buildRawDayMap(inputPayload);
-  const allMonthDays = Array.from(new Set([...finalMap.keys(), ...legacyMap.keys(), ...wikiMap.keys(), ...auditedMap.keys()])).sort(
+  const sourceDriftMap = buildSourceDriftMap({
+    auditedMap,
+    wikiMap,
+    normalizedMap,
+    wikiGeneratedAt: wikiRegistryPayload?.generatedAt,
+    normalizedGeneratedAt: normalizedRegistryPayload?.generatedAt,
+  });
+  const allMonthDays = Array.from(new Set([...finalMap.keys(), ...legacyMap.keys(), ...wikiMap.keys(), ...normalizedMap.keys(), ...auditedMap.keys()])).sort(
     compareMonthDays
   );
   const finalPrimaryUniverse = buildFinalPrimaryUniverse(finalMap);
@@ -181,6 +188,7 @@ export function buildFinalPrimaryRegistryReport({
       source: finalDay.source ?? null,
       warning: Boolean(finalDay.warning),
       auditedAt: auditedDay?.auditedAt ?? finalDay.auditedAt ?? null,
+      drift: sourceDriftMap.get(monthDay) ?? createEmptySourceDrift(),
     };
 
     months[row.month - 1].rows.push(row);
@@ -193,7 +201,7 @@ export function buildFinalPrimaryRegistryReport({
     wikiMap,
     auditedPayload: auditedRegistryPayload,
     auditedMap,
-    rawDayMap,
+    sourceDriftMap,
   });
   const neverPrimary = buildNeverPrimaryList({ inputPayload, finalPrimaryUniverse });
   const neverPrimarySimilarPrimary = buildNeverPrimarySimilarPrimaryReport({
@@ -237,7 +245,123 @@ export function buildFinalPrimaryRegistryReport({
 /**
  * A `buildValidations` felépíti a szükséges adatszerkezetet.
  */
-function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, auditedPayload, auditedMap, rawDayMap }) {
+function parseTimestampMs(value) {
+  if (!value) {
+    return null;
+  }
+
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+function diffNameSets(left = [], right = []) {
+  const rightSet = new Set((right ?? []).map(normalizeNameForMatch));
+
+  return uniqueKeepOrder(left ?? []).filter((name) => !rightSet.has(normalizeNameForMatch(name)));
+}
+
+function createEmptySourceDrift() {
+  return {
+    sources: [],
+    sourceIds: [],
+    sourceOnlyNames: [],
+    auditedOnlyNames: [],
+    sourcePreferredOnlyNames: [],
+    auditedPreferredOnlyNames: [],
+    hasSourceNameDrift: false,
+    hasPreferredSourceDrift: false,
+  };
+}
+
+function buildSourceDriftDetail({ sourceId, sourceLabel, auditedDay, sourceDay, sourceGeneratedAt }) {
+  const auditedAt = auditedDay?.auditedAt ?? null;
+  const auditedTime = parseTimestampMs(auditedAt);
+  const sourceTime = parseTimestampMs(sourceGeneratedAt);
+
+  if (auditedTime == null || sourceTime == null || sourceTime <= auditedTime) {
+    return null;
+  }
+
+  const auditedPreferredNames = uniqueKeepOrder(auditedDay?.preferredNames ?? []);
+  const sourcePreferredNames = uniqueKeepOrder(sourceDay?.preferredNames ?? []);
+
+  if (areNameSetsEqual(auditedPreferredNames, sourcePreferredNames)) {
+    return null;
+  }
+
+  return {
+    sourceId,
+    sourceLabel,
+    auditedAt,
+    sourceGeneratedAt,
+    sourcePreferredNames,
+    auditedPreferredNames,
+    sourceOnlyNames: diffNameSets(sourcePreferredNames, auditedPreferredNames),
+    auditedOnlyNames: diffNameSets(auditedPreferredNames, sourcePreferredNames),
+  };
+}
+
+function buildDaySourceDrift({ monthDay, auditedMap, wikiMap, normalizedMap, wikiGeneratedAt, normalizedGeneratedAt }) {
+  const auditedDay = auditedMap.get(monthDay) ?? null;
+  const sources = [
+    buildSourceDriftDetail({
+      sourceId: "wiki",
+      sourceLabel: "Wiki",
+      auditedDay,
+      sourceDay: wikiMap.get(monthDay) ?? createEmptyDayEntry(monthDay),
+      sourceGeneratedAt: wikiGeneratedAt,
+    }),
+    buildSourceDriftDetail({
+      sourceId: "normalized",
+      sourceLabel: "Normalizált",
+      auditedDay,
+      sourceDay: normalizedMap.get(monthDay) ?? createEmptyDayEntry(monthDay),
+      sourceGeneratedAt: normalizedGeneratedAt,
+    }),
+  ].filter(Boolean);
+
+  if (sources.length === 0) {
+    return createEmptySourceDrift();
+  }
+
+  const sourceOnlyNames = uniqueKeepOrder(sources.flatMap((source) => source.sourceOnlyNames));
+  const auditedOnlyNames = uniqueKeepOrder(sources.flatMap((source) => source.auditedOnlyNames));
+
+  return {
+    sources,
+    sourceIds: sources.map((source) => source.sourceId),
+    sourceOnlyNames,
+    auditedOnlyNames,
+    sourcePreferredOnlyNames: sourceOnlyNames,
+    auditedPreferredOnlyNames: auditedOnlyNames,
+    hasSourceNameDrift: true,
+    hasPreferredSourceDrift: true,
+  };
+}
+
+function buildSourceDriftMap({ auditedMap, wikiMap, normalizedMap, wikiGeneratedAt, normalizedGeneratedAt }) {
+  const map = new Map();
+  const monthDays = Array.from(new Set([...auditedMap.keys(), ...wikiMap.keys(), ...normalizedMap.keys()])).sort(compareMonthDays);
+
+  for (const monthDay of monthDays) {
+    const drift = buildDaySourceDrift({
+      monthDay,
+      auditedMap,
+      wikiMap,
+      normalizedMap,
+      wikiGeneratedAt,
+      normalizedGeneratedAt,
+    });
+
+    if (drift.hasSourceNameDrift) {
+      map.set(monthDay, drift);
+    }
+  }
+
+  return map;
+}
+
+function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, auditedPayload, auditedMap, sourceDriftMap }) {
   const auditedDuplicates = findDuplicateMonthDays(auditedPayload?.days ?? []);
   const mismatchMonthDays = [];
 
@@ -252,12 +376,11 @@ function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, auditedP
 
   const auditedMonthDays = Array.from(auditedMap.keys()).sort(compareMonthDays);
   const unauditedMonthDays = auditedMonthDays.filter((monthDay) => !auditedMap.get(monthDay)?.auditedAt);
-  const sourceNameDriftMonthDays = auditedMonthDays.filter((monthDay) => {
-    const auditedDay = auditedMap.get(monthDay);
-    const rawDay = rawDayMap.get(monthDay) ?? createRawEmptyDayEntry(monthDay);
-
-    return !areNameSetsEqual(auditedDay?.names ?? [], rawDay.names ?? []);
-  });
+  const sourceNameDriftMonthDays = Array.from(sourceDriftMap.keys()).sort(compareMonthDays);
+  const sourceNameDriftDetails = sourceNameDriftMonthDays.map((monthDay) => ({
+    monthDay,
+    ...sourceDriftMap.get(monthDay),
+  }));
   const finalRegistryMismatchDays = auditedMonthDays.filter((monthDay) => {
     const auditedDay = auditedMap.get(monthDay);
     const finalDay = finalMap.get(monthDay) ?? createEmptyDayEntry(monthDay);
@@ -305,6 +428,7 @@ function buildValidations({ finalPayload, finalMap, legacyMap, wikiMap, auditedP
     auditedMonthDays,
     unauditedMonthDays,
     sourceNameDriftMonthDays,
+    sourceNameDriftDetails,
     finalRegistryMismatchDays,
     sampleChecks,
     hardFailures,
@@ -743,7 +867,7 @@ function printReport(report) {
       ["Auditált napok", report.validations.auditedDayCount],
       ["Nincs leokézva", report.validations.unauditedDayCount],
       ["Legacy–wiki primereltéréses napok", report.validations.mismatchMonthDays.length],
-      ["Forrásnév drift napok", report.validations.sourceNameDriftMonthDays.length],
+      ["Forrásdrift napok", report.validations.sourceNameDriftMonthDays.length],
       ["Duplikált auditált napok", formatNameList(report.validations.auditedDuplicates, { maxItems: 8, maxLength: 48 })],
       ["Primer nélkül maradó nevek", report.summary.neverPrimaryCount],
       ["Ebből hasonló primerrel", report.summary.neverPrimaryWithSimilarPrimaryCount],

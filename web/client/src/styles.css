@@ -1510,6 +1510,10 @@ a {
   border: 1px solid rgba(121, 143, 170, 0.14);
 }
 
+.audit-source-grid > .all-day-names-panel {
+  grid-column: 1 / -1;
+}
+
 .audit-chip-flow {
   display: flex;
   flex-wrap: wrap;
@@ -1545,7 +1549,24 @@ a {
 }
 
 .audit-name-chip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   white-space: nowrap;
+}
+
+.audit-name-chip-missing-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.92);
+  color: #fff7ed;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .audit-name-chip-source {
@@ -1595,6 +1616,12 @@ a {
 
 .audit-status-dot.info {
   background: #2563eb;
+}
+
+.audit-status-dot.normalized {
+  background: #0f766e;
+  font-size: 0.68rem;
+  letter-spacing: -0.05em;
 }
 
 .audit-status-dot.danger {
@@ -1986,6 +2013,157 @@ a {
 .name-detail-occurrences li {
   display: grid;
   gap: 0.2rem;
+}
+
+.name-detail-occurrence-cards {
+  display: grid;
+  gap: 0.48rem;
+  min-width: 0;
+}
+
+.occurrence-audit-card {
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+  padding: 0.55rem;
+  border-radius: 12px;
+  background: rgba(5, 9, 14, 0.36);
+  border: 1px solid rgba(121, 143, 170, 0.16);
+  font-size: 0.76rem;
+  line-height: 1.25;
+}
+
+.occurrence-audit-card.missing {
+  background: rgba(69, 10, 10, 0.28);
+  border-color: rgba(248, 113, 113, 0.28);
+}
+
+.occurrence-audit-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.45rem;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.occurrence-audit-head span,
+.occurrence-badge-row > span,
+.occurrence-audit-facts span,
+.occurrence-source-summary span,
+.occurrence-missing-note span {
+  color: var(--text-soft);
+}
+
+.occurrence-badge-row {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  gap: 0.35rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.occurrence-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.occurrence-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.12rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid rgba(121, 143, 170, 0.2);
+  background: rgba(15, 23, 42, 0.76);
+  color: #e6eef7;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.occurrence-badge.ok {
+  background: rgba(22, 101, 52, 0.48);
+  border-color: rgba(74, 222, 128, 0.34);
+}
+
+.occurrence-badge.danger {
+  background: rgba(127, 29, 29, 0.62);
+  border-color: rgba(248, 113, 113, 0.36);
+}
+
+.occurrence-badge.warning {
+  background: rgba(113, 63, 18, 0.62);
+  border-color: rgba(251, 191, 36, 0.34);
+}
+
+.occurrence-badge.info {
+  background: rgba(30, 64, 175, 0.52);
+  border-color: rgba(96, 165, 250, 0.34);
+}
+
+.occurrence-badge.normalized {
+  background: rgba(15, 118, 110, 0.52);
+  border-color: rgba(45, 212, 191, 0.3);
+}
+
+.occurrence-badge.cyan {
+  background: rgba(14, 116, 144, 0.52);
+  border-color: rgba(103, 232, 249, 0.3);
+}
+
+.occurrence-badge.purple {
+  background: rgba(88, 28, 135, 0.52);
+  border-color: rgba(192, 132, 252, 0.3);
+}
+
+.occurrence-badge.neutral {
+  background: rgba(51, 65, 85, 0.55);
+}
+
+.occurrence-audit-facts,
+.occurrence-missing-note {
+  display: grid;
+  gap: 0.34rem;
+  min-width: 0;
+}
+
+.occurrence-audit-facts > div,
+.occurrence-missing-note {
+  min-width: 0;
+}
+
+.occurrence-audit-facts > div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.occurrence-source-summary {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.occurrence-source-summary div {
+  display: grid;
+  grid-template-columns: minmax(5.6rem, max-content) minmax(0, 1fr);
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.occurrence-source-summary strong,
+.occurrence-source-summary span,
+.occurrence-missing-note span {
+  overflow-wrap: anywhere;
+}
+
+.occurrence-missing-note {
+  padding: 0.44rem;
+  border-radius: 10px;
+  background: rgba(127, 29, 29, 0.3);
+  border: 1px solid rgba(248, 113, 113, 0.22);
 }
 
 .name-detail-block {

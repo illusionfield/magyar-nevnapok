@@ -55,6 +55,53 @@ function findRow(months, monthDay) {
   return null;
 }
 
+function createSyntheticRegistry(generatedAt, entries) {
+  return {
+    version: 1,
+    generatedAt,
+    stats: {
+      dayCount: 366,
+      warningUnionDayCount: 0,
+    },
+    days: entries.map((entry) => ({
+      month: Number(entry.monthDay.slice(0, 2)),
+      day: Number(entry.monthDay.slice(3, 5)),
+      monthDay: entry.monthDay,
+      names: entry.names ?? entry.preferredNames,
+      preferredNames: entry.preferredNames,
+      source: entry.source ?? "test",
+      warning: false,
+    })),
+  };
+}
+
+function createSyntheticInputPayload(entries) {
+  const nameMap = new Map();
+
+  for (const entry of entries) {
+    for (const name of entry.names ?? entry.preferredNames ?? []) {
+      const item = nameMap.get(name) ?? {
+        name,
+        days: [],
+      };
+
+      item.days.push({
+        month: Number(entry.monthDay.slice(0, 2)),
+        day: Number(entry.monthDay.slice(3, 5)),
+        monthDay: entry.monthDay,
+        primaryRanked: (entry.preferredNames ?? []).includes(name),
+      });
+      nameMap.set(name, item);
+    }
+  }
+
+  return {
+    version: 1,
+    generatedAt: "2026-04-01T00:00:00.000Z",
+    names: Array.from(nameMap.values()),
+  };
+}
+
 async function loadAuditGoldenFixture() {
   const [
     finalRegistry,
@@ -155,7 +202,7 @@ test("a végső primer riport megtartja a rögzített audit-first igazságtábl�
   assert.deepEqual(finalReport.validations.mismatchMonthDays, EXPECTED_MISMATCH_DAYS);
   assert.equal(finalReport.validations.auditedDayCount, 0);
   assert.equal(finalReport.validations.unauditedDayCount, 366);
-  assert.equal(finalReport.validations.sourceNameDriftMonthDays.length, 28);
+  assert.equal(finalReport.validations.sourceNameDriftMonthDays.length, 0);
   assert.equal(finalReport.validations.hardFailureCount, 0);
   assert.deepEqual(finalReport.validations.hardFailures, []);
   assert.equal(finalReport.validations.sampleChecks.every((entry) => entry.ok), true);
@@ -166,6 +213,70 @@ test("a végső primer riport megtartja a rögzített audit-first igazságtábl�
   assert.equal(row0102?.source, "audited-registry");
   assert.equal(row0102?.auditedAt, null);
   assert.deepEqual(row1023?.preferredNames, ["Gyöngyvér", "Gyöngyi"]);
+});
+
+test("a primer audit drift csak audit utáni Wiki vagy Normalizált primereltérést jelez", () => {
+  const auditedEntries = [
+    { monthDay: "01-01", preferredNames: ["Ábel"], auditedAt: "2026-04-20T00:00:00.000Z" },
+    { monthDay: "01-02", preferredNames: ["Bori"], auditedAt: "2026-04-20T00:00:00.000Z" },
+    { monthDay: "01-03", preferredNames: ["Dénes"], auditedAt: "2026-04-20T00:00:00.000Z" },
+    { monthDay: "01-04", preferredNames: ["Erika"], auditedAt: "2026-06-01T00:00:00.000Z" },
+    { monthDay: "01-05", preferredNames: ["Ferenc"], auditedAt: null },
+  ];
+  const finalEntries = auditedEntries.map((entry) => ({
+    monthDay: entry.monthDay,
+    preferredNames: entry.preferredNames,
+  }));
+  const wikiEntries = [
+    { monthDay: "01-01", preferredNames: ["Ábel", "Béla"] },
+    { monthDay: "01-02", preferredNames: ["Bori"] },
+    { monthDay: "01-03", preferredNames: ["Dénes"] },
+    { monthDay: "01-04", preferredNames: ["Emese"] },
+    { monthDay: "01-05", preferredNames: ["Fanni"] },
+  ];
+  const normalizedEntries = [
+    { monthDay: "01-01", preferredNames: ["Ábel"] },
+    { monthDay: "01-02", preferredNames: ["Cili"] },
+    { monthDay: "01-03", preferredNames: ["Dénes"] },
+    { monthDay: "01-04", preferredNames: ["Eszter"] },
+    { monthDay: "01-05", preferredNames: ["Flóra"] },
+  ];
+  const report = buildFinalPrimaryRegistryReport({
+    finalRegistryPayload: createSyntheticRegistry("2026-04-01T00:00:00.000Z", finalEntries),
+    legacyRegistryPayload: createSyntheticRegistry("2020-01-01T00:00:00.000Z", finalEntries),
+    wikiRegistryPayload: createSyntheticRegistry("2026-05-01T00:00:00.000Z", wikiEntries),
+    normalizedRegistryPayload: createSyntheticRegistry("2026-05-02T00:00:00.000Z", normalizedEntries),
+    auditedRegistryPayload: {
+      version: 1,
+      generatedAt: "2026-04-20T00:00:00.000Z",
+      days: auditedEntries.map((entry) => ({
+        month: Number(entry.monthDay.slice(0, 2)),
+        day: Number(entry.monthDay.slice(3, 5)),
+        monthDay: entry.monthDay,
+        names: entry.preferredNames,
+        preferredNames: entry.preferredNames,
+        auditedAt: entry.auditedAt,
+      })),
+    },
+    inputPayload: createSyntheticInputPayload([...finalEntries, ...wikiEntries, ...normalizedEntries]),
+    inputs: {
+      finalRegistryPath: "output/primer/vegso-primer.yaml",
+      auditedRegistryPath: "data/audited-primary-registry.yaml",
+      legacyRegistryPath: "output/primer/legacy-primer.yaml",
+      wikiRegistryPath: "output/primer/wiki-primer.yaml",
+      normalizedRegistryPath: "output/primer/normalizalo-riport.yaml",
+      inputPath: "output/adatbazis/nevnapok.yaml",
+    },
+  });
+
+  assert.deepEqual(report.validations.sourceNameDriftMonthDays, ["01-01", "01-02"]);
+  assert.deepEqual(findRow(report.months, "01-01")?.drift.sourceIds, ["wiki"]);
+  assert.deepEqual(findRow(report.months, "01-02")?.drift.sourceIds, ["normalized"]);
+  assert.deepEqual(findRow(report.months, "01-03")?.drift.sourceIds, []);
+  assert.deepEqual(findRow(report.months, "01-04")?.drift.sourceIds, []);
+  assert.deepEqual(findRow(report.months, "01-05")?.drift.sourceIds, []);
+  assert.deepEqual(findRow(report.months, "01-01")?.drift.sources[0].sourceOnlyNames, ["Béla"]);
+  assert.deepEqual(findRow(report.months, "01-02")?.drift.sources[0].auditedOnlyNames, ["Bori"]);
 });
 
 test("a primer nélkül maradó nevek audit kiemeli a fontos, primerhez kapcsolódó hiányokat", async () => {

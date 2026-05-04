@@ -752,6 +752,7 @@ export function buildPrimerAuditViewModel(report, options = {}) {
       effectiveMissingCount:
         report?.summary?.effectiveMissingCount ?? report?.summary?.combinedMissingCount ?? 0,
       locallyResolvedMissingCount: report?.summary?.locallyResolvedMissingCount ?? 0,
+      sourceNameDriftDayCount: days.filter((day) => dayMatchesFilter(day, "auditalt-drift")).length,
     },
     validations: report?.validations ?? {},
     days,
@@ -770,11 +771,7 @@ export function dayMatchesFilter(day, filterId) {
     case "primer-nelkul-marado":
       return day.flags.hasMissing;
     case "auditalt-drift":
-      return (
-        day.drift?.hasSourceNameDrift === true ||
-        day.drift?.hasPreferredSourceDrift === true ||
-        !areNameSetsEqual(day.auditedNames ?? day.names ?? [], day.rawNames ?? [])
-      );
+      return day.drift?.hasSourceNameDrift === true;
     case "wiki-legacy-elteres":
       return !areNameSetsEqual(day.legacy ?? [], day.wiki ?? []);
     case "normalizalt-rangsor": {
@@ -917,7 +914,7 @@ export function visiblePrimerAuditNevek(viewModel, allapot) {
 export function buildPrimerAuditOsszegzesSorok(viewModel) {
   return [
     `Napok: ${viewModel.summary?.rowCount ?? 0} • Közös hiányzók: ${viewModel.summary?.combinedMissingCount ?? 0} • Helyben nyitott hiányzók: ${viewModel.summary?.effectiveMissingCount ?? 0}`,
-    `Auditált napok: ${viewModel.summary?.auditedDayCount ?? 0} • Nincs leokézva: ${viewModel.summary?.unauditedDayCount ?? 0} • Forrás drift: ${viewModel.summary?.sourceNameDriftDayCount ?? 0}`,
+    `Auditált napok: ${viewModel.summary?.auditedDayCount ?? 0} • Nincs leokézva: ${viewModel.summary?.unauditedDayCount ?? 0} • Forrásdrift: ${viewModel.summary?.sourceNameDriftDayCount ?? 0}`,
   ];
 }
 
