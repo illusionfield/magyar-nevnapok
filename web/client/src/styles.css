@@ -1421,6 +1421,36 @@ a {
   gap: 0.55rem;
 }
 
+.active-name-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.36rem 0.52rem;
+  border: 1px solid rgba(125, 163, 255, 0.34);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.14);
+  color: var(--text-main);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.active-name-filter-chip button {
+  border: 0;
+  padding: 0;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  color: var(--text-main);
+  font-size: 0.86rem;
+  line-height: 1;
+}
+
+.active-name-filter-chip button:hover {
+  background: rgba(248, 113, 113, 0.28);
+  color: #fecaca;
+}
+
 .month-bulk-select,
 .day-bulk-select {
   display: inline-flex;
@@ -1469,6 +1499,42 @@ a {
   display: block;
   font-size: 0.78rem;
   line-height: 1.25;
+}
+
+.other-name-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.18rem 0.32rem;
+}
+
+.other-name-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.other-name-button:not(:last-child)::after {
+  content: ",";
+  color: var(--text-soft);
+}
+
+.other-name-button:hover,
+.other-name-button:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.other-name-button.hidden-name {
+  color: var(--text-main);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.18em;
 }
 
 .day-editor-row > td {

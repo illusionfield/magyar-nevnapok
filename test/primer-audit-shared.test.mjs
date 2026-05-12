@@ -1,7 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPrimerAuditViewModel, dayMatchesFilter, visiblePrimerAuditNapok, visiblePrimerAuditNevek } from "../web/shared/primer-audit/view-model.mjs";
+import {
+  buildPrimerAuditViewModel,
+  dayMatchesExactNameFilter,
+  dayMatchesFilter,
+  visiblePrimerAuditNapok,
+  visiblePrimerAuditNevek,
+} from "../web/shared/primer-audit/view-model.mjs";
 import {
   createPrimerAuditInitialState,
   getSelectedDay,
@@ -245,6 +251,76 @@ function createMissingStateReport() {
   };
 }
 
+function createHiddenFilterReport() {
+  return {
+    reportPath: "output/riportok/primer-audit.yaml",
+    generatedAt: "2026-05-12T10:00:00.000Z",
+    summary: {
+      rowCount: 3,
+      combinedMissingCount: 0,
+      effectiveMissingCount: 0,
+      locallyResolvedMissingCount: 0,
+    },
+    validations: {
+      mismatchMonthDays: [],
+      overrideMonthDays: [],
+    },
+    months: [
+      {
+        month: 1,
+        monthName: "Január",
+        rows: [
+          {
+            month: 1,
+            day: 1,
+            monthDay: "01-01",
+            commonPreferredNames: ["Anna"],
+            effectivePreferredNames: ["Anna"],
+            finalPrimaryNames: ["Anna"],
+            source: "legacy-wiki-exact",
+            warning: false,
+            rawNames: ["Anna", "Marianna"],
+            hidden: [],
+            combinedMissing: [],
+            effectiveMissing: [],
+            locallyResolvedMissing: [],
+          },
+          {
+            month: 1,
+            day: 2,
+            monthDay: "01-02",
+            commonPreferredNames: ["Bori"],
+            effectivePreferredNames: ["Bori"],
+            finalPrimaryNames: ["Bori"],
+            source: "legacy-wiki-exact",
+            warning: false,
+            rawNames: ["Bori", "Cili"],
+            hidden: ["Cili"],
+            combinedMissing: [],
+            effectiveMissing: [],
+            locallyResolvedMissing: [],
+          },
+          {
+            month: 1,
+            day: 3,
+            monthDay: "01-03",
+            commonPreferredNames: ["Marianna"],
+            effectivePreferredNames: ["Marianna"],
+            finalPrimaryNames: ["Marianna"],
+            source: "legacy-wiki-exact",
+            warning: false,
+            rawNames: ["Marianna"],
+            hidden: [],
+            combinedMissing: [],
+            effectiveMissing: [],
+            locallyResolvedMissing: [],
+          },
+        ],
+      },
+    ],
+  };
+}
+
 test("a shared primer audit view-model felépíti a napi és névlistákat", () => {
   const viewModel = buildPrimerAuditViewModel(createSampleReport());
   const initialState = createPrimerAuditInitialState(viewModel);
@@ -295,6 +371,27 @@ test("a tiszta, nem leokézott primer audit szűrő kizárja az eltéréses napo
   assert.deepEqual(cleanUnauditedDays.map((day) => day.monthDay), ["01-01"]);
   assert.equal(dayMatchesFilter(viewModel.dayMap.get("01-01"), "nincs-auditalva-tiszta"), true);
   assert.equal(dayMatchesFilter(viewModel.dayMap.get("01-02"), "nincs-auditalva-tiszta"), false);
+});
+
+test("a rejtett napfilter és az exact névfilter pontos találatokkal dolgozik", () => {
+  const viewModel = buildPrimerAuditViewModel(createHiddenFilterReport());
+  const hiddenDays = visiblePrimerAuditNapok(viewModel, {
+    dayFilterId: "rejtett",
+    dayQuery: "",
+    daySortId: "datum",
+  });
+  const annaDays = visiblePrimerAuditNapok(viewModel, {
+    dayFilterId: "osszes",
+    dayQuery: "",
+    dayNameFilter: "Anna",
+    daySortId: "datum",
+  });
+
+  assert.deepEqual(hiddenDays.map((day) => day.monthDay), ["01-02"]);
+  assert.equal(dayMatchesFilter(viewModel.dayMap.get("01-02"), "rejtett"), true);
+  assert.equal(dayMatchesFilter(viewModel.dayMap.get("01-03"), "rejtett"), false);
+  assert.deepEqual(annaDays.map((day) => day.monthDay), ["01-01"]);
+  assert.equal(dayMatchesExactNameFilter(viewModel.dayMap.get("01-03"), "Anna"), false);
 });
 
 test("a primer nélkül maradó állapotok külön jelzik az aktív, feloldott és raw-only neveket", () => {

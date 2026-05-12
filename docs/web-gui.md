@@ -132,6 +132,12 @@ A `pipeline:run` kérés opcionálisan `confirmCrawlerRun: true` mezőt is fogad
   tiszta, még nem jóváhagyott napokat gyűjti; a tömeges műveletek mód az
   aktuális szűrés és keresés alapján hónaponként vagy soronként kijelölt
   napokat tud egyszerre jóváhagyni vagy resetelni.
+- A **Primer audit / Napok** nézet „Rejtett nevek” szűrője minden rejtett
+  névvel érintett napot mutat. Ebben a nézetben az `Egyéb nevek` oszlop
+  rejtett nevei kiemelten, aláhúzva jelennek meg.
+- Az `Egyéb nevek` oszlop nevei gyors éves névszűrők: kattintásra pontos
+  név szerinti szűrés indul az összes napra, az aktív névchip pedig `×`
+  gombbal vagy Escape billentyűvel törölhető.
 - A **Primer audit / Nevek** nézet ABC accordionos, lazy betöltött táblázat:
   a kezdőbetűcsoportok csak számlálókat kapnak, a konkrét névsor nyitáskor
   töltődik. A névsorban külön, kisméretű `Napok` oszlop mutatja az összes

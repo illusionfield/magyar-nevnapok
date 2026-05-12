@@ -244,6 +244,7 @@ async function handleRequest(context, request) {
         primerAuditMonth: await buildPrimerAuditMonthModel(parseMonth(payload.month, "month"), {
           filterId: payload.filterId ?? "akciozhato",
           query: payload.query ?? "",
+          nameFilter: payload.nameFilter ?? "",
         }),
       };
     case "primer-audit:get-names":
@@ -289,6 +290,7 @@ async function handleRequest(context, request) {
         primerAuditDaySelectionScope: await buildPrimerAuditDaySelectionScopeModel({
           filterId: payload.filterId ?? "osszes",
           query: payload.query ?? "",
+          nameFilter: payload.nameFilter ?? "",
         }),
       };
     case "primer-audit:save-settings": {

@@ -36,6 +36,11 @@ export const PRIMER_AUDIT_NAP_SZUROK = [
     leiras: "Legalább egy aktív primerjelölt-hiánnyal rendelkező napok.",
   },
   {
+    azonosito: "rejtett",
+    cimke: "Rejtett nevek",
+    leiras: "Legalább egy rejtettként kezelt névvel rendelkező napok.",
+  },
+  {
     azonosito: "auditalt-drift",
     cimke: "Auditált drift",
     leiras: "A jelenlegi teljes forrásnévlista eltér az utoljára auditált napi névlistától.",
@@ -221,6 +226,35 @@ function namesFromEntries(entries = []) {
 
 function buildNameSet(values = []) {
   return new Set((values ?? []).map(normalizeNameForMatch).filter(Boolean));
+}
+
+function normalizeExactNameFilter(value) {
+  return normalizeNameForMatch(value).toLocaleLowerCase("hu");
+}
+
+function collectDayNameFilterValues(day = {}) {
+  return [
+    ...(day.candidateNames ?? []),
+    ...(day.auditedNames ?? []),
+    ...(day.finalPrimaryNames ?? []),
+    ...(day.commonPreferredNames ?? []),
+    ...(day.effectivePreferredNames ?? []),
+    ...(day.hiddenNames ?? day.hidden ?? []),
+    ...(day.rawNames ?? []),
+    ...(day.activeMissingNames ?? []),
+    ...(day.resolvedMissingNames ?? []),
+    ...(day.rawOnlyNonCandidateNames ?? []),
+  ];
+}
+
+export function dayMatchesExactNameFilter(day, nameFilter) {
+  const normalizedFilter = normalizeExactNameFilter(nameFilter);
+
+  if (!normalizedFilter) {
+    return true;
+  }
+
+  return collectDayNameFilterValues(day).some((name) => normalizeExactNameFilter(name) === normalizedFilter);
 }
 
 function collectRawOnlyNonCandidateNames({ hiddenNames = [], rawNames = [], normalized = [], ranking = [] } = {}) {
@@ -912,6 +946,8 @@ export function dayMatchesFilter(day, filterId) {
       return !day.auditedAt && !hasPrimerAuditDifference(day);
     case "primer-nelkul-marado":
       return day.flags.hasMissing;
+    case "rejtett":
+      return day.flags?.hasHidden === true || (day.counts?.hidden ?? 0) > 0 || (day.hiddenNames ?? day.hidden ?? []).length > 0;
     case "auditalt-drift":
       return day.drift?.hasSourceNameDrift === true;
     case "wiki-legacy-elteres":
@@ -1039,7 +1075,10 @@ export function sortPrimerAuditNevek(names, sortId) {
 export function visiblePrimerAuditNapok(viewModel, allapot) {
   return sortPrimerAuditNapok(
     (viewModel?.days ?? []).filter(
-      (day) => dayMatchesFilter(day, allapot?.dayFilterId ?? "akciozhato") && dayMatchesQuery(day, allapot?.dayQuery ?? "")
+      (day) =>
+        dayMatchesFilter(day, allapot?.dayFilterId ?? "akciozhato") &&
+        dayMatchesQuery(day, allapot?.dayQuery ?? "") &&
+        dayMatchesExactNameFilter(day, allapot?.dayNameFilter ?? "")
     ),
     allapot?.daySortId ?? "relevancia"
   );

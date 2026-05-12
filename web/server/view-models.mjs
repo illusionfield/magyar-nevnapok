@@ -27,6 +27,7 @@ import {
   PRIMER_AUDIT_RENDEZESEK,
   SZEMELYES_PRIMER_BEALLITAS_DEFINICIOK,
   buildPrimerAuditViewModel,
+  dayMatchesExactNameFilter,
   dayMatchesFilter,
   nameMatchesFilter,
   sajatPrimerForrasCimke,
@@ -708,10 +709,11 @@ function buildMonthResponse(month, rows = []) {
 function buildPrimerDayRowsForSelection(viewModel, options = {}) {
   const filterId = String(options.filterId ?? "osszes");
   const query = String(options.query ?? "").trim();
+  const nameFilter = String(options.nameFilter ?? "").trim();
 
   return safeArray(viewModel.days)
     .map((day) => buildPrimerDayRow(day))
-    .filter((row) => dayMatchesFilter(row, filterId) && primerDayMatchesQuery(row, query));
+    .filter((row) => dayMatchesFilter(row, filterId) && primerDayMatchesQuery(row, query) && dayMatchesExactNameFilter(row, nameFilter));
 }
 
 export async function buildPrimerAuditSummaryModel() {
@@ -768,10 +770,11 @@ export async function buildPrimerAuditMonthModel(month, options = {}) {
   });
   const filterId = String(options.filterId ?? "akciozhato");
   const query = String(options.query ?? "").trim();
+  const nameFilter = String(options.nameFilter ?? "").trim();
   const rows = viewModel.days
     .filter((day) => day.month === month)
     .map((day) => buildPrimerDayRow(day, trackedMap))
-    .filter((row) => dayMatchesFilter(row, filterId) && primerDayMatchesQuery(row, query));
+    .filter((row) => dayMatchesFilter(row, filterId) && primerDayMatchesQuery(row, query) && dayMatchesExactNameFilter(row, nameFilter));
 
   return buildMonthResponse(month, rows);
 }

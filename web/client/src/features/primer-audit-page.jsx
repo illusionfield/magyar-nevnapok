@@ -1072,16 +1072,45 @@ function DayAuditActionCell({ row, open, onToggle, bulkMode = false, selected = 
   );
 }
 
+function OtherNamesList({ row, names = [], highlightHidden = false, onNameFilter }) {
+  if (names.length === 0) {
+    return <span className="muted-text">—</span>;
+  }
+
+  return (
+    <span className="small-name-list other-name-list">
+      {names.map((name) => {
+        const hidden = hasName(row.hiddenNames, name);
+
+        return (
+          <button
+            key={`${row.monthDay}-other-${name}`}
+            type="button"
+            className={["other-name-button", highlightHidden && hidden ? "hidden-name" : ""].filter(Boolean).join(" ")}
+            data-name={name}
+            data-hidden={hidden ? "true" : "false"}
+            onClick={() => onNameFilter(name)}
+          >
+            {name}
+          </button>
+        );
+      })}
+    </span>
+  );
+}
+
 function PrimerMonthContent({
   monthSummary,
   request,
   filterId,
   query,
+  nameFilter,
   refreshToken,
   onAfterSave,
   bulkMode = false,
   selectedDayIds,
   onToggleDaySelection,
+  onNameFilter,
 }) {
   const monthQuery = useWsQuery(
     () =>
@@ -1089,8 +1118,9 @@ function PrimerMonthContent({
         month: monthSummary.month,
         filterId,
         query,
+        nameFilter,
       }).then((payload) => payload.primerAuditMonth),
-    [request, monthSummary.month, filterId, query, refreshToken]
+    [request, monthSummary.month, filterId, query, nameFilter, refreshToken]
   );
   const month = monthQuery.data ?? {
     ...monthSummary,
@@ -1100,7 +1130,7 @@ function PrimerMonthContent({
 
   useEffect(() => {
     setOpenRows({});
-  }, [filterId, query, monthSummary.month]);
+  }, [filterId, query, nameFilter, monthSummary.month]);
 
   return (
     <>
@@ -1145,7 +1175,12 @@ function PrimerMonthContent({
                           </div>
                         </td>
                         <td>
-                          <span className="small-name-list">{formatAllNames(otherNames)}</span>
+                          <OtherNamesList
+                            row={row}
+                            names={otherNames}
+                            highlightHidden={filterId === "rejtett"}
+                            onNameFilter={onNameFilter}
+                          />
                         </td>
                         <td>
                           <DayAuditActionCell
@@ -1227,6 +1262,7 @@ function PrimerMonthEditor({
   request,
   filterId,
   query,
+  nameFilter,
   refreshToken,
   onAfterSave,
   bulkMode = false,
@@ -1235,12 +1271,14 @@ function PrimerMonthEditor({
   onToggleDaySelection,
   onToggleMonthSelection,
   selectionScopeLoading = false,
+  forceOpen = false,
+  onNameFilter,
 }) {
   return (
     <MonthAccordion
       key={monthSummary.month}
       group={monthSummary}
-      defaultOpen={defaultMonthOpen(monthSummary, { query })}
+      defaultOpen={forceOpen || defaultMonthOpen(monthSummary, { query })}
       keepMountedAfterOpen={true}
       headerExtra={bulkMode ? (
         <MonthBulkSelectionControl
@@ -1256,11 +1294,13 @@ function PrimerMonthEditor({
         request={request}
         filterId={filterId}
         query={query}
+        nameFilter={nameFilter}
         refreshToken={refreshToken}
         onAfterSave={onAfterSave}
         bulkMode={bulkMode}
         selectedDayIds={selectedDayIds}
         onToggleDaySelection={onToggleDaySelection}
+        onNameFilter={onNameFilter}
       />
     </MonthAccordion>
   );
@@ -1652,6 +1692,7 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
   const [mode, setMode] = useState("napok");
   const [dayQuery, setDayQuery] = useState("");
   const [dayFilterId, setDayFilterId] = useState("osszes");
+  const [dayNameFilter, setDayNameFilter] = useState("");
   const [nameQuery, setNameQuery] = useState("");
   const [nameFilterId, setNameFilterId] = useState("osszes");
   const [bulkMode, setBulkMode] = useState(false);
@@ -1678,10 +1719,11 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
       request("primer-audit:get-day-selection-scope", {
         filterId: dayFilterId,
         query: dayQuery,
+        nameFilter: dayNameFilter,
       }).then((payload) => payload.primerAuditDaySelectionScope),
-    [request, dayFilterId, dayQuery, refreshToken],
+    [request, dayFilterId, dayQuery, dayNameFilter, refreshToken],
     {
-      enabled: mode === "napok" && bulkMode,
+      enabled: mode === "napok" && (bulkMode || Boolean(dayNameFilter)),
       keepPreviousData: false,
     }
   );
@@ -1694,7 +1736,25 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
 
   useEffect(() => {
     setSelectedDayIds(new Set());
-  }, [dayFilterId, dayQuery]);
+  }, [dayFilterId, dayQuery, dayNameFilter]);
+
+  useEffect(() => {
+    if (!dayNameFilter) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setDayNameFilter("");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [dayNameFilter]);
 
   useEffect(() => {
     if (!bulkMode || !selectionScope) {
@@ -1749,6 +1809,15 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
       return next;
     });
   };
+  const applyDayNameFilter = (name) => {
+    setDayNameFilter(name);
+    setDayQuery("");
+    setDayFilterId("osszes");
+    setSelectedDayIds(new Set());
+  };
+  const clearDayNameFilter = () => {
+    setDayNameFilter("");
+  };
   const runBulkAuditAction = async (action) => {
     const monthDays = Array.from(selectedDayIds).sort();
 
@@ -1802,6 +1871,14 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
           <PageSection title="Napnézet" subtitle="Havi csoportokba rendezett, soronként nyitható napi audit dashboard.">
             <Toolbar>
               <SearchInput value={dayQuery} onChange={setDayQuery} placeholder="Keresés dátumra vagy névre…" />
+              {dayNameFilter ? (
+                <span className="active-name-filter-chip">
+                  <span>Név: <strong>{dayNameFilter}</strong></span>
+                  <button type="button" aria-label={`${dayNameFilter} névszűrő törlése`} onClick={clearDayNameFilter}>
+                    ×
+                  </button>
+                </span>
+              ) : null}
               <div className="filter-button-row">
                 {(summary?.filters?.days ?? []).map((item) => (
                   <Tooltip
@@ -1852,6 +1929,7 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
               request={request}
               filterId={dayFilterId}
               query={dayQuery}
+              nameFilter={dayNameFilter}
               refreshToken={refreshToken}
               onAfterSave={async () => {
                 setRefreshToken((value) => value + 1);
@@ -1863,10 +1941,12 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
                 monthDays: [],
                 count: 0,
               }}
+              forceOpen={Boolean(dayNameFilter) && (selectionMonthMap.get(monthSummary.month)?.monthDays?.length ?? 0) > 0}
               selectedDayIds={selectedDayIds}
               onToggleDaySelection={toggleDaySelection}
               onToggleMonthSelection={toggleMonthSelection}
               selectionScopeLoading={selectionScopeQuery.loading}
+              onNameFilter={applyDayNameFilter}
             />
           ))}
         </>

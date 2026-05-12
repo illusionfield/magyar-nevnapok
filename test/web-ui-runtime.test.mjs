@@ -326,6 +326,11 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
     true,
     "A primer audit napnézetben legyen tiszta, nem leokézott szűrő."
   );
+  assert.equal(
+    primerTableState.dayFilterLabels.includes("Rejtett nevek"),
+    true,
+    "A primer audit napnézetben legyen Rejtett nevek szűrő."
+  );
   assert.deepEqual(primerTableState.headers, ["Dátum", "Végső primer", "Egyéb nevek", "Audit"]);
   assert.equal(primerTableState.hasMiniMeta, false, "A napi sor dátum mini-meta nélkül jelenjen meg.");
   assert.equal(primerTableState.hasPencilButton, true, "A napi editor nyitása pencil gombbal történjen.");
@@ -341,6 +346,70 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.equal(primerTableState.compactSourceDisplay, "none", "Kompakt módban a chip forráslabel ne legyen inline látható.");
   assert.equal(primerTableState.firstNameWhiteSpace, "nowrap");
   assert.notEqual(primerTableState.firstNameTextOverflow, "ellipsis");
+
+  const hiddenNameFilterState = await primerPage.evaluate(() => {
+    const hiddenFilterButton = [...document.querySelectorAll(".filter-button-row .tab-button")]
+      .find((button) => button.textContent.trim() === "Rejtett nevek");
+
+    if (!hiddenFilterButton) {
+      throw new Error("Nem található Rejtett nevek filter gomb.");
+    }
+
+    hiddenFilterButton.click();
+
+    return true;
+  });
+  assert.equal(hiddenNameFilterState, true);
+  await primerPage.waitForFunction(
+    () => Boolean(document.querySelector(".primer-audit-table .other-name-button.hidden-name")),
+    { timeout: 10_000 }
+  );
+  const clickedOtherName = await primerPage.evaluate(() => {
+    const hiddenButton = document.querySelector(".primer-audit-table .other-name-button.hidden-name");
+
+    if (!hiddenButton) {
+      throw new Error("Nem található kiemelt rejtett név az Egyéb nevek oszlopban.");
+    }
+
+    const name = hiddenButton.getAttribute("data-name") ?? hiddenButton.textContent.replace(",", "").trim();
+    hiddenButton.click();
+    return name;
+  });
+  await primerPage.waitForFunction(
+    () => document.querySelector(".active-name-filter-chip")?.textContent.includes("Név:"),
+    { timeout: 10_000 }
+  );
+  const clickedNameFilterState = await primerPage.evaluate((name) => ({
+    chipText: document.querySelector(".active-name-filter-chip")?.textContent.trim() ?? "",
+    activeDayFilter: [...document.querySelectorAll(".filter-button-row .tab-button")]
+      .find((button) => button.classList.contains("active"))?.textContent.trim() ?? "",
+    hasMatchingOtherNameButton: Boolean(document.querySelector(`.primer-audit-table .other-name-button[data-name="${CSS.escape(name)}"]`)),
+  }), clickedOtherName);
+  assert.match(clickedNameFilterState.chipText, new RegExp(`Név:\\s*${clickedOtherName}`, "u"));
+  assert.equal(clickedNameFilterState.activeDayFilter, "Összes", "Névkattintás után az éves Összes nap szűrő legyen aktív.");
+  assert.equal(clickedNameFilterState.hasMatchingOtherNameButton, true, "A névszűrt listában maradjon látható a kattintott név.");
+  await primerPage.evaluate(() => {
+    document.querySelector(".active-name-filter-chip button")?.click();
+  });
+  await primerPage.waitForFunction(
+    () => !document.querySelector(".active-name-filter-chip"),
+    { timeout: 10_000 }
+  );
+  await primerPage.evaluate((name) => {
+    const button = document.querySelector(`.primer-audit-table .other-name-button[data-name="${CSS.escape(name)}"]`);
+
+    if (!button) {
+      throw new Error("Nem található az Egyéb nevek gyorsszűrő gomb az Esc teszthez.");
+    }
+
+    button.click();
+  }, clickedOtherName);
+  await primerPage.waitForSelector(".active-name-filter-chip", { timeout: 10_000 });
+  await primerPage.keyboard.press("Escape");
+  await primerPage.waitForFunction(
+    () => !document.querySelector(".active-name-filter-chip"),
+    { timeout: 10_000 }
+  );
 
   await primerPage.evaluate(() => {
     const decemberSummary = [...document.querySelectorAll(".month-accordion summary")]
