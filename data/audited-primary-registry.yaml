@@ -1,5 +1,5 @@
 version: 1
-generatedAt: 2026-05-04T08:07:56.443Z
+generatedAt: 2026-05-12T11:45:32.370Z
 source: initial unaudited baseline from current generated registry and name database
 days:
   - month: 1
@@ -140,7 +140,7 @@ days:
       - Rafaella
     preferredNames:
       - Boldizsár
-    auditedAt: null
+    auditedAt: 2026-05-12T09:30:11.775Z
   - month: 1
     day: 7
     monthDay: 01-07
@@ -221,7 +221,7 @@ days:
       - Zsülien
     preferredNames:
       - Marcell
-    auditedAt: null
+    auditedAt: 2026-05-12T09:30:51.568Z
   - month: 1
     day: 10
     monthDay: 01-10
@@ -254,7 +254,7 @@ days:
       - Zsálya
     preferredNames:
       - Ágota
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 1
     day: 12
     monthDay: 01-12
@@ -535,7 +535,7 @@ days:
       - Inez
     preferredNames:
       - Ágnes
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 1
     day: 22
     monthDay: 01-22
@@ -671,7 +671,7 @@ days:
     preferredNames:
       - Paula
       - Vanda
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 1
     day: 27
     monthDay: 01-27
@@ -874,7 +874,7 @@ days:
       - Sebes
     preferredNames:
       - Balázs
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 2
     day: 4
     monthDay: 02-04
@@ -1165,7 +1165,7 @@ days:
       - Ella
       - Linda
       - Levente
-    auditedAt: null
+    auditedAt: 2026-05-12T11:39:26.475Z
   - month: 2
     day: 14
     monthDay: 02-14
@@ -1212,7 +1212,7 @@ days:
     preferredNames:
       - Kolos
       - Georgina
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 2
     day: 16
     monthDay: 02-16
@@ -1294,7 +1294,7 @@ days:
       - Szilvánusz
     preferredNames:
       - Bernadett
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 2
     day: 19
     monthDay: 02-19
@@ -1327,7 +1327,7 @@ days:
       - Zsuzska
     preferredNames:
       - Zsuzsanna
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 2
     day: 20
     monthDay: 02-20
@@ -1381,7 +1381,7 @@ days:
     preferredNames:
       - Eleonóra
       - Zelmira
-    auditedAt: null
+    auditedAt: 2026-05-12T11:39:51.998Z
   - month: 2
     day: 22
     monthDay: 02-22
@@ -1459,7 +1459,7 @@ days:
       - Mátyus
     preferredNames:
       - Mátyás
-    auditedAt: null
+    auditedAt: 2026-05-12T09:21:30.623Z
   - month: 2
     day: 25
     monthDay: 02-25
@@ -1485,7 +1485,7 @@ days:
       - Vásti
     preferredNames:
       - Géza
-    auditedAt: null
+    auditedAt: 2026-05-12T09:26:23.289Z
   - month: 2
     day: 26
     monthDay: 02-26
@@ -1510,7 +1510,7 @@ days:
       - Viktor
     preferredNames:
       - Edina
-    auditedAt: null
+    auditedAt: 2026-05-12T09:25:34.953Z
   - month: 2
     day: 27
     monthDay: 02-27
@@ -1538,7 +1538,7 @@ days:
     preferredNames:
       - Ákos
       - Bátor
-    auditedAt: null
+    auditedAt: 2026-05-12T09:25:46.962Z
   - month: 2
     day: 28
     monthDay: 02-28
@@ -1558,7 +1558,7 @@ days:
       - Románó
     preferredNames:
       - Elemér
-    auditedAt: null
+    auditedAt: 2026-05-12T09:21:10.732Z
   - month: 2
     day: 29
     monthDay: 02-29
@@ -1566,7 +1566,7 @@ days:
       - Elemér
     preferredNames:
       - Elemér
-    auditedAt: null
+    auditedAt: 2026-05-12T09:20:36.878Z
   - month: 3
     day: 1
     monthDay: 03-01
@@ -1730,7 +1730,7 @@ days:
       - Ubul
     preferredNames:
       - Tamás
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 3
     day: 8
     monthDay: 03-08
@@ -1781,7 +1781,8 @@ days:
     preferredNames:
       - Fanni
       - Franciska
-    auditedAt: null
+      - Dominik
+    auditedAt: 2026-05-12T10:21:45.375Z
   - month: 3
     day: 10
     monthDay: 03-10
@@ -1943,7 +1944,7 @@ days:
       - Tilla
     preferredNames:
       - Matild
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 3
     day: 15
     monthDay: 03-15
@@ -1966,7 +1967,7 @@ days:
       - Zakariás
     preferredNames:
       - Kristóf
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 3
     day: 16
     monthDay: 03-16
@@ -2068,7 +2069,7 @@ days:
     preferredNames:
       - Bánk
       - József
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 3
     day: 20
     monthDay: 03-20
@@ -2330,7 +2331,8 @@ days:
     preferredNames:
       - Johanna
       - Gedeon
-    auditedAt: null
+      - Hanna
+    auditedAt: 2026-05-12T09:16:39.503Z
   - month: 3
     day: 29
     monthDay: 03-29
@@ -2371,7 +2373,7 @@ days:
       - Zalán
     preferredNames:
       - Zalán
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 3
     day: 31
     monthDay: 03-31
@@ -2437,7 +2439,7 @@ days:
       - Viggó
     preferredNames:
       - Áron
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 4
     day: 3
     monthDay: 04-03
@@ -2483,7 +2485,7 @@ days:
       - Zejnep
     preferredNames:
       - Izidor
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 4
     day: 5
     monthDay: 04-05
@@ -2614,7 +2616,7 @@ days:
       - Zsolt
     preferredNames:
       - Zsolt
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 4
     day: 11
     monthDay: 04-11
@@ -2704,7 +2706,7 @@ days:
       - Zsüsztin
     preferredNames:
       - Tibor
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 4
     day: 15
     monthDay: 04-15
@@ -2742,7 +2744,8 @@ days:
     preferredNames:
       - Tas
       - Anasztázia
-    auditedAt: null
+      - Aisa
+    auditedAt: 2026-05-12T10:28:44.605Z
   - month: 4
     day: 16
     monthDay: 04-16
@@ -2864,7 +2867,7 @@ days:
       - Zseraldina
     preferredNames:
       - Emma
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 4
     day: 20
     monthDay: 04-20
@@ -2909,7 +2912,7 @@ days:
     preferredNames:
       - Konrád
       - Zelmira
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 4
     day: 22
     monthDay: 04-22
@@ -2941,7 +2944,7 @@ days:
     preferredNames:
       - Noémi
       - Csilla
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 4
     day: 23
     monthDay: 04-23
@@ -3051,7 +3054,7 @@ days:
       - Niké
     preferredNames:
       - Márk
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 4
     day: 26
     monthDay: 04-26
@@ -3099,7 +3102,7 @@ days:
     preferredNames:
       - Mariann
       - Zita
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 4
     day: 28
     monthDay: 04-28
@@ -3159,7 +3162,7 @@ days:
       - Tihamér
     preferredNames:
       - Péter
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 4
     day: 30
     monthDay: 04-30
@@ -3240,7 +3243,7 @@ days:
       - Fülöp
       - Jakab
       - Zsaklin
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 5
     day: 2
     monthDay: 05-02
@@ -3466,7 +3469,7 @@ days:
     preferredNames:
       - Gergely
       - Katinka
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 5
     day: 10
     monthDay: 05-10
@@ -3530,7 +3533,7 @@ days:
       - Tibád
     preferredNames:
       - Ferenc
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 5
     day: 12
     monthDay: 05-12
@@ -3906,7 +3909,7 @@ days:
       - Eliza
       - Eszter
       - Vanessza
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 5
     day: 25
     monthDay: 05-25
@@ -3968,7 +3971,7 @@ days:
     preferredNames:
       - Evelin
       - Fülöp
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 5
     day: 27
     monthDay: 05-27
@@ -4150,7 +4153,7 @@ days:
       - Tündi
     preferredNames:
       - Tünde
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 6
     day: 2
     monthDay: 06-02
@@ -4253,7 +4256,7 @@ days:
     preferredNames:
       - Fatima
       - Fatime
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 6
     day: 6
     monthDay: 06-06
@@ -4289,7 +4292,7 @@ days:
     preferredNames:
       - Cintia
       - Norbert
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 6
     day: 7
     monthDay: 06-07
@@ -4316,7 +4319,7 @@ days:
     preferredNames:
       - Róbert
       - Robertina
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 6
     day: 8
     monthDay: 06-08
@@ -4418,7 +4421,7 @@ days:
       - Vaszília
     preferredNames:
       - Barnabás
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 6
     day: 12
     monthDay: 06-12
@@ -4456,7 +4459,7 @@ days:
     preferredNames:
       - Anett
       - Antal
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 6
     day: 14
     monthDay: 06-14
@@ -4473,7 +4476,7 @@ days:
       - Zazi
     preferredNames:
       - Vazul
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 6
     day: 15
     monthDay: 06-15
@@ -4745,7 +4748,7 @@ days:
       - Zoltána
     preferredNames:
       - Zoltán
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 6
     day: 24
     monthDay: 06-24
@@ -4788,7 +4791,7 @@ days:
       - Viorika
     preferredNames:
       - Vilmos
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 6
     day: 26
     monthDay: 06-26
@@ -4834,7 +4837,7 @@ days:
       - Ulászló
     preferredNames:
       - László
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 6
     day: 28
     monthDay: 06-28
@@ -5589,7 +5592,7 @@ days:
       - Versény
     preferredNames:
       - Emília
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 7
     day: 20
     monthDay: 07-20
@@ -5747,7 +5750,7 @@ days:
     preferredNames:
       - Jakab
       - Kristóf
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 7
     day: 26
     monthDay: 07-26
@@ -5865,7 +5868,7 @@ days:
       - Viktor
     preferredNames:
       - Szabolcs
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 7
     day: 29
     monthDay: 07-29
@@ -5895,7 +5898,7 @@ days:
     preferredNames:
       - Flóra
       - Márta
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 7
     day: 30
     monthDay: 07-30
@@ -6118,7 +6121,7 @@ days:
       - Zebulon
     preferredNames:
       - Krisztina
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 6
     monthDay: 08-06
@@ -6203,7 +6206,7 @@ days:
       - Zádorka
     preferredNames:
       - László
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 9
     monthDay: 08-09
@@ -6318,7 +6321,7 @@ days:
       - Zarán
     preferredNames:
       - Klára
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 13
     monthDay: 08-13
@@ -6386,7 +6389,7 @@ days:
       - Tara
     preferredNames:
       - Marcell
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 15
     monthDay: 08-15
@@ -6406,7 +6409,7 @@ days:
       - Tarzíciusz
     preferredNames:
       - Mária
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 16
     monthDay: 08-16
@@ -6455,7 +6458,7 @@ days:
       - Liberátusz
     preferredNames:
       - Jácint
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 18
     monthDay: 08-18
@@ -6495,7 +6498,7 @@ days:
       - Sáfély
     preferredNames:
       - Ilona
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 19
     monthDay: 08-19
@@ -6538,7 +6541,7 @@ days:
       - Vajk
     preferredNames:
       - István
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 21
     monthDay: 08-21
@@ -6660,7 +6663,7 @@ days:
       - Taksony
     preferredNames:
       - Bertalan
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 8
     day: 25
     monthDay: 08-25
@@ -6707,7 +6710,7 @@ days:
     preferredNames:
       - Izsó
       - Natália
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 8
     day: 27
     monthDay: 08-27
@@ -7057,7 +7060,7 @@ days:
     preferredNames:
       - Mária
       - Adrienn
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 9
     day: 9
     monthDay: 09-09
@@ -7152,7 +7155,7 @@ days:
       - Tóbiás
     preferredNames:
       - Mária
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 9
     day: 13
     monthDay: 09-13
@@ -7295,7 +7298,7 @@ days:
       - Zsófia
     preferredNames:
       - Zsófia
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 9
     day: 18
     monthDay: 09-18
@@ -7439,7 +7442,7 @@ days:
     preferredNames:
       - Líviusz
       - Tekla
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 9
     day: 24
     monthDay: 09-24
@@ -7727,7 +7730,7 @@ days:
       - Zorka
     preferredNames:
       - Ferenc
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 10
     day: 5
     monthDay: 10-05
@@ -7801,7 +7804,7 @@ days:
     preferredNames:
       - Amália
       - Bekény
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 10
     day: 8
     monthDay: 10-08
@@ -8004,7 +8007,7 @@ days:
     preferredNames:
       - Helén
       - Lívia
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 10
     day: 15
     monthDay: 10-15
@@ -8187,7 +8190,7 @@ days:
     preferredNames:
       - Irén
       - Vendel
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 10
     day: 21
     monthDay: 10-21
@@ -8273,7 +8276,7 @@ days:
     preferredNames:
       - Gyöngyvér
       - Gyöngyi
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 10
     day: 24
     monthDay: 10-24
@@ -8375,7 +8378,7 @@ days:
       - Zsubor
     preferredNames:
       - Szabina
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 10
     day: 28
     monthDay: 10-28
@@ -8398,7 +8401,7 @@ days:
     preferredNames:
       - Simon
       - Szimonetta
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 10
     day: 29
     monthDay: 10-29
@@ -8473,7 +8476,7 @@ days:
       - Marianna
     preferredNames:
       - Marianna
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 2
     monthDay: 11-02
@@ -8492,7 +8495,7 @@ days:
       - Vitéz
     preferredNames:
       - Achillesz
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 11
     day: 3
     monthDay: 11-03
@@ -8546,7 +8549,7 @@ days:
       - Vitályos
     preferredNames:
       - Károly
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 5
     monthDay: 11-05
@@ -8563,7 +8566,7 @@ days:
       - Zakariás
     preferredNames:
       - Imre
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 6
     monthDay: 11-06
@@ -8580,7 +8583,7 @@ days:
       - Sziéna
     preferredNames:
       - Lénárd
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 7
     monthDay: 11-07
@@ -8643,7 +8646,7 @@ days:
       - Zsombor
     preferredNames:
       - Zsombor
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 9
     monthDay: 11-09
@@ -8699,7 +8702,7 @@ days:
       - Virgínia
     preferredNames:
       - Réka
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 11
     monthDay: 11-11
@@ -8719,7 +8722,7 @@ days:
       - Ramira
     preferredNames:
       - Márton
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 12
     monthDay: 11-12
@@ -8959,7 +8962,7 @@ days:
       - Zobor
     preferredNames:
       - Erzsébet
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 20
     monthDay: 11-20
@@ -8999,7 +9002,7 @@ days:
       - Virgíniusz
     preferredNames:
       - Olivér
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 11
     day: 22
     monthDay: 11-22
@@ -9191,7 +9194,7 @@ days:
     preferredNames:
       - András
       - Andor
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 1
     monthDay: 12-01
@@ -9271,7 +9274,7 @@ days:
     preferredNames:
       - Ferenc
       - Olívia
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 12
     day: 4
     monthDay: 12-04
@@ -9365,7 +9368,7 @@ days:
       - Nyikoláj
     preferredNames:
       - Miklós
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 7
     monthDay: 12-07
@@ -9384,7 +9387,7 @@ days:
       - Szabin
     preferredNames:
       - Ambrus
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 8
     monthDay: 12-08
@@ -9403,7 +9406,7 @@ days:
       - Mátyás
     preferredNames:
       - Mária
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 9
     monthDay: 12-09
@@ -9452,7 +9455,7 @@ days:
       - Miron
     preferredNames:
       - Judit
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 11
     monthDay: 12-11
@@ -9469,7 +9472,7 @@ days:
     preferredNames:
       - Árpád
       - Árpádina
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 12
     day: 12
     monthDay: 12-12
@@ -9486,7 +9489,7 @@ days:
       - Vérbulcsú
     preferredNames:
       - Gabriella
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 13
     monthDay: 12-13
@@ -9580,7 +9583,7 @@ days:
     preferredNames:
       - Aletta
       - Etelka
-    auditedAt: null
+    auditedAt: 2026-05-12T11:45:32.270Z
   - month: 12
     day: 17
     monthDay: 12-17
@@ -9597,7 +9600,7 @@ days:
     preferredNames:
       - Lázár
       - Olimpia
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 18
     monthDay: 12-18
@@ -9644,7 +9647,7 @@ days:
       - Viola
     preferredNames:
       - Viola
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 20
     monthDay: 12-20
@@ -9728,7 +9731,7 @@ days:
       - Zétény
     preferredNames:
       - Viktória
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 24
     monthDay: 12-24
@@ -9796,7 +9799,7 @@ days:
       - Zombor
     preferredNames:
       - István
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 27
     monthDay: 12-27
@@ -9812,7 +9815,7 @@ days:
       - Tifani
     preferredNames:
       - János
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 28
     monthDay: 12-28
@@ -9833,7 +9836,7 @@ days:
       - Tódor
     preferredNames:
       - Kamilla
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 29
     monthDay: 12-29
@@ -9890,7 +9893,7 @@ days:
       - Zoárd
     preferredNames:
       - Dávid
-    auditedAt: null
+    auditedAt: 2026-05-12T10:19:23.947Z
   - month: 12
     day: 31
     monthDay: 12-31
