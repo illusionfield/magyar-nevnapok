@@ -1414,6 +1414,23 @@ a {
   gap: 0.45rem;
 }
 
+.bulk-action-toolbar {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.month-bulk-select,
+.day-bulk-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
 .primer-audit-table-wrap {
   border-radius: 16px;
   border: 1px solid rgba(121, 143, 170, 0.12);
@@ -1435,12 +1452,16 @@ a {
 
 .primer-audit-table th:nth-child(4),
 .primer-audit-table td:nth-child(4) {
-  width: 9.5rem;
-  min-width: 9.5rem;
+  width: 10.8rem;
+  min-width: 10.8rem;
 }
 
 .primer-audit-table tr.needs-audit > td {
   background: rgba(245, 158, 11, 0.045);
+}
+
+.primer-audit-table tr.bulk-selected > td {
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .small-name-list {
@@ -1634,6 +1655,16 @@ a {
 
 .audit-status-dot.ok {
   background: #16a34a;
+}
+
+.audit-status-dot.acknowledged {
+  opacity: 0.42;
+  filter: saturate(0.55);
+}
+
+.audit-status-dot.acknowledged:hover,
+.audit-status-dot.acknowledged:focus-visible {
+  opacity: 0.72;
 }
 
 .audit-relative-time {

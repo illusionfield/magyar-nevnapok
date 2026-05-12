@@ -919,6 +919,8 @@ function DayAuditEditor({ row, request, onSaved, onCancel }) {
 function buildDayStatusItems(row) {
   const items = [];
   const normalizedPrimerDiff = getNormalizedPrimerDiff(row);
+  const approved = Boolean(row.auditedAt);
+  const acceptedDifferenceLabel = (label) => approved ? `Leokézott evidencia: ${label}` : label;
 
   if (!row.auditedAt) {
     items.push({ id: "unaudited", icon: "!", label: "Nincs leokézva", tone: "warning" });
@@ -928,8 +930,9 @@ function buildDayStatusItems(row) {
     items.push({
       id: "normalized-diff",
       icon: "N≠",
-      label: formatNormalizedPrimerDiffLabel(normalizedPrimerDiff),
+      label: acceptedDifferenceLabel(formatNormalizedPrimerDiffLabel(normalizedPrimerDiff)),
       tone: "normalized",
+      acknowledged: approved,
     });
   }
 
@@ -938,11 +941,23 @@ function buildDayStatusItems(row) {
   }
 
   if (row.flags?.hasMissing) {
-    items.push({ id: "missing", icon: "∅", label: "Primer nélkül maradó név van ezen a napon", tone: "danger" });
+    items.push({
+      id: "missing",
+      icon: "∅",
+      label: acceptedDifferenceLabel("Primer nélkül maradó név van ezen a napon"),
+      tone: "danger",
+      acknowledged: approved,
+    });
   }
 
   if (row.flags?.isValidationMismatch) {
-    items.push({ id: "wiki-legacy", icon: "≠", label: "Wiki/legacy eltérés", tone: "purple" });
+    items.push({
+      id: "wiki-legacy",
+      icon: "≠",
+      label: acceptedDifferenceLabel("Wiki/legacy eltérés"),
+      tone: "purple",
+      acknowledged: approved,
+    });
   }
 
   if (items.length === 0) {
@@ -952,17 +967,17 @@ function buildDayStatusItems(row) {
   return items;
 }
 
-function DayAuditActionCell({ row, open, onToggle }) {
+function DayAuditActionCell({ row, open, onToggle, bulkMode = false, selected = false, onToggleSelection }) {
   const actionLabel = open ? "Editor bezárása" : "Napi primer audit szerkesztése";
 
   return (
-    <div className="day-audit-action-cell">
+    <div className={["day-audit-action-cell", bulkMode ? "bulk-mode" : ""].filter(Boolean).join(" ")}>
       <div className="audit-status-dot-row" aria-label="Napi audit státuszok">
         {buildDayStatusItems(row).map((item) => (
           <Tooltip
             as="span"
             key={item.id}
-            className={`audit-status-dot ${item.tone}`}
+            className={["audit-status-dot", item.tone, item.acknowledged ? "acknowledged" : ""].filter(Boolean).join(" ")}
             label={item.label}
             aria-label={item.label}
           >
@@ -985,11 +1000,31 @@ function DayAuditActionCell({ row, open, onToggle }) {
       >
         ✎
       </Tooltip>
+      {bulkMode ? (
+        <label className="day-bulk-select">
+          <input
+            type="checkbox"
+            checked={selected}
+            aria-label={`${row.dateLabel} kijelölése tömeges művelethez`}
+            onChange={(event) => onToggleSelection(row.monthDay, event.target.checked)}
+          />
+        </label>
+      ) : null}
     </div>
   );
 }
 
-function PrimerMonthContent({ monthSummary, request, filterId, query, refreshToken, onAfterSave }) {
+function PrimerMonthContent({
+  monthSummary,
+  request,
+  filterId,
+  query,
+  refreshToken,
+  onAfterSave,
+  bulkMode = false,
+  selectedDayIds,
+  onToggleDaySelection,
+}) {
   const monthQuery = useWsQuery(
     () =>
       request("primer-audit:get-month", {
@@ -1032,7 +1067,13 @@ function PrimerMonthContent({ monthSummary, request, filterId, query, refreshTok
 
                   return (
                     <Fragment key={row.monthDay}>
-                      <tr key={row.monthDay} className={row.needsAudit ? "needs-audit" : ""}>
+                      <tr
+                        key={row.monthDay}
+                        className={[
+                          row.needsAudit ? "needs-audit" : "",
+                          selectedDayIds?.has(row.monthDay) ? "bulk-selected" : "",
+                        ].filter(Boolean).join(" ")}
+                      >
                         <td>
                           <strong>{row.dateLabel}</strong>
                         </td>
@@ -1053,6 +1094,9 @@ function PrimerMonthContent({ monthSummary, request, filterId, query, refreshTok
                             row={row}
                             open={open}
                             onToggle={() => setOpenRows((current) => ({ ...current, [row.monthDay]: !open }))}
+                            bulkMode={bulkMode}
+                            selected={selectedDayIds?.has(row.monthDay) === true}
+                            onToggleSelection={onToggleDaySelection}
                           />
                         </td>
                       </tr>
@@ -1085,13 +1129,69 @@ function PrimerMonthContent({ monthSummary, request, filterId, query, refreshTok
   );
 }
 
-function PrimerMonthEditor({ monthSummary, request, filterId, query, refreshToken, onAfterSave }) {
+function MonthBulkSelectionControl({
+  monthScope,
+  selectedDayIds,
+  disabled = false,
+  onToggleMonthSelection,
+}) {
+  const monthDays = monthScope?.monthDays ?? [];
+  const selectedCount = monthDays.filter((monthDay) => selectedDayIds.has(monthDay)).length;
+  const totalCount = monthDays.length;
+  const checked = totalCount > 0 && selectedCount === totalCount;
+  const indeterminate = selectedCount > 0 && selectedCount < totalCount;
+
+  return (
+    <label
+      className="month-bulk-select"
+      onClick={(event) => event.stopPropagation()}
+      onPointerDown={(event) => event.stopPropagation()}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled || totalCount === 0}
+        aria-label={`${monthScope?.monthName ?? "Hónap"} szűrt napjainak kijelölése`}
+        ref={(element) => {
+          if (element) {
+            element.indeterminate = indeterminate;
+          }
+        }}
+        onChange={(event) => onToggleMonthSelection(monthDays, event.target.checked)}
+      />
+      <span>{selectedCount} / {totalCount} kijelölve</span>
+    </label>
+  );
+}
+
+function PrimerMonthEditor({
+  monthSummary,
+  request,
+  filterId,
+  query,
+  refreshToken,
+  onAfterSave,
+  bulkMode = false,
+  monthScope,
+  selectedDayIds,
+  onToggleDaySelection,
+  onToggleMonthSelection,
+  selectionScopeLoading = false,
+}) {
   return (
     <MonthAccordion
       key={monthSummary.month}
       group={monthSummary}
       defaultOpen={defaultMonthOpen(monthSummary, { query })}
       keepMountedAfterOpen={true}
+      headerExtra={bulkMode ? (
+        <MonthBulkSelectionControl
+          monthScope={monthScope}
+          selectedDayIds={selectedDayIds}
+          disabled={selectionScopeLoading}
+          onToggleMonthSelection={onToggleMonthSelection}
+        />
+      ) : null}
     >
       <PrimerMonthContent
         monthSummary={monthSummary}
@@ -1100,6 +1200,9 @@ function PrimerMonthEditor({ monthSummary, request, filterId, query, refreshToke
         query={query}
         refreshToken={refreshToken}
         onAfterSave={onAfterSave}
+        bulkMode={bulkMode}
+        selectedDayIds={selectedDayIds}
+        onToggleDaySelection={onToggleDaySelection}
       />
     </MonthAccordion>
   );
@@ -1493,6 +1596,8 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
   const [dayFilterId, setDayFilterId] = useState("osszes");
   const [nameQuery, setNameQuery] = useState("");
   const [nameFilterId, setNameFilterId] = useState("osszes");
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedDayIds, setSelectedDayIds] = useState(() => new Set());
   const [refreshToken, setRefreshToken] = useState(0);
   const summaryQuery = useWsQuery(
     () => request("primer-audit:get-summary").then((payload) => payload.primerAuditSummary),
@@ -1510,6 +1615,97 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
       enabled: mode === "nevek",
     }
   );
+  const selectionScopeQuery = useWsQuery(
+    () =>
+      request("primer-audit:get-day-selection-scope", {
+        filterId: dayFilterId,
+        query: dayQuery,
+      }).then((payload) => payload.primerAuditDaySelectionScope),
+    [request, dayFilterId, dayQuery, refreshToken],
+    {
+      enabled: mode === "napok" && bulkMode,
+      keepPreviousData: false,
+    }
+  );
+  const selectionScope = selectionScopeQuery.data;
+  const selectionMonthMap = useMemo(
+    () => new Map((selectionScope?.months ?? []).map((month) => [month.month, month])),
+    [selectionScope]
+  );
+  const selectedCount = selectedDayIds.size;
+
+  useEffect(() => {
+    setSelectedDayIds(new Set());
+  }, [dayFilterId, dayQuery]);
+
+  useEffect(() => {
+    if (!bulkMode || !selectionScope) {
+      return;
+    }
+
+    const visibleDayIds = new Set((selectionScope.months ?? []).flatMap((month) => month.monthDays ?? []));
+
+    setSelectedDayIds((current) => {
+      const next = new Set([...current].filter((monthDay) => visibleDayIds.has(monthDay)));
+
+      return next.size === current.size ? current : next;
+    });
+  }, [bulkMode, selectionScope]);
+
+  const toggleBulkMode = () => {
+    setBulkMode((current) => {
+      const next = !current;
+
+      if (!next) {
+        setSelectedDayIds(new Set());
+      }
+
+      return next;
+    });
+  };
+  const toggleDaySelection = (monthDay, checked) => {
+    setSelectedDayIds((current) => {
+      const next = new Set(current);
+
+      if (checked) {
+        next.add(monthDay);
+      } else {
+        next.delete(monthDay);
+      }
+
+      return next;
+    });
+  };
+  const toggleMonthSelection = (monthDays, checked) => {
+    setSelectedDayIds((current) => {
+      const next = new Set(current);
+
+      for (const monthDay of monthDays ?? []) {
+        if (checked) {
+          next.add(monthDay);
+        } else {
+          next.delete(monthDay);
+        }
+      }
+
+      return next;
+    });
+  };
+  const runBulkAuditAction = async (action) => {
+    const monthDays = Array.from(selectedDayIds).sort();
+
+    if (monthDays.length === 0) {
+      return;
+    }
+
+    await request("primer-audit:bulk-audited-days", {
+      action,
+      monthDays,
+      rerun: true,
+    });
+    setSelectedDayIds(new Set());
+    setRefreshToken((value) => value + 1);
+  };
 
   return (
     <div className="page-stack">
@@ -1562,6 +1758,33 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
                   </Tooltip>
                 ))}
               </div>
+              <button
+                type="button"
+                className={bulkMode ? "tab-button active" : "tab-button"}
+                onClick={toggleBulkMode}
+              >
+                Tömeges műveletek
+              </button>
+              {bulkMode ? (
+                <div className="bulk-action-toolbar">
+                  <span className="muted-text">
+                    Kijelölt napok: {selectedCount}
+                    {selectionScope ? ` / szűrt: ${selectionScope.total ?? 0}` : ""}
+                  </span>
+                  {selectionScopeQuery.loading ? <span className="muted-text">Kijelölési kör betöltése…</span> : null}
+                  <ActionButton
+                    label="Jóváhagyás"
+                    tone="primary"
+                    disabled={selectedCount === 0}
+                    onClick={() => runBulkAuditAction("approve")}
+                  />
+                  <ActionButton
+                    label="Reset"
+                    disabled={selectedCount === 0}
+                    onClick={() => runBulkAuditAction("reset")}
+                  />
+                </div>
+              ) : null}
             </Toolbar>
           </PageSection>
           {(summary?.months ?? []).map((monthSummary) => (
@@ -1575,6 +1798,17 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
               onAfterSave={async () => {
                 setRefreshToken((value) => value + 1);
               }}
+              bulkMode={bulkMode}
+              monthScope={selectionMonthMap.get(monthSummary.month) ?? {
+                month: monthSummary.month,
+                monthName: monthSummary.monthName,
+                monthDays: [],
+                count: 0,
+              }}
+              selectedDayIds={selectedDayIds}
+              onToggleDaySelection={toggleDaySelection}
+              onToggleMonthSelection={toggleMonthSelection}
+              selectionScopeLoading={selectionScopeQuery.loading}
             />
           ))}
         </>

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildPrimerAuditViewModel, visiblePrimerAuditNapok, visiblePrimerAuditNevek } from "../web/shared/primer-audit/view-model.mjs";
+import { buildPrimerAuditViewModel, dayMatchesFilter, visiblePrimerAuditNapok, visiblePrimerAuditNevek } from "../web/shared/primer-audit/view-model.mjs";
 import {
   createPrimerAuditInitialState,
   getSelectedDay,
@@ -158,4 +158,17 @@ test("a shared state kezeli a webes szűrési, keresési és kijelölési akció
   const selectedName = getSelectedName(viewModel, normalizePrimerAuditState(state, viewModel));
 
   assert.equal(selectedName.name, "Cili");
+});
+
+test("a tiszta, nem leokézott primer audit szűrő kizárja az eltéréses napokat", () => {
+  const viewModel = buildPrimerAuditViewModel(createSampleReport());
+  const cleanUnauditedDays = visiblePrimerAuditNapok(viewModel, {
+    dayFilterId: "nincs-auditalva-tiszta",
+    dayQuery: "",
+    daySortId: "datum",
+  });
+
+  assert.deepEqual(cleanUnauditedDays.map((day) => day.monthDay), ["01-01"]);
+  assert.equal(dayMatchesFilter(viewModel.dayMap.get("01-01"), "nincs-auditalva-tiszta"), true);
+  assert.equal(dayMatchesFilter(viewModel.dayMap.get("01-02"), "nincs-auditalva-tiszta"), false);
 });

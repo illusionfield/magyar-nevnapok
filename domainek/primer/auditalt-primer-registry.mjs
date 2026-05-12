@@ -135,3 +135,89 @@ export async function allitAuditaltPrimerNapot({ monthDay, names, preferredNames
     day,
   };
 }
+
+export async function allitAuditaltPrimerNapokat({
+  action,
+  monthDays,
+  auditedAt = new Date().toISOString(),
+  filePath = DEFAULT_AUDITED_PRIMARY_REGISTRY_PATH,
+} = {}) {
+  const normalizedAction = String(action ?? "").trim();
+
+  if (normalizedAction !== "approve" && normalizedAction !== "reset") {
+    throw new Error("A tömeges auditált primer művelet csak approve vagy reset lehet.");
+  }
+
+  const parsedDays = [];
+  const seen = new Set();
+
+  for (const value of Array.isArray(monthDays) ? monthDays : []) {
+    const parsed = parseMonthDay(value);
+
+    if (!parsed) {
+      throw new Error(`Érvénytelen auditált primer monthDay érték: ${value}`);
+    }
+
+    if (seen.has(parsed.monthDay)) {
+      continue;
+    }
+
+    seen.add(parsed.monthDay);
+    parsedDays.push(parsed);
+  }
+
+  if (parsedDays.length === 0) {
+    throw new Error("A tömeges auditált primer művelethez legalább egy nap szükséges.");
+  }
+
+  const nextAuditedAt = normalizedAction === "approve" ? normalizeNullableTimestamp(auditedAt) : null;
+
+  if (normalizedAction === "approve" && !nextAuditedAt) {
+    throw new Error("A tömeges auditált primer jóváhagyáshoz érvényes audit időbélyeg szükséges.");
+  }
+
+  const current = await betoltAuditaltPrimerRegistryt(filePath);
+  const dayMap = buildAuditaltPrimerRegistryMap(current.payload);
+  const updatedDays = [];
+  let changedCount = 0;
+
+  for (const parsed of parsedDays) {
+    const currentDay = dayMap.get(parsed.monthDay);
+
+    if (!currentDay) {
+      throw new Error(`Az auditált primer nap nem található: ${parsed.monthDay}`);
+    }
+
+    const nextDay = normalizeAuditedDay({
+      ...currentDay,
+      auditedAt: nextAuditedAt,
+    });
+
+    if (currentDay.auditedAt !== nextDay.auditedAt) {
+      changedCount += 1;
+      dayMap.set(parsed.monthDay, nextDay);
+    }
+
+    updatedDays.push(nextDay);
+  }
+
+  const nextPayload = changedCount > 0
+    ? normalizalAuditaltPrimerRegistryPayload({
+        ...current.payload,
+        generatedAt: new Date().toISOString(),
+        days: Array.from(dayMap.values()),
+      })
+    : current.payload;
+
+  if (changedCount > 0) {
+    await mentStrukturaltFajl(current.path, nextPayload);
+  }
+
+  return {
+    path: current.path,
+    payload: nextPayload,
+    action: normalizedAction,
+    changedCount,
+    days: updatedDays,
+  };
+}

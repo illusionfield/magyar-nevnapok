@@ -128,6 +128,10 @@ A `pipeline:run` kérés opcionálisan `confirmCrawlerRun: true` mezőt is fogad
   és végső primerlista a `data/audited-primary-registry.yaml` fájlba kerül,
   a legacy/wiki/normalizált/rangsorolt források pedig csak döntéstámogató
   eltérésnézetek.
+- A **Primer audit / Napok** nézetben a „Nincs OK, nincs eltérés” szűrő a
+  tiszta, még nem jóváhagyott napokat gyűjti; a tömeges műveletek mód az
+  aktuális szűrés és keresés alapján hónaponként vagy soronként kijelölt
+  napokat tud egyszerre jóváhagyni vagy resetelni.
 - A **Primer audit / Nevek** nézet ABC accordionos, lazy betöltött táblázat:
   a kezdőbetűcsoportok csak számlálókat kapnak, a konkrét névsor nyitáskor
   töltődik. A névsorban külön, kisméretű `Napok` oszlop mutatja az összes

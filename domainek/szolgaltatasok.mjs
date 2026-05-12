@@ -44,7 +44,10 @@ import {
   tartalmazHelyiPrimerKiegeszitest,
   vanNemAlapertelmezettHelyiPrimerBeallitas,
 } from "./primer/helyi-primer-felulirasok.mjs";
-import { allitAuditaltPrimerNapot as mentAuditaltPrimerNapot } from "./primer/auditalt-primer-registry.mjs";
+import {
+  allitAuditaltPrimerNapot as mentAuditaltPrimerNapot,
+  allitAuditaltPrimerNapokat as mentAuditaltPrimerNapokat,
+} from "./primer/auditalt-primer-registry.mjs";
 import { dedupeKeepOrder, parseMonthDay } from "./primer/alap.mjs";
 import { letezik } from "../kozos/fajlrendszer.mjs";
 import { createConsoleReporter, createReporter, withReporterConsole } from "../kozos/reporter.mjs";
@@ -566,6 +569,24 @@ export async function allitAuditaltPrimerNapot({ monthDay, names, preferredNames
     names: eredmeny.day.names,
     preferredNames: eredmeny.day.preferredNames,
     auditedAt: eredmeny.day.auditedAt,
+  };
+}
+
+/**
+ * Az `allitAuditaltPrimerNapokat` több napi audit időbélyegét frissíti egy írással.
+ */
+export async function allitAuditaltPrimerNapokat({ action, monthDays } = {}) {
+  const eredmeny = await mentAuditaltPrimerNapokat({
+    action,
+    monthDays,
+  });
+
+  return {
+    path: eredmeny.path,
+    payload: eredmeny.payload,
+    action: eredmeny.action,
+    changedCount: eredmeny.changedCount,
+    monthDays: eredmeny.days.map((day) => day.monthDay),
   };
 }
 

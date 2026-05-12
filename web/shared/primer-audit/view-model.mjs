@@ -26,6 +26,11 @@ export const PRIMER_AUDIT_NAP_SZUROK = [
     leiras: "Olyan napok, ahol még nincs napi audit időbélyeg.",
   },
   {
+    azonosito: "nincs-auditalva-tiszta",
+    cimke: "Nincs OK, nincs eltérés",
+    leiras: "Nincs napi audit időbélyeg, és nincs primer audit eltérés vagy figyelmeztetés.",
+  },
+  {
     azonosito: "primer-nelkul-marado",
     cimke: "Primer nélkül maradó",
     leiras: "Legalább egy primer nélkül maradó vagy hiányzó névvel rendelkező napok.",
@@ -176,6 +181,68 @@ function areNameSetsEqual(leftValues = [], rightValues = []) {
   const right = normalize(rightValues);
 
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function getDayNames(day, ...keys) {
+  for (const key of keys) {
+    const values = day?.[key];
+
+    if (Array.isArray(values)) {
+      return values;
+    }
+  }
+
+  return [];
+}
+
+function getFirstNonEmptyDayNames(day, ...keys) {
+  let fallback = [];
+
+  for (const key of keys) {
+    const values = day?.[key];
+
+    if (!Array.isArray(values)) {
+      continue;
+    }
+
+    fallback = values;
+
+    if (values.length > 0) {
+      return values;
+    }
+  }
+
+  return fallback;
+}
+
+export function hasNormalizedRankingDifference(day) {
+  const finalValues = getFirstNonEmptyDayNames(
+    day,
+    "commonPreferredNames",
+    "finalPrimaryNames",
+    "auditedPreferredNames",
+    "effectivePreferredNames"
+  );
+  const finalSet = new Set(finalValues.map(normalizeNameForMatch));
+  const sourceValues = [
+    ...getDayNames(day, "normalized", "normalizedNames"),
+    ...getDayNames(day, "ranking", "rankingNames"),
+  ];
+
+  return sourceValues.some((name) => !finalSet.has(normalizeNameForMatch(name)));
+}
+
+export function hasPrimerAuditDifference(day) {
+  return Boolean(
+    day?.flags?.hasMissing ||
+      day?.flags?.hasLocal ||
+      day?.flags?.isManualOverride ||
+      day?.flags?.isValidationMismatch ||
+      day?.drift?.hasSourceNameDrift === true ||
+      day?.warning === true ||
+      !areNameSetsEqual(getDayNames(day, "legacy", "legacyNames"), getDayNames(day, "wiki", "wikiNames")) ||
+      hasNormalizedRankingDifference(day)
+  );
 }
 
 function getNestedValue(objektum, utvonal) {
@@ -768,16 +835,16 @@ export function dayMatchesFilter(day, filterId) {
   switch (filterId) {
     case "nincs-auditalva":
       return !day.auditedAt;
+    case "nincs-auditalva-tiszta":
+      return !day.auditedAt && !hasPrimerAuditDifference(day);
     case "primer-nelkul-marado":
       return day.flags.hasMissing;
     case "auditalt-drift":
       return day.drift?.hasSourceNameDrift === true;
     case "wiki-legacy-elteres":
-      return !areNameSetsEqual(day.legacy ?? [], day.wiki ?? []);
-    case "normalizalt-rangsor": {
-      const finalSet = new Set((day.commonPreferredNames ?? day.finalPrimaryNames ?? []).map(normalizeNameForMatch));
-      return [...(day.normalized ?? []), ...(day.ranking ?? [])].some((name) => !finalSet.has(normalizeNameForMatch(name)));
-    }
+      return !areNameSetsEqual(getDayNames(day, "legacy", "legacyNames"), getDayNames(day, "wiki", "wikiNames"));
+    case "normalizalt-rangsor":
+      return hasNormalizedRankingDifference(day);
     case "akciozhato":
       return day.flags.hasMissing || day.flags.hasLocal || day.flags.isManualOverride || day.flags.isValidationMismatch;
     case "hianyzos":

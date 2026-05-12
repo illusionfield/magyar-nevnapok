@@ -1,6 +1,7 @@
 import { WebSocketServer } from "ws";
 import {
   allitAuditaltPrimerNapot,
+  allitAuditaltPrimerNapokat,
   allitHivatalosNevjegyzekKiveteleket,
   allitIcsBeallitasokat,
   allitKozosPrimerNapot,
@@ -22,6 +23,7 @@ import {
   buildIcsPreviewModel,
   buildPipelineModel,
   buildPrimerAuditDayNameDetailsModel,
+  buildPrimerAuditDaySelectionScopeModel,
   buildPrimerAuditNameIndexModel,
   buildPrimerAuditNameLetterModel,
   buildPrimerAuditMonthModel,
@@ -282,6 +284,13 @@ async function handleRequest(context, request) {
           names: payload.names,
         }),
       };
+    case "primer-audit:get-day-selection-scope":
+      return {
+        primerAuditDaySelectionScope: await buildPrimerAuditDaySelectionScopeModel({
+          filterId: payload.filterId ?? "osszes",
+          query: payload.query ?? "",
+        }),
+      };
     case "primer-audit:save-settings": {
       ensureNoActiveJob(context.jobManager);
       const settings = payload.settings ?? payload;
@@ -365,6 +374,44 @@ async function handleRequest(context, request) {
       }
 
       return {
+        job,
+        primerAuditSummary: await buildPrimerAuditSummaryModel(),
+        dashboard: await buildDashboardModel(context.jobManager.getState()),
+      };
+    }
+    case "primer-audit:bulk-audited-days": {
+      ensureNoActiveJob(context.jobManager);
+      const action = String(payload.action ?? "").trim();
+
+      if (action !== "approve" && action !== "reset") {
+        throw createRequestError("A tömeges audit művelet action mezője csak approve vagy reset lehet.");
+      }
+
+      const result = await allitAuditaltPrimerNapokat({
+        action,
+        monthDays: payload.monthDays ?? [],
+      });
+
+      const shouldRerun = payload.rerun !== false;
+      let job = null;
+
+      if (shouldRerun) {
+        job = await runJobAndWait(
+          context.jobManager,
+          {
+            kind: "audit",
+            target: "primer-audit",
+            workspace: "primer-audit",
+          },
+          ({ reporter }) =>
+            futtatPrimerAuditGyorsFrissitest({
+              reporter,
+            })
+        );
+      }
+
+      return {
+        changedCount: result.changedCount,
         job,
         primerAuditSummary: await buildPrimerAuditSummaryModel(),
         dashboard: await buildDashboardModel(context.jobManager.getState()),

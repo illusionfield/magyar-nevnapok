@@ -1,6 +1,6 @@
 {
   "name": "magyar-nevnapok",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Magyar hivatalos névnap adatbázis és iCalendar fájl generátor",
   "private": true,
   "type": "module",

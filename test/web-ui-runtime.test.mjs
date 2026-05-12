@@ -306,6 +306,7 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
     const firstPencil = document.querySelector(".primer-audit-table .icon-action-button");
 
     return {
+      dayFilterLabels: [...document.querySelectorAll(".filter-button-row .tab-button")].map((button) => button.textContent.trim()),
       headers: [...document.querySelectorAll(".primer-audit-table thead th")].map((element) => element.textContent.trim()),
       hasMiniMeta: Boolean(document.querySelector(".primer-audit-table .mini-meta")),
       hasPencilButton: [...document.querySelectorAll(".primer-audit-table .icon-action-button")].some((button) => button.textContent.includes("✎")),
@@ -320,6 +321,11 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
       firstNameTextOverflow: getComputedStyle(document.querySelector(".primer-audit-table .audit-name-chip-label")).textOverflow,
     };
   });
+  assert.equal(
+    primerTableState.dayFilterLabels.includes("Nincs OK, nincs eltérés"),
+    true,
+    "A primer audit napnézetben legyen tiszta, nem leokézott szűrő."
+  );
   assert.deepEqual(primerTableState.headers, ["Dátum", "Végső primer", "Egyéb nevek", "Audit"]);
   assert.equal(primerTableState.hasMiniMeta, false, "A napi sor dátum mini-meta nélkül jelenjen meg.");
   assert.equal(primerTableState.hasPencilButton, true, "A napi editor nyitása pencil gombbal történjen.");
@@ -335,6 +341,86 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.equal(primerTableState.compactSourceDisplay, "none", "Kompakt módban a chip forráslabel ne legyen inline látható.");
   assert.equal(primerTableState.firstNameWhiteSpace, "nowrap");
   assert.notEqual(primerTableState.firstNameTextOverflow, "ellipsis");
+
+  await primerPage.evaluate(() => {
+    const bulkButton = [...document.querySelectorAll(".section-block .toolbar > button")]
+      .find((element) => element.textContent.includes("Tömeges műveletek"));
+
+    if (!bulkButton) {
+      throw new Error("Nem található Tömeges műveletek gomb.");
+    }
+
+    bulkButton.click();
+  });
+  await primerPage.waitForFunction(
+    () => (window.__wsDebug.requestTypes["primer-audit:get-day-selection-scope"] ?? 0) >= 1,
+    { timeout: 10_000 }
+  );
+  await primerPage.waitForSelector(".month-bulk-select input", { timeout: 10_000 });
+  await primerPage.waitForFunction(
+    () => {
+      const input = document.querySelector(".month-bulk-select input");
+      const counter = document.querySelector(".month-bulk-select")?.textContent ?? "";
+      const total = Number(counter.match(/\/\s*(\d+)/u)?.[1] ?? 0);
+
+      return input && !input.disabled && total > 0;
+    },
+    { timeout: 10_000 }
+  );
+  const bulkInitialState = await primerPage.evaluate(() => ({
+    hasMonthCheckbox: Boolean(document.querySelector(".month-bulk-select input")),
+    hasDayCheckbox: Boolean(document.querySelector(".primer-audit-table .day-bulk-select input")),
+    monthCounter: document.querySelector(".month-bulk-select")?.textContent.trim() ?? "",
+    selectedText: document.querySelector(".bulk-action-toolbar .muted-text")?.textContent.trim() ?? "",
+    actionButtons: [...document.querySelectorAll(".bulk-action-toolbar button")]
+      .map((button) => ({
+        label: button.textContent.trim(),
+        disabled: button.disabled,
+      })),
+  }));
+  assert.equal(bulkInitialState.hasMonthCheckbox, true, "Bulk módban legyen hónapszintű checkbox.");
+  assert.equal(bulkInitialState.hasDayCheckbox, true, "Bulk módban legyen sorszintű checkbox.");
+  assert.match(bulkInitialState.monthCounter, /0\s*\/\s*\d+ kijelölve/u);
+  assert.match(bulkInitialState.selectedText, /Kijelölt napok: 0/u);
+  assert.equal(
+    bulkInitialState.actionButtons.find((button) => button.label === "Jóváhagyás")?.disabled,
+    true,
+    "A bulk jóváhagyás kijelölés nélkül legyen tiltott."
+  );
+  assert.equal(
+    bulkInitialState.actionButtons.find((button) => button.label === "Reset")?.disabled,
+    true,
+    "A bulk reset kijelölés nélkül legyen tiltott."
+  );
+
+  await primerPage.evaluate(() => {
+    document.querySelector(".month-bulk-select input")?.click();
+  });
+  await primerPage.waitForFunction(
+    () => /Kijelölt napok: [1-9]/u.test(document.querySelector(".bulk-action-toolbar .muted-text")?.textContent ?? ""),
+    { timeout: 10_000 }
+  );
+  const bulkSelectedState = await primerPage.evaluate(() => ({
+    monthCounter: document.querySelector(".month-bulk-select")?.textContent.trim() ?? "",
+    selectedText: document.querySelector(".bulk-action-toolbar .muted-text")?.textContent.trim() ?? "",
+    actionButtons: [...document.querySelectorAll(".bulk-action-toolbar button")]
+      .map((button) => ({
+        label: button.textContent.trim(),
+        disabled: button.disabled,
+      })),
+  }));
+  assert.match(bulkSelectedState.monthCounter, /\d+\s*\/\s*\d+ kijelölve/u);
+  assert.match(bulkSelectedState.selectedText, /Kijelölt napok: [1-9]/u);
+  assert.equal(
+    bulkSelectedState.actionButtons.find((button) => button.label === "Jóváhagyás")?.disabled,
+    false,
+    "A bulk jóváhagyás kijelölés után legyen aktív."
+  );
+  assert.equal(
+    bulkSelectedState.actionButtons.find((button) => button.label === "Reset")?.disabled,
+    false,
+    "A bulk reset kijelölés után legyen aktív."
+  );
 
   await primerPage.evaluate(() => {
     const detailedButton = [...document.querySelectorAll(".topbar-view-mode .tab-button")]

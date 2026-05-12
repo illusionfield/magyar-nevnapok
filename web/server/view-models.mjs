@@ -694,6 +694,15 @@ function buildMonthResponse(month, rows = []) {
   };
 }
 
+function buildPrimerDayRowsForSelection(viewModel, options = {}) {
+  const filterId = String(options.filterId ?? "osszes");
+  const query = String(options.query ?? "").trim();
+
+  return safeArray(viewModel.days)
+    .map((day) => buildPrimerDayRow(day))
+    .filter((row) => dayMatchesFilter(row, filterId) && primerDayMatchesQuery(row, query));
+}
+
 export async function buildPrimerAuditSummaryModel() {
   const report = await betoltPrimerAuditAdata({
     frissitRiport: false,
@@ -754,6 +763,41 @@ export async function buildPrimerAuditMonthModel(month, options = {}) {
     .filter((row) => dayMatchesFilter(row, filterId) && primerDayMatchesQuery(row, query));
 
   return buildMonthResponse(month, rows);
+}
+
+export async function buildPrimerAuditDaySelectionScopeModel(options = {}) {
+  const report = await betoltPrimerAuditAdata({
+    frissitRiport: false,
+  });
+  const viewModel = buildPrimerAuditViewModel(report, {
+    includeNames: false,
+  });
+  const rows = buildPrimerDayRowsForSelection(viewModel, options);
+  const monthMap = new Map();
+
+  for (const row of rows) {
+    if (!monthMap.has(row.month)) {
+      monthMap.set(row.month, {
+        month: row.month,
+        monthName: getMonthName(row.month),
+        monthDays: [],
+      });
+    }
+
+    monthMap.get(row.month).monthDays.push(row.monthDay);
+  }
+
+  const months = Array.from(monthMap.values())
+    .sort((left, right) => left.month - right.month)
+    .map((month) => ({
+      ...month,
+      count: month.monthDays.length,
+    }));
+
+  return {
+    total: rows.length,
+    months,
+  };
 }
 
 export async function buildPrimerAuditNamesModel(options = {}) {
