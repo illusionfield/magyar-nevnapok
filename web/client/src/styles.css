@@ -1590,6 +1590,29 @@ a {
   line-height: 1;
 }
 
+.audit-name-chip-resolved-badge,
+.audit-name-chip-raw-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  height: 1rem;
+  padding-inline: 0.16rem;
+  border-radius: 999px;
+  color: #f8fbff;
+  font-size: 0.62rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.audit-name-chip-resolved-badge {
+  background: rgba(22, 163, 74, 0.8);
+}
+
+.audit-name-chip-raw-badge {
+  background: rgba(71, 85, 105, 0.92);
+}
+
 .audit-name-chip-source {
   display: none;
   color: var(--text-soft);
@@ -1655,6 +1678,13 @@ a {
 
 .audit-status-dot.ok {
   background: #16a34a;
+}
+
+.audit-status-dot.resolved {
+  width: 1.72rem;
+  background: #15803d;
+  font-size: 0.66rem;
+  letter-spacing: -0.06em;
 }
 
 .audit-status-dot.acknowledged {
@@ -1814,6 +1844,16 @@ a {
 .audit-name-chip.tone-danger {
   background: rgba(127, 29, 29, 0.45);
   border-color: rgba(248, 113, 113, 0.36);
+}
+
+.audit-name-chip.tone-resolved {
+  background: rgba(22, 101, 52, 0.24);
+  border-color: rgba(74, 222, 128, 0.24);
+}
+
+.audit-name-chip.tone-raw-only {
+  background: rgba(51, 65, 85, 0.36);
+  border-color: rgba(148, 163, 184, 0.24);
 }
 
 .audit-name-chip.tone-new,
@@ -2195,6 +2235,16 @@ a {
   border-radius: 10px;
   background: rgba(127, 29, 29, 0.3);
   border: 1px solid rgba(248, 113, 113, 0.22);
+}
+
+.occurrence-missing-note.resolved {
+  background: rgba(22, 101, 52, 0.18);
+  border-color: rgba(74, 222, 128, 0.2);
+}
+
+.occurrence-missing-note.raw-only {
+  background: rgba(51, 65, 85, 0.22);
+  border-color: rgba(148, 163, 184, 0.2);
 }
 
 .name-detail-block {

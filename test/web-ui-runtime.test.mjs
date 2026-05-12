@@ -343,6 +343,41 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.notEqual(primerTableState.firstNameTextOverflow, "ellipsis");
 
   await primerPage.evaluate(() => {
+    const decemberSummary = [...document.querySelectorAll(".month-accordion summary")]
+      .find((summary) => summary.textContent.includes("December"));
+
+    if (!decemberSummary) {
+      throw new Error("Nem található a decemberi primer audit hónap.");
+    }
+
+    if (!decemberSummary.closest("details")?.open) {
+      decemberSummary.click();
+    }
+  });
+  await primerPage.waitForFunction(
+    () => (window.__wsDebug.requestTypes["primer-audit:get-month"] ?? 0) >= 2,
+    { timeout: 10_000 }
+  );
+  await primerPage.waitForFunction(
+    () => [...document.querySelectorAll(".primer-audit-table .audit-status-dot")]
+      .some((dot) => dot.getAttribute("data-tooltip")?.includes("Helyben feloldott primerjelölt-hiány")),
+    { timeout: 10_000 }
+  );
+  const resolvedMissingDotState = await primerPage.evaluate(() => {
+    const resolvedDots = [...document.querySelectorAll(".primer-audit-table .audit-status-dot.resolved")];
+
+    return {
+      hasResolvedDot: resolvedDots.some((dot) =>
+        dot.getAttribute("data-tooltip")?.includes("Helyben feloldott primerjelölt-hiány")
+      ),
+      hasActiveMissingDot: [...document.querySelectorAll(".primer-audit-table .audit-status-dot.danger")]
+        .some((dot) => dot.getAttribute("data-tooltip")?.includes("Aktív primerjelölt-hiány")),
+    };
+  });
+  assert.equal(resolvedMissingDotState.hasActiveMissingDot, true, "A napi sorban látszódjon az aktív primerjelölt-hiány piktogram.");
+  assert.equal(resolvedMissingDotState.hasResolvedDot, true, "A napi sorban látszódjon a helyben feloldott hiány tompított piktogramja.");
+
+  await primerPage.evaluate(() => {
     const bulkButton = [...document.querySelectorAll(".section-block .toolbar > button")]
       .find((element) => element.textContent.includes("Tömeges műveletek"));
 
@@ -442,7 +477,7 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
     const rowWithMissing = [...document.querySelectorAll(".primer-audit-table tbody tr")]
       .find((row) =>
         [...row.querySelectorAll(".audit-status-dot")]
-          .some((dot) => dot.getAttribute("data-tooltip")?.includes("Primer nélkül maradó"))
+          .some((dot) => dot.getAttribute("data-tooltip")?.includes("Aktív primerjelölt-hiány"))
       );
     const pencil = rowWithMissing?.querySelector(".icon-action-button");
 
@@ -468,6 +503,8 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
     hasInfoWindowBeforeClick: Boolean(document.querySelector(".name-detail-window")),
     hasEvidenceLinks: Boolean(document.querySelector(".day-audit-editor .evidence-link-list")),
     hasConcreteFacts: Boolean(document.querySelector(".day-audit-editor .audit-evidence-facts")),
+    evidenceLabels: [...document.querySelectorAll(".day-audit-editor .audit-evidence-facts dt")]
+      .map((element) => element.textContent.trim()),
     toolbarButtons: [...document.querySelectorAll(".day-audit-editor .toolbar button")]
       .map((button) => ({
         label: button.textContent.trim(),
@@ -491,6 +528,9 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.equal(editorState.hasInfoWindowBeforeClick, false, "Az inline névinfo ablak csak kiválasztott névnél jelenjen meg.");
   assert.equal(editorState.hasEvidenceLinks, false, "A Végső auditált primer boxban ne linklista legyen.");
   assert.equal(editorState.hasConcreteFacts, true, "A Végső auditált primer box konkrét auditadatokat mutasson.");
+  assert.equal(editorState.evidenceLabels.includes("Aktív primerjelölt-hiány"), true);
+  assert.equal(editorState.evidenceLabels.includes("Helyben feloldott hiány"), true);
+  assert.equal(editorState.evidenceLabels.includes("Nyers/rejtett, nem primerjelölt"), true);
   assert.deepEqual(
     editorState.toolbarButtons.map((button) => button.label),
     ["Audit mentése", "Bezárás"],
@@ -507,7 +547,7 @@ test("a web GUI route-jai nem indulnak végtelen WS kérésciklusba, és a havi 
   assert.equal(editorState.allDayNamesGridColumnStart, "1");
   assert.equal(editorState.allDayNamesGridColumnEnd, "-1");
   assert.match(editorState.missingChipClass, /tone-danger/u, "A primer nélkül maradó névchip kapjon danger kiemelést.");
-  assert.match(editorState.missingChipTooltip, /Primer nélkül maradó/u, "A primer nélkül maradó névchip tooltipje jelezze a hiányt.");
+  assert.match(editorState.missingChipTooltip, /Aktív primerjelölt-hiány/u, "A primer nélkül maradó névchip tooltipje jelezze az aktív hiányt.");
   assert.equal(editorState.missingBadgeText, "∅", "A primer nélkül maradó névchip kapjon ∅ jelvényt.");
 
   const firstInfoButtonLabel = await primerPage.evaluate(() => {

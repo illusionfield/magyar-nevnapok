@@ -121,6 +121,130 @@ function createSampleReport() {
   };
 }
 
+function missingEntry(name, sources = ["ranking"], localSelected = false) {
+  return {
+    name,
+    sources,
+    highlight: false,
+    similarPrimaries: [],
+    localSelected,
+  };
+}
+
+function createMissingStateReport() {
+  return {
+    reportPath: "output/riportok/primer-audit.yaml",
+    generatedAt: "2026-05-12T10:00:00.000Z",
+    summary: {
+      rowCount: 4,
+      combinedMissingCount: 4,
+      effectiveMissingCount: 2,
+      locallyResolvedMissingCount: 1,
+      localSelectedCount: 1,
+    },
+    validations: {
+      mismatchMonthDays: [],
+      overrideMonthDays: [],
+    },
+    months: [
+      {
+        month: 3,
+        monthName: "Március",
+        rows: [
+          {
+            month: 3,
+            day: 29,
+            monthDay: "03-29",
+            commonPreferredNames: ["Auguszta"],
+            effectivePreferredNames: ["Auguszta"],
+            finalPrimaryNames: ["Auguszta"],
+            source: "audited-registry",
+            warning: false,
+            rawNames: ["Auguszta", "Bercel", "Bertold"],
+            hidden: ["Bercel"],
+            normalized: ["Bertold"],
+            ranking: ["Bertold"],
+            combinedMissing: [],
+            effectiveMissing: [],
+            locallyResolvedMissing: [],
+          },
+        ],
+      },
+      {
+        month: 5,
+        monthName: "Május",
+        rows: [
+          {
+            month: 5,
+            day: 13,
+            monthDay: "05-13",
+            commonPreferredNames: ["Imola", "Szervác"],
+            effectivePreferredNames: ["Imola", "Szervác"],
+            finalPrimaryNames: ["Imola", "Szervác"],
+            source: "audited-registry",
+            warning: false,
+            rawNames: ["Imola", "Noel", "Szervác"],
+            hidden: ["Noel"],
+            normalized: ["Noel"],
+            ranking: ["Noel"],
+            combinedMissing: [missingEntry("Noel", ["normalized", "ranking"])],
+            effectiveMissing: [missingEntry("Noel", ["normalized", "ranking"])],
+            locallyResolvedMissing: [],
+          },
+        ],
+      },
+      {
+        month: 6,
+        monthName: "Június",
+        rows: [
+          {
+            month: 6,
+            day: 3,
+            monthDay: "06-03",
+            commonPreferredNames: ["Cecília", "Klotild"],
+            effectivePreferredNames: ["Cecília", "Klotild", "Kevin"],
+            finalPrimaryNames: ["Cecília", "Klotild"],
+            localAddedPreferredNames: ["Kevin"],
+            source: "audited-registry",
+            warning: false,
+            rawNames: ["Bercel", "Cecília", "Kevin", "Klotild"],
+            hidden: ["Bercel", "Kevin"],
+            normalized: ["Cecília", "Klotild"],
+            ranking: ["Bercel", "Kevin"],
+            combinedMissing: [missingEntry("Bercel"), missingEntry("Kevin", ["ranking"], true)],
+            effectiveMissing: [missingEntry("Bercel")],
+            locallyResolvedMissing: [missingEntry("Kevin", ["ranking"], true)],
+          },
+        ],
+      },
+      {
+        month: 12,
+        monthName: "December",
+        rows: [
+          {
+            month: 12,
+            day: 25,
+            monthDay: "12-25",
+            commonPreferredNames: ["Eugénia"],
+            effectivePreferredNames: ["Eugénia", "Noel"],
+            finalPrimaryNames: ["Eugénia"],
+            localAddedPreferredNames: ["Noel"],
+            source: "audited-registry",
+            warning: false,
+            rawNames: ["Eugénia", "Noel"],
+            hidden: ["Noel"],
+            normalized: ["Noel"],
+            ranking: ["Noel"],
+            combinedMissing: [missingEntry("Noel", ["normalized", "ranking"], true)],
+            effectiveMissing: [],
+            locallyResolvedMissing: [missingEntry("Noel", ["normalized", "ranking"], true)],
+          },
+        ],
+      },
+    ],
+  };
+}
+
 test("a shared primer audit view-model felépíti a napi és névlistákat", () => {
   const viewModel = buildPrimerAuditViewModel(createSampleReport());
   const initialState = createPrimerAuditInitialState(viewModel);
@@ -171,4 +295,27 @@ test("a tiszta, nem leokézott primer audit szűrő kizárja az eltéréses napo
   assert.deepEqual(cleanUnauditedDays.map((day) => day.monthDay), ["01-01"]);
   assert.equal(dayMatchesFilter(viewModel.dayMap.get("01-01"), "nincs-auditalva-tiszta"), true);
   assert.equal(dayMatchesFilter(viewModel.dayMap.get("01-02"), "nincs-auditalva-tiszta"), false);
+});
+
+test("a primer nélkül maradó állapotok külön jelzik az aktív, feloldott és raw-only neveket", () => {
+  const viewModel = buildPrimerAuditViewModel(createMissingStateReport());
+  const day0329 = viewModel.dayMap.get("03-29");
+  const day0513 = viewModel.dayMap.get("05-13");
+  const day0603 = viewModel.dayMap.get("06-03");
+  const day1225 = viewModel.dayMap.get("12-25");
+
+  assert.deepEqual(day0329.rawOnlyNonCandidateNames, ["Bercel"]);
+  assert.deepEqual(day0329.activeMissingNames, []);
+  assert.deepEqual(day0603.activeMissingNames, ["Bercel"]);
+  assert.deepEqual(day0513.activeMissingNames, ["Noel"]);
+  assert.deepEqual(day1225.resolvedMissingNames, ["Noel"]);
+  assert.deepEqual(day1225.activeMissingNames, []);
+
+  const bercelOccurrences = viewModel.names.find((entry) => entry.name === "Bercel")?.occurrences ?? [];
+  const noelOccurrences = viewModel.names.find((entry) => entry.name === "Noel")?.occurrences ?? [];
+
+  assert.equal(bercelOccurrences.find((entry) => entry.monthDay === "03-29")?.statusIds.includes("rawOnlyNonCandidate"), true);
+  assert.equal(bercelOccurrences.find((entry) => entry.monthDay === "06-03")?.statusIds.includes("missing"), true);
+  assert.equal(noelOccurrences.find((entry) => entry.monthDay === "05-13")?.statusIds.includes("missing"), true);
+  assert.equal(noelOccurrences.find((entry) => entry.monthDay === "12-25")?.statusIds.includes("resolvedMissing"), true);
 });

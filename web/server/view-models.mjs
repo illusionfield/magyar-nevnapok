@@ -487,8 +487,8 @@ function buildPrimerEvidence(day) {
   if (day?.flags?.hasMissing) {
     links.push({
       id: "primer-nelkul-marado-nevek",
-      label: "Primer nélkül maradó nevek",
-      detail: `${safeArray(day?.effectiveMissing).length} nyitott hiányzó név ezen a napon.`,
+      label: "Aktív primerjelölt-hiányok",
+      detail: `${safeArray(day?.activeMissingNames ?? day?.effectiveMissing).length} nyitott primerjelölt-hiány ezen a napon.`,
       to: `/auditok?audit=primer-nelkul-marado-nevek&query=${query}`,
     });
   }
@@ -518,6 +518,12 @@ function buildPrimerDayRow(day, trackedMap = new Map()) {
   const candidateNames = buildPrimerCandidateNames(day);
   const auditedNames = safeArray(day.auditedNames ?? day.names);
   const auditedPreferredNames = safeArray(day.auditedPreferredNames ?? day.commonPreferredNames ?? day.preferredNames);
+  const activeMissingNames = safeArray(day.activeMissingNames).length > 0
+    ? safeArray(day.activeMissingNames)
+    : safeArray(day.effectiveMissing).map((entry) => entry.name).filter(Boolean);
+  const resolvedMissingNames = safeArray(day.resolvedMissingNames).length > 0
+    ? safeArray(day.resolvedMissingNames)
+    : safeArray(day.locallyResolvedMissing).map((entry) => entry.name).filter(Boolean);
   const drift = buildPrimerDrift({
     ...day,
     auditedNames,
@@ -545,8 +551,11 @@ function buildPrimerDayRow(day, trackedMap = new Map()) {
     commonPreferredNames: safeArray(day.commonPreferredNames),
     trackedPreferredNames: safeArray(trackedMap.get(day.monthDay)?.preferredNames),
     effectivePreferredNames: safeArray(day.effectivePreferredNames),
-    effectiveMissingNames: safeArray(day.effectiveMissing).map((entry) => entry.name),
-    neverPrimaryNames: safeArray(day.effectiveMissing).map((entry) => entry.name),
+    activeMissingNames,
+    resolvedMissingNames,
+    rawOnlyNonCandidateNames: safeArray(day.rawOnlyNonCandidateNames),
+    effectiveMissingNames: activeMissingNames,
+    neverPrimaryNames: activeMissingNames,
     localAddedPreferredNames: safeArray(day.localAddedPreferredNames),
     rawNames: safeArray(day.rawNames),
     hiddenNames: safeArray(day.hidden),
@@ -576,6 +585,8 @@ function primerDayMatchesQuery(row, query) {
     ...(row.candidateNames ?? []),
     ...(row.effectivePreferredNames ?? []),
     ...(row.effectiveMissingNames ?? []),
+    ...(row.resolvedMissingNames ?? []),
+    ...(row.rawOnlyNonCandidateNames ?? []),
   ]);
 }
 
@@ -718,7 +729,7 @@ export async function buildPrimerAuditSummaryModel() {
     .map((day) => ({
       id: day.monthDay,
       title: formatMonthDayLabel(day.monthDay),
-      detail: `${day.auditedAt ? "leokézva" : "nincs leokézva"} • ${safeArray(day.effectiveMissing).length} primer nélkül maradó név`,
+      detail: `${day.auditedAt ? "leokézva" : "nincs leokézva"} • ${safeArray(day.activeMissingNames ?? day.effectiveMissing).length} aktív hiány`,
     }));
 
   return {
@@ -1036,7 +1047,16 @@ function buildPrimerAuditNameDetailFromInputs({ name, viewModel, inputPayload, f
         ranking: safeArray(day.ranking),
       },
       auditedPreferredNames: safeArray(day.commonPreferredNames),
-      effectiveMissingNames: safeArray(day.effectiveMissing).map((entry) => entry.name).filter(Boolean),
+      activeMissingNames: safeArray(day.activeMissingNames).length > 0
+        ? safeArray(day.activeMissingNames)
+        : safeArray(day.effectiveMissing).map((entry) => entry.name).filter(Boolean),
+      resolvedMissingNames: safeArray(day.resolvedMissingNames).length > 0
+        ? safeArray(day.resolvedMissingNames)
+        : safeArray(day.locallyResolvedMissing).map((entry) => entry.name).filter(Boolean),
+      rawOnlyNonCandidateNames: safeArray(day.rawOnlyNonCandidateNames),
+      effectiveMissingNames: safeArray(day.activeMissingNames).length > 0
+        ? safeArray(day.activeMissingNames)
+        : safeArray(day.effectiveMissing).map((entry) => entry.name).filter(Boolean),
     };
   });
 
@@ -1727,7 +1747,10 @@ export async function buildPrimerAuditWorkspaceModel() {
         commonPreferredNames: safeArray(viewDay.commonPreferredNames),
         trackedPreferredNames: safeArray(trackedMap.get(row.monthDay)?.preferredNames),
         effectivePreferredNames: safeArray(viewDay.effectivePreferredNames),
-        effectiveMissingNames: safeArray(viewDay.effectiveMissing).map((entry) => entry.name),
+        activeMissingNames: safeArray(viewDay.activeMissingNames),
+        resolvedMissingNames: safeArray(viewDay.resolvedMissingNames),
+        rawOnlyNonCandidateNames: safeArray(viewDay.rawOnlyNonCandidateNames),
+        effectiveMissingNames: safeArray(viewDay.activeMissingNames),
         localAddedPreferredNames: safeArray(viewDay.localAddedPreferredNames),
         rawNames: safeArray(row.rawNames),
         hiddenNames: safeArray(row.hidden),

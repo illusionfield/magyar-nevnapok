@@ -19,7 +19,7 @@ import { defaultMonthOpen } from "./shared/month-groups.js";
 const DAY_VIEW_MODES = [
   { id: "sources", label: "Források / eltérések" },
   { id: "missing", label: "Hiányzó nevek" },
-  { id: "never-primary", label: "Primer nélkül maradó" },
+  { id: "never-primary", label: "Aktív hiány" },
   { id: "wiki-legacy", label: "Wiki vs legacy" },
   { id: "audit-drift", label: "Auditált drift" },
 ];
@@ -194,6 +194,8 @@ function formatRelativeTime(value) {
 const OCCURRENCE_STATUS_META = {
   final: { label: "végső primer", tone: "ok" },
   missing: { label: "hiányzó", tone: "danger" },
+  resolvedMissing: { label: "helyben feloldott", tone: "ok" },
+  rawOnlyNonCandidate: { label: "nyers nem jelölt", tone: "neutral" },
   hidden: { label: "rejtett", tone: "warning" },
   local: { label: "helyi", tone: "cyan" },
   manualOverride: { label: "kézi", tone: "purple" },
@@ -219,13 +221,23 @@ const PRIMARY_SOURCE_LABELS = {
 };
 
 function isNeverPrimaryChip(row, name) {
-  return hasName(row.neverPrimaryNames, name) || hasName(row.effectiveMissingNames, name);
+  return hasName(row.activeMissingNames, name) || hasName(row.neverPrimaryNames, name) || hasName(row.effectiveMissingNames, name);
+}
+
+function isResolvedMissingChip(row, name) {
+  return hasName(row.resolvedMissingNames, name);
+}
+
+function isRawOnlyNonCandidateChip(row, name) {
+  return hasName(row.rawOnlyNonCandidateNames, name);
 }
 
 function getChipTone(row, name, viewMode) {
   const sourceOnly = hasName(row.drift?.sourceOnlyNames, name);
   const auditedOnly = hasName(row.drift?.auditedOnlyNames, name);
   const missing = isNeverPrimaryChip(row, name);
+  const resolvedMissing = isResolvedMissingChip(row, name);
+  const rawOnlyNonCandidate = isRawOnlyNonCandidateChip(row, name);
   const inLegacy = hasName(row.legacyNames, name);
   const inWiki = hasName(row.wikiNames, name);
   const inNormalized = hasName(row.normalizedNames, name);
@@ -234,6 +246,14 @@ function getChipTone(row, name, viewMode) {
 
   if (missing) {
     return "danger";
+  }
+
+  if (resolvedMissing) {
+    return "resolved";
+  }
+
+  if (rawOnlyNonCandidate) {
+    return "raw-only";
   }
 
   if (viewMode === "audit-drift") {
@@ -286,11 +306,15 @@ function getChipTone(row, name, viewMode) {
 function NameChip({ row, name, viewMode, selected = false, disabled = false, onAdd, onRemove, onInfo }) {
   const tone = getChipTone(row, name, viewMode);
   const missing = isNeverPrimaryChip(row, name);
+  const resolvedMissing = isResolvedMissingChip(row, name);
+  const rawOnlyNonCandidate = isRawOnlyNonCandidateChip(row, name);
   const sourceLabel = (row.chipSources?.[name] ?? []).join("+");
   const tooltip = [
     name,
     sourceLabel ? `források: ${sourceLabel}` : null,
-    missing ? "Primer nélkül maradó" : null,
+    missing ? "Aktív primerjelölt-hiány" : null,
+    resolvedMissing ? "Helyben feloldott primerjelölt-hiány" : null,
+    rawOnlyNonCandidate ? "Nyers/rejtett, nem primerjelölt" : null,
   ].filter(Boolean).join(" • ");
 
   return (
@@ -303,6 +327,8 @@ function NameChip({ row, name, viewMode, selected = false, disabled = false, onA
         <span className="audit-name-chip-label">
           {name}
           {missing ? <span className="audit-name-chip-missing-badge" aria-hidden="true">∅</span> : null}
+          {resolvedMissing ? <span className="audit-name-chip-resolved-badge" aria-hidden="true">∅✓</span> : null}
+          {rawOnlyNonCandidate ? <span className="audit-name-chip-raw-badge" aria-hidden="true">R</span> : null}
         </span>
         {sourceLabel ? <small className="audit-name-chip-source">{sourceLabel}</small> : null}
       </span>
@@ -427,13 +453,17 @@ function OccurrenceAuditCard({ occurrence }) {
   const statusIds = occurrence.statusIds ?? [];
   const sourceIds = occurrence.sourceIds ?? [];
   const missing = statusIds.includes("missing") || occurrence.statusFlags?.missing === true;
+  const resolvedMissing = statusIds.includes("resolvedMissing") || occurrence.statusFlags?.resolvedMissing === true;
+  const rawOnlyNonCandidate = statusIds.includes("rawOnlyNonCandidate") || occurrence.statusFlags?.rawOnlyNonCandidate === true;
   const missingSources = occurrence.missingSources ?? [];
   const similarPrimaries = occurrence.similarPrimaries ?? [];
-  const effectiveMissingNames = occurrence.effectiveMissingNames ?? [];
+  const effectiveMissingNames = occurrence.activeMissingNames ?? occurrence.effectiveMissingNames ?? [];
+  const resolvedMissingNames = occurrence.resolvedMissingNames ?? [];
+  const rawOnlyNonCandidateNames = occurrence.rawOnlyNonCandidateNames ?? [];
   const finalNames = occurrence.auditedPreferredNames ?? occurrence.finalPrimaryNames ?? [];
 
   return (
-    <article className={["occurrence-audit-card", missing ? "missing" : ""].filter(Boolean).join(" ")}>
+    <article className={["occurrence-audit-card", missing ? "missing" : "", resolvedMissing ? "resolved-missing" : ""].filter(Boolean).join(" ")}>
       <div className="occurrence-audit-head">
         <strong>{occurrence.dateLabel}</strong>
         <span>{occurrence.auditedAt ? `OK: ${formatRelativeTime(occurrence.auditedAt)}` : "nincs OK"}</span>
@@ -452,11 +482,25 @@ function OccurrenceAuditCard({ occurrence }) {
       </div>
       {missing ? (
         <div className="occurrence-missing-note">
-          <strong>Primer nélkül maradó</strong>
+          <strong>Aktív primerjelölt-hiány</strong>
           <span>Hiányzó nevek: {formatNames(effectiveMissingNames, 4)}</span>
           <span>Források: {formatNames(missingSources, 4)}</span>
           <span>Kapcsolódó primer: {formatNames(similarPrimaries, 3)}</span>
           {occurrence.localSelectable ? <span>Helyileg kijelölhető.</span> : null}
+        </div>
+      ) : null}
+      {resolvedMissing ? (
+        <div className="occurrence-missing-note resolved">
+          <strong>Helyben feloldott hiány</strong>
+          <span>Feloldott nevek: {formatNames(resolvedMissingNames, 4)}</span>
+          <span>Források: {formatNames(missingSources, 4)}</span>
+        </div>
+      ) : null}
+      {rawOnlyNonCandidate ? (
+        <div className="occurrence-missing-note raw-only">
+          <strong>Nyers/rejtett, nem primerjelölt</strong>
+          <span>Nevek: {formatNames(rawOnlyNonCandidateNames, 4)}</span>
+          <span>Ez nem aktív primerjelölt-hiány.</span>
         </div>
       ) : null}
     </article>
@@ -688,7 +732,9 @@ function AuditEvidenceSummary({ row, preferredDraft }) {
     ["Normalizált", formatAllNames(row.normalizedNames)],
     ["Rangsor", formatAllNames(row.rankingNames)],
     ["Forrásdrift", formatSourceDriftSummary(row.drift)],
-    ["Primer nélkül maradó", formatAllNames(row.neverPrimaryNames ?? row.effectiveMissingNames)],
+    ["Aktív primerjelölt-hiány", formatAllNames(row.activeMissingNames ?? row.neverPrimaryNames ?? row.effectiveMissingNames)],
+    ["Helyben feloldott hiány", formatAllNames(row.resolvedMissingNames)],
+    ["Nyers/rejtett, nem primerjelölt", formatAllNames(row.rawOnlyNonCandidateNames)],
     ["Utolsó OK", row.auditedAt ? formatRelativeTime(row.auditedAt) : "nincs leokézva"],
   ];
 
@@ -921,6 +967,8 @@ function buildDayStatusItems(row) {
   const normalizedPrimerDiff = getNormalizedPrimerDiff(row);
   const approved = Boolean(row.auditedAt);
   const acceptedDifferenceLabel = (label) => approved ? `Leokézott evidencia: ${label}` : label;
+  const activeMissingNames = row.activeMissingNames ?? row.neverPrimaryNames ?? row.effectiveMissingNames ?? [];
+  const resolvedMissingNames = row.resolvedMissingNames ?? [];
 
   if (!row.auditedAt) {
     items.push({ id: "unaudited", icon: "!", label: "Nincs leokézva", tone: "warning" });
@@ -940,13 +988,23 @@ function buildDayStatusItems(row) {
     items.push({ id: "drift", icon: "Δ", label: formatSourceDriftStatusLabel(row.drift), tone: "info" });
   }
 
-  if (row.flags?.hasMissing) {
+  if (activeMissingNames.length > 0) {
     items.push({
       id: "missing",
       icon: "∅",
-      label: acceptedDifferenceLabel("Primer nélkül maradó név van ezen a napon"),
+      label: acceptedDifferenceLabel(`Aktív primerjelölt-hiány: ${formatNames(activeMissingNames, 5)}`),
       tone: "danger",
       acknowledged: approved,
+    });
+  }
+
+  if (resolvedMissingNames.length > 0) {
+    items.push({
+      id: "resolved-missing",
+      icon: "∅✓",
+      label: `Helyben feloldott primerjelölt-hiány: ${formatNames(resolvedMissingNames, 5)}`,
+      tone: "resolved",
+      acknowledged: true,
     });
   }
 
@@ -1213,7 +1271,7 @@ function buildNameStatusItems(entry) {
   const items = [];
 
   if (flags.hasMissing) {
-    items.push({ id: "missing", icon: "∅", label: "Primer nélkül maradó név érinti", tone: "danger" });
+    items.push({ id: "missing", icon: "∅", label: "Aktív primerjelölt-hiány érinti", tone: "danger" });
   }
 
   if (flags.hasSourceSuggestion) {
@@ -1308,7 +1366,7 @@ function NameAuditSummary({ entry, detail }) {
     ["Auditált primer", detailCounts.auditedPrimary ?? counts.final ?? 0],
     ["Legacy / Wiki", `${detailCounts.legacyPrimary ?? counts.legacy ?? 0} / ${detailCounts.wikiPrimary ?? counts.wiki ?? 0}`],
     ["Normalizált / Rangsor", `${detailCounts.normalizedPrimary ?? counts.normalized ?? 0} / ${detailCounts.rankingPrimary ?? counts.ranking ?? 0}`],
-    ["Primer nélkül maradó", counts.missing ?? 0],
+    ["Aktív primerjelölt-hiány", counts.missing ?? 0],
     ["Helyi / Rejtett", `${counts.local ?? 0} / ${counts.hidden ?? 0}`],
     ["Érintett napok", formatAllNames(days)],
   ];
@@ -1733,7 +1791,7 @@ export function PrimerAuditPage({ request, connected, jobState, lastSocketError 
               { label: "Összes nap", value: summary.summary.rowCount ?? 0 },
               { label: "Nincs leokézva", value: summary.summary.unauditedDayCount ?? 0 },
               { label: "Forrásdrift", value: summary.summary.sourceNameDriftDayCount ?? 0 },
-              { label: "Primer nélkül maradó", value: summary.summary.effectiveMissingCount ?? 0 },
+              { label: "Aktív hiány", value: summary.summary.effectiveMissingCount ?? 0 },
             ]}
           />
         ) : null}

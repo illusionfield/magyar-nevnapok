@@ -32,8 +32,8 @@ export const PRIMER_AUDIT_NAP_SZUROK = [
   },
   {
     azonosito: "primer-nelkul-marado",
-    cimke: "Primer nélkül maradó",
-    leiras: "Legalább egy primer nélkül maradó vagy hiányzó névvel rendelkező napok.",
+    cimke: "Aktív hiány",
+    leiras: "Legalább egy aktív primerjelölt-hiánnyal rendelkező napok.",
   },
   {
     azonosito: "auditalt-drift",
@@ -60,8 +60,8 @@ export const PRIMER_AUDIT_NEV_SZUROK = [
   },
   {
     azonosito: "primer-nelkul-marado",
-    cimke: "Primer nélkül maradó",
-    leiras: "Legalább egy napon hiányzóként jelölt nevek.",
+    cimke: "Aktív hiány",
+    leiras: "Legalább egy napon aktív primerjelölt-hiányként jelölt nevek.",
   },
   {
     azonosito: "auditalt-primer",
@@ -213,6 +213,24 @@ function getFirstNonEmptyDayNames(day, ...keys) {
   }
 
   return fallback;
+}
+
+function namesFromEntries(entries = []) {
+  return uniqueKeepOrder((entries ?? []).map((entry) => entry?.name).filter(Boolean));
+}
+
+function buildNameSet(values = []) {
+  return new Set((values ?? []).map(normalizeNameForMatch).filter(Boolean));
+}
+
+function collectRawOnlyNonCandidateNames({ hiddenNames = [], rawNames = [], normalized = [], ranking = [] } = {}) {
+  const candidateSet = buildNameSet([...normalized, ...ranking]);
+  const hiddenSet = buildNameSet(hiddenNames);
+  const visibleHiddenNames = hiddenNames.length > 0
+    ? hiddenNames
+    : (rawNames ?? []).filter((name) => hiddenSet.has(normalizeNameForMatch(name)));
+
+  return uniqueKeepOrder(visibleHiddenNames).filter((name) => !candidateSet.has(normalizeNameForMatch(name)));
 }
 
 export function hasNormalizedRankingDifference(day) {
@@ -511,6 +529,8 @@ function ensureOccurrence(node, day) {
         local: false,
         manualOverride: day.flags.isManualOverride,
         validationMismatch: day.flags.isValidationMismatch,
+        resolvedMissing: false,
+        rawOnlyNonCandidate: false,
       },
       localSelectable: false,
       similarPrimaries: [],
@@ -562,6 +582,25 @@ function markMissingOccurrence(node, day, entry) {
   occurrence.statusFlags.local ||= entry.localSelected === true;
 }
 
+function markResolvedMissingOccurrence(node, day, entry) {
+  const occurrence = ensureOccurrence(node, day);
+
+  occurrence.statusFlags.resolvedMissing = true;
+  occurrence.statusFlags.local = true;
+  occurrence.localSelectable = true;
+  occurrence.missingSources = uniqueKeepOrder([...(occurrence.missingSources ?? []), ...(entry.sources ?? [])]);
+  occurrence.similarPrimaries = uniqueKeepOrder([
+    ...(occurrence.similarPrimaries ?? []),
+    ...((entry.similarPrimaries ?? []).map((item) => `${item.primaryName} (${item.relation})`) ?? []),
+  ]);
+}
+
+function markRawOnlyNonCandidateOccurrence(node, day) {
+  const occurrence = ensureOccurrence(node, day);
+
+  occurrence.statusFlags.rawOnlyNonCandidate = true;
+}
+
 function finalizeNameNodes(nameMap) {
   return Array.from(nameMap.values())
     .map((node) => {
@@ -577,6 +616,8 @@ function finalizeNameNodes(nameMap) {
             occurrence.statusFlags.local ? "local" : null,
             occurrence.statusFlags.manualOverride ? "manualOverride" : null,
             occurrence.statusFlags.validationMismatch ? "validationMismatch" : null,
+            occurrence.statusFlags.resolvedMissing ? "resolvedMissing" : null,
+            occurrence.statusFlags.rawOnlyNonCandidate ? "rawOnlyNonCandidate" : null,
           ].filter(Boolean),
         }));
 
@@ -683,6 +724,14 @@ export function buildPrimerAuditViewModel(report, options = {}) {
         row.localAddedPreferredNames?.length >= 0
           ? [...(row.localAddedPreferredNames ?? [])]
           : [...(row.sections?.osszefoglalo?.localAddedPreferredNames ?? row.localSelectedNames ?? [])];
+      const activeMissingNames = namesFromEntries(effectiveMissing);
+      const resolvedMissingNames = namesFromEntries(locallyResolvedMissing);
+      const rawOnlyNonCandidateNames = collectRawOnlyNonCandidateNames({
+        hiddenNames: row.hidden ?? row.sections?.forrasok?.hidden ?? [],
+        rawNames: row.rawNames ?? row.sections?.forrasok?.rawNames ?? [],
+        normalized: row.normalized ?? row.sections?.forrasok?.normalized ?? [],
+        ranking: row.ranking ?? row.sections?.forrasok?.ranking ?? [],
+      });
       const counts = {
         final: effectivePreferredNames.length,
         commonFinal: commonPreferredNames.length,
@@ -690,6 +739,7 @@ export function buildPrimerAuditViewModel(report, options = {}) {
         commonMissing:
           row.combinedMissing?.length ?? row.sections?.hianyzok?.combinedMissing?.length ?? 0,
         resolved: locallyResolvedMissing.length,
+        rawOnlyNonCandidate: rawOnlyNonCandidateNames.length,
         local: localAddedPreferredNames.length,
         hidden: row.hidden?.length ?? row.sections?.forrasok?.hidden?.length ?? 0,
         raw: row.rawNames?.length ?? row.sections?.forrasok?.rawNames?.length ?? 0,
@@ -711,8 +761,11 @@ export function buildPrimerAuditViewModel(report, options = {}) {
         effectivePreferredNames,
         effectivePreferredCount: effectivePreferredNames.length,
         effectiveMissing,
+        activeMissingNames,
         locallyResolvedMissing,
+        resolvedMissingNames,
         localAddedPreferredNames,
+        rawOnlyNonCandidateNames,
         counts,
         flags,
         summaryText: formataltNevek(effectivePreferredNames, 4),
@@ -772,6 +825,26 @@ export function buildPrimerAuditViewModel(report, options = {}) {
             }
 
             markMissingOccurrence(node, day, entry);
+          }
+
+          for (const entry of day.locallyResolvedMissing ?? []) {
+            const node = ensureNameNode(nameMap, entry.name);
+
+            if (!node) {
+              continue;
+            }
+
+            markResolvedMissingOccurrence(node, day, entry);
+          }
+
+          for (const name of day.rawOnlyNonCandidateNames ?? []) {
+            const node = ensureNameNode(nameMap, name);
+
+            if (!node) {
+              continue;
+            }
+
+            markRawOnlyNonCandidateOccurrence(node, day);
           }
 
           for (const entry of day.personalEntries ?? day.sections?.szemelyes?.entries ?? []) {
@@ -898,6 +971,9 @@ function dayMatchesQuery(day, query) {
     ...(day.rawNames ?? []),
     ...(day.hidden ?? []),
     ...(day.localSelectedNames ?? []),
+    ...(day.activeMissingNames ?? []),
+    ...(day.resolvedMissingNames ?? []),
+    ...(day.rawOnlyNonCandidateNames ?? []),
     ...(day.combinedMissing ?? []).map((entry) => entry.name),
   ]
     .join(" ")
@@ -987,7 +1063,9 @@ export function buildPrimerAuditOsszegzesSorok(viewModel) {
 
 export function statusCimkekNaphoz(day) {
   return [
-    day.flags.hasMissing ? `hiányzó: ${day.counts.missing}` : null,
+    day.flags.hasMissing ? `aktív hiány: ${day.counts.missing}` : null,
+    day.counts.resolved > 0 ? `feloldott hiány: ${day.counts.resolved}` : null,
+    day.counts.rawOnlyNonCandidate > 0 ? `nyers nem jelölt: ${day.counts.rawOnlyNonCandidate}` : null,
     day.flags.hasLocal ? `helyi: ${day.counts.local}` : null,
     day.flags.isManualOverride ? "kézi" : null,
     day.flags.isValidationMismatch ? "eltérés" : null,
@@ -1008,7 +1086,9 @@ export function statusCimkekNevhez(name) {
 export function formatOccurrenceStatus(occurrence) {
   const statusok = [
     occurrence.statusFlags.final ? "végső" : null,
-    occurrence.statusFlags.missing ? "hiányzó" : null,
+    occurrence.statusFlags.missing ? "aktív hiány" : null,
+    occurrence.statusFlags.resolvedMissing ? "helyben feloldott" : null,
+    occurrence.statusFlags.rawOnlyNonCandidate ? "nyers nem jelölt" : null,
     occurrence.statusFlags.hidden ? "rejtett" : null,
     occurrence.statusFlags.local ? "helyi" : null,
     occurrence.statusFlags.manualOverride ? "kézi" : null,
